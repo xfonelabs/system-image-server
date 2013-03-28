@@ -25,11 +25,29 @@ if __name__ == '__main__':
     if not os.path.exists(args.squashfs):
         parser.error("Squashfs '%s' doesn't exist." % args.squashfs)
 
+    full_images = sorted(glob.glob("%s/*.full.zip" % args.images))
+
+    # Valid delta target
+    targets = set()
+
+    # Always generate a diff from the latest full
+    if len(full_images) > 0:
+        image = full_images[-1]
+        image_version = image.split("/")[-1].split(".")[0].split("-")[1]
+        targets.add(image_version)
+
+        # For updates, also generate from last monthly
+        if not args.version.endswith("00"):
+            for image in sorted(full_images, reverse=True):
+                version = image.split("/")[-1].split(".")[0].split("-")[1]
+                if version.endswith("00"):
+                    targets.add(version)
+
     output = tempfile.mkdtemp()
 
     # Generate diff images
-    for image in sorted(glob.glob("%s/*.full.zip" % args.images)):
-        image_version = image.split("/")[-1].split(".")[0].split("-")[1]
+    for image_version in targets:
+        image = "%s/ubuntu-%s.full.zip" % (args.images, image_version)
         print("Generating update from version '%s' to '%s'" % (image_version,
                                                                args.version))
 
