@@ -1,0 +1,7 @@
+ - Downloaded two images from cdimage
+ - Extracted the rootfs from casper/filesystem.dir in that tar.gz contained
+   in the .zip file
+ - Generated a new YYYYMMXX (XX increment starting 01) using:
+   mksquashfs YYYYMMXX/ YYYYMMXX.squashfs -comp x
+ - Wiped unpacked version
+ - gen-diff.py <first squashfs> <second squashfs> <output squashfs>

@@ -1,0 +1,65 @@
+#!/usr/bin/python3
+import argparse
+import glob
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="generate all the required images")
+
+    parser.add_argument("images", metavar="PATH")
+    parser.add_argument("squashfs", metavar="NEW-SQUASHFS")
+    parser.add_argument("version", metavar="VERSION")
+
+    args = parser.parse_args()
+
+    # Some checks
+    if not os.path.exists(args.images):
+        parser.error("Images directory '%s' doesn't exist." % args.images)
+
+    if not os.path.exists(args.squashfs):
+        parser.error("Squashfs '%s' doesn't exist." % args.squashfs)
+
+    output = tempfile.mkdtemp()
+
+    # Generate diff images
+    for image in sorted(glob.glob("%s/*.full.zip" % args.images)):
+        image_version = image.split("/")[-1].split(".")[0].split("-")[1]
+        print("Generating update from version '%s' to '%s'" % (image_version,
+                                                               args.version))
+
+        temp = tempfile.mkdtemp()
+        if subprocess.call(["unzip", image, "-d", temp]) != 0:
+            sys.stderr.write("Unable to unzip image: %s\n" % image)
+
+        if subprocess.call(["bin/generate-squashfs-diff",
+                            "%s/rootfs.squashfs" % temp,
+                            args.squashfs,
+                            "%s/diff" % output]) != 0:
+            sys.stderr.write("Unable to generate delta: %s\n" % image)
+
+        if subprocess.call(["bin/generate-zip", "partial",
+                            "%s/ubuntu-%s.delta-%s.zip" % (args.images,
+                                                           args.version,
+                                                           image_version),
+                            "%s/diff.squashfs" % output,
+                            "%s/diff.removals" % output]) != 0:
+            sys.stderr.write("Unable to generate zip: %s\n" % image)
+
+        os.remove("%s/diff.squashfs" % output)
+        os.remove("%s/diff.removals" % output)
+
+        shutil.rmtree(temp)
+
+    # Generate full image
+    if subprocess.call(["bin/generate-zip", "full",
+                        "%s/ubuntu-%s.full.zip" % (args.images, args.version),
+                        args.squashfs]) != 0:
+        sys.stderr.write("Unable to generate zip: %s\n" % image)
+
+    shutil.rmtree(output)
