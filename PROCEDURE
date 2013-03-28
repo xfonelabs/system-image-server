@@ -4,4 +4,5 @@
  - Generated a new YYYYMMXX (XX increment starting 01) using:
    mksquashfs YYYYMMXX/ YYYYMMXX.squashfs -comp x
  - Wiped unpacked version
- - gen-diff.py <first squashfs> <second squashfs> <output squashfs>
+ - bin/generate-update images/ YYYYMMXX.squashfs YYYYMMXX
+ - Repeat for all images you want to add
