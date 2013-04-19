@@ -1,76 +1,29 @@
 #!/usr/bin/python3
-import argparse
-import hashlib
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
-import shutil
-import subprocess
 import sys
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from phablet.diff import ImageDiff
+from phablet.tools import mount, umount
+
+import argparse
 import tempfile
-
-
-def compare_files(source, target):
-    if os.path.islink(source) or os.path.islink(target):
-        return os.readlink(source) == os.readlink(target)
-
-    if not os.path.isfile(source) or not os.path.isfile(target):
-        return False
-
-    hash_source = None
-    hash_target = None
-
-    try:
-        with open(source, "rb") as fd_source:
-            hash_source = hashlib.sha1(fd_source.read()).hexdigest()
-    except:
-        sys.stderr.write("Unable to hash: %s\n" % source)
-
-    try:
-        with open(target, "rb") as fd_target:
-            hash_target = hashlib.sha1(fd_target.read()).hexdigest()
-    except:
-        sys.stderr.write("Unable to hash: %s\n" % target)
-
-    return hash_source == hash_target
-
-
-def checksum_content(path):
-    set_content = set()
-    dict_content = {}
-
-    for dirName, subdirList, fileList in os.walk(path):
-        dpath = dirName.replace(path, "")
-
-        set_content.add((dpath, 'dir', None))
-        dict_content[dpath] = ('dir', None)
-        for fname in fileList:
-            fpath = "%s/%s" % (dpath, fname)
-            fhash = None
-
-            if os.path.exists("%s/%s" % (dirName, fname)):
-                fstat = os.stat("%s/%s" % (dirName, fname))
-                fhash = ("%s" % fstat.st_mode,
-                         "%s" % fstat.st_uid,
-                         "%s" % fstat.st_gid,
-                         "%s" % fstat.st_size,
-                         "%s" % fstat.st_ctime,
-                         "%s" % fstat.st_mtime)
-
-            set_content.add((fpath, 'file', fhash))
-            dict_content[fpath] = ('file', fhash)
-
-    return (set_content, dict_content)
-
-
-def mount_squashfs(squashfs, path):
-    if subprocess.call(['mount', '-o', 'loop,ro', squashfs, path]) != 0:
-        raise Exception("Failed to mount squashfs '%s' on '%s'" %
-                        (squashfs, path))
-
-
-def umount(path):
-    if subprocess.call(['umount', path]) != 0:
-        raise Exception("Failed to umount '%s'" % path)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="squashfs diff generator")
@@ -93,79 +46,17 @@ if __name__ == '__main__':
     # Mount the two squashfs
     source = tempfile.mkdtemp()
     target = tempfile.mkdtemp()
-    mount_squashfs(args.source, source)
-    mount_squashfs(args.target, target)
+    mount(args.source, source, ('ro', 'loop'))
+    mount(args.target, target, ('ro', 'loop'))
 
-    (set_source, dict_source) = checksum_content(source)
-    (set_target, dict_target) = checksum_content(target)
-
-    # Find the changes in the two trees
-    changes = set()
-    for change in set_source.symmetric_difference(set_target):
-        if change[0] not in dict_source:
-            changetype = "add"
-        elif change[0] not in dict_target:
-            changetype = "del"
-        else:
-            changetype = "mod"
-        changes.add((change[0], changetype))
+    imagediff = ImageDiff(source, target)
 
     # Do something with the changes
     if not hasattr(args, "output") or not args.output:
-        # Print a list of the changes
-        for change in sorted(changes):
-            # Ignore files that only vary in ctime/mtime
-            if change[1] == "mod":
-                fstat_source = dict_source[change[0]][1]
-                fstat_target = dict_target[change[0]][1]
-                if (fstat_source[0:4] == fstat_target[0:4] and
-                        compare_files("%s/%s" % (source, change[0]),
-                                      "%s/%s" % (target, change[0]))):
-                    continue
-
-            print(" - %s (%s)" % (change[0], change[1]))
+        imagediff.print_changes()
     else:
-        # Generate the list of removals
-        with open("%s.removals" % args.output, "w+") as fd:
-            for change in sorted(changes):
-                if change[1] != "del":
-                    continue
-
-                fd.write("%s\n" % change[0])
-
-        output = tempfile.mkdtemp()
-
-        # Copy all the added and modified
-        for change in sorted(changes):
-            if change[1] == "del":
-                continue
-
-            # Ignore files that only vary in ctime/mtime
-            if change[1] == "mod":
-                fstat_source = dict_source[change[0]][1]
-                fstat_target = dict_target[change[0]][1]
-                if (fstat_source[0:4] == fstat_target[0:4] and
-                        compare_files("%s/%s" % (source, change[0]),
-                                      "%s/%s" % (target, change[0]))):
-                    continue
-
-            ftarget = "%s/%s" % (target, change[0])
-            fdestination = "%s/%s" % (output, change[0])
-
-            fparent = "/".join(change[0].split("/")[0:-1])
-            if not os.path.exists("%s/%s" % (output, fparent)):
-                os.makedirs("%s/%s" % (output, fparent))
-
-            if subprocess.call(["cp", "-aR", ftarget, fdestination]) != 0:
-                sys.stderr.write("Failed to copy: %s\n" % ftarget)
-
-        # Generate a squashfs
-        if subprocess.call(["mksquashfs", output, "%s.squashfs" % args.output,
-                            "-comp", "xz"]) != 0:
-            sys.stderr.write("Failed to generate the squashfs: %s\n" %
-                             "%s.squashfs" % args.output)
-
-        shutil.rmtree(output)
+        imagediff.generate_removal_list("%s.removals" % args.output)
+        imagediff.generate_diff_squashfs("%s.squashfs" % args.output)
 
     # Cleanup
     umount(source)
