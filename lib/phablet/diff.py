@@ -59,7 +59,7 @@ def list_directory(path):
         Walk through a directory and generate a list of the content.
 
         Returns a tuple containing a set and a dict.
-        The set is typically use for simple diffs between directories.
+        The set is typically used for simple diffs between directories.
         The dict is used to easily grab the details of a specific entry.
     """
 
