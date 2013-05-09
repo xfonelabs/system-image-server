@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (C) 2013 Canonical Ltd.
 # Author: Stéphane Graber <stgraber@ubuntu.com>
 

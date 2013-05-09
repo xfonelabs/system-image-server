@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 # Copyright (C) 2013 Canonical Ltd.
 # Author: Stéphane Graber <stgraber@ubuntu.com>
@@ -28,8 +29,8 @@ import tempfile
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="squashfs diff generator")
 
-    parser.add_argument("source", metavar="SOURCE-SQUASHFS")
-    parser.add_argument("target", metavar="TARGET-SQUASHFS")
+    parser.add_argument("source", metavar="SOURCE-TARBALL")
+    parser.add_argument("target", metavar="TARGET-TARBALL")
     parser.add_argument("output", metavar="OUTPUT-PREFIX", nargs="?",
                         help="Output a squashfs with the diff along with "
                              "a file listing all removals.")
@@ -38,28 +39,15 @@ if __name__ == '__main__':
 
     # Some checks
     if not os.path.exists(args.source):
-        parser.error("Source squashfs '%s' doesn't exist." % args.source)
+        parser.error("Source tarball '%s' doesn't exist." % args.source)
 
     if not os.path.exists(args.target):
-        parser.error("Target squashfs '%s' doesn't exist." % args.target)
+        parser.error("Target tarball '%s' doesn't exist." % args.target)
 
-    # Mount the two squashfs
-    source = tempfile.mkdtemp()
-    target = tempfile.mkdtemp()
-    mount(args.source, source, ('ro', 'loop'))
-    mount(args.target, target, ('ro', 'loop'))
-
-    imagediff = ImageDiff(source, target)
+    imagediff = ImageDiff(args.source, args.target)
 
     # Do something with the changes
     if not hasattr(args, "output") or not args.output:
         imagediff.print_changes()
     else:
-        imagediff.generate_removal_list("%s.removals" % args.output)
-        imagediff.generate_diff_squashfs("%s.squashfs" % args.output)
-
-    # Cleanup
-    umount(source)
-    umount(target)
-    os.rmdir(source)
-    os.rmdir(target)
+        imagediff.generate_diff_tarball(args.output)

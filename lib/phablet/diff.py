@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (C) 2013 Canonical Ltd.
 # Author: Stéphane Graber <stgraber@ubuntu.com>
 
@@ -18,6 +20,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 
 
@@ -54,38 +57,34 @@ def compare_files(source, target):
     return hash_source == hash_target
 
 
-def list_directory(path):
+def list_tarfile(tarfile):
     """
-        Walk through a directory and generate a list of the content.
+        Walk through a tarfile and generate a list of the content.
 
         Returns a tuple containing a set and a dict.
-        The set is typically used for simple diffs between directories.
+        The set is typically used for simple diffs between tarballs.
         The dict is used to easily grab the details of a specific entry.
     """
 
     set_content = set()
     dict_content = {}
 
-    for dirName, subdirList, fileList in os.walk(path):
-        dpath = dirName.replace(path, "")
+    for entry in tarfile:
+        if entry.isdir():
+            set_content.add((entry.path, 'dir', None))
+            dict_content[entry.path] = ('dir', None)
+        else:
+            fhash = ("%s" % entry.mode,
+                     "%s" % entry.devmajor,
+                     "%s" % entry.devminor,
+                     "%s" % entry.type,
+                     "%s" % entry.uid,
+                     "%s" % entry.gid,
+                     "%s" % entry.size,
+                     "%s" % entry.mtime)
 
-        set_content.add((dpath, 'dir', None))
-        dict_content[dpath] = ('dir', None)
-        for fname in fileList:
-            fpath = "%s/%s" % (dpath, fname)
-            fhash = None
-
-            if os.path.exists("%s/%s" % (dirName, fname)):
-                fstat = os.stat("%s/%s" % (dirName, fname))
-                fhash = ("%s" % fstat.st_mode,
-                         "%s" % fstat.st_uid,
-                         "%s" % fstat.st_gid,
-                         "%s" % fstat.st_size,
-                         "%s" % fstat.st_ctime,
-                         "%s" % fstat.st_mtime)
-
-            set_content.add((fpath, 'file', fhash))
-            dict_content[fpath] = ('file', fhash)
+            set_content.add((entry.path, 'file', fhash))
+            dict_content[entry.path] = ('file', fhash)
 
     return (set_content, dict_content)
 
@@ -96,14 +95,8 @@ class ImageDiff:
     diff = None
 
     def __init__(self, source, target):
-        if not os.path.isdir(source):
-            raise TypeError("source isn't a valid directory.")
-
-        if not os.path.isdir(target):
-            raise TypeError("destination isn't a valid directory.")
-
-        self.source_path = source
-        self.target_path = target
+        self.source_file = tarfile.open(source)
+        self.target_file = tarfile.open(target)
 
     def scan_content(self, image):
         """
@@ -114,9 +107,9 @@ class ImageDiff:
         if image not in ("source", "target"):
             raise KeyError("Invalid image '%s'." % image)
 
-        image_path = getattr(self, "%s_path" % image)
+        image_file = getattr(self, "%s_file" % image)
 
-        content = list_directory(image_path)
+        content = list_tarfile(image_file)
 
         setattr(self, "%s_content" % image, content)
         return content
@@ -146,18 +139,46 @@ class ImageDiff:
                 changetype = "mod"
             changes.add((change[0], changetype))
 
-        # Ignore files that only vary in ctime/mtime
+        # Unpack both tarballs to allow for quick checksuming
+        unpack_source = tempfile.mkdtemp()
+        unpack_target = tempfile.mkdtemp()
+        with open("/dev/null", "a") as devnull:
+            subprocess.call(["tar", "Jxf", self.source_file.name, "-C",
+                             unpack_source],
+                            stdout=devnull,
+                            stderr=devnull)
+        with open("/dev/null", "a") as devnull:
+            subprocess.call(["tar", "Jxf", self.target_file.name, "-C",
+                             unpack_target],
+                            stdout=devnull,
+                            stderr=devnull)
+
+        # Ignore files that only vary in mtime
         # (separate loop to run after de-dupe)
         for change in sorted(changes):
             if change[1] == "mod":
                 fstat_source = self.source_content[1][change[0]][1]
                 fstat_target = self.target_content[1][change[0]][1]
-                if (fstat_source[0:4] == fstat_target[0:4] and
-                        compare_files("%s/%s" % (self.source_path,
-                                                 change[0]),
-                                      "%s/%s" % (self.target_path,
-                                                 change[0]))):
-                    changes.remove(change)
+                if fstat_source[0:7] == fstat_target[0:7]:
+                    source_file = self.source_file.getmember(change[0])
+                    target_file = self.target_file.getmember(change[0])
+
+                    if (source_file.linkpath
+                            and source_file.linkpath == target_file.linkpath):
+                        changes.remove(change)
+                        continue
+
+                    if (source_file.isfile() and target_file.isfile()
+                            and compare_files("%s/%s" %
+                                              (unpack_source, change[0]),
+                                              "%s/%s" %
+                                              (unpack_target, change[0]))):
+                        changes.remove(change)
+                        continue
+
+        # Cleanup
+        shutil.rmtree(unpack_source)
+        shutil.rmtree(unpack_target)
 
         self.diff = changes
         return changes
@@ -188,34 +209,37 @@ class ImageDiff:
 
                 fd.write("%s\n" % change[0])
 
-    def generate_diff_squashfs(self, path):
+    def generate_diff_tarball(self, path):
         """
-            Generate a squashfs image containing all files that are
-            different between the source and target iamge.
+            Generate a tarball containing all files that are
+            different between the source and target iamge as well
+            as a file listing all removals.
         """
 
         if not self.diff:
             self.compare_images()
 
-        output = tempfile.mkdtemp()
+        output = tarfile.open(path, "w")
+
+        # Add removal list
+        removal_list = tempfile.mktemp()
+        self.generate_removal_list(removal_list)
+        output.add(removal_list, arcname="removed")
 
         # Copy all the added and modified
         for change in sorted(self.diff):
             if change[1] == "del":
                 continue
 
-            ftarget = "%s/%s" % (self.target_path, change[0])
-            fdestination = "%s/%s" % (output, change[0])
+            newfile = self.target_file.getmember(change[0])
+            print("adding: %s" % newfile)
+            if newfile.isfile():
+                output.addfile(newfile,
+                               fileobj=self.target_file.extract(change[0]))
+            else:
+                output.addfile(newfile)
 
-            fparent = "/".join(change[0].split("/")[0:-1])
-            if not os.path.exists("%s/%s" % (output, fparent)):
-                os.makedirs("%s/%s" % (output, fparent))
+        output.close()
 
-            if subprocess.call(["cp", "-aR", ftarget, fdestination]) != 0:
-                sys.stderr.write("Failed to copy: %s\n" % ftarget)
-
-        # Generate a squashfs
-        if subprocess.call(["mksquashfs", output, path, "-comp", "xz"]) != 0:
-            sys.stderr.write("Failed to generate the squashfs: %s\n" % path)
-
-        shutil.rmtree(output)
+        # Cleanup
+        os.remove(removal_list)
