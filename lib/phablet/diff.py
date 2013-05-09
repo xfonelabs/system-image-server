@@ -23,6 +23,8 @@ import sys
 import tarfile
 import tempfile
 
+from contextlib import ExitStack
+
 
 def compare_files(source, target):
     """
@@ -95,8 +97,8 @@ class ImageDiff:
     diff = None
 
     def __init__(self, source, target):
-        self.source_file = tarfile.open(source)
-        self.target_file = tarfile.open(target)
+        self.source_file = tarfile.open(source, 'r:')
+        self.target_file = tarfile.open(target, 'r:')
 
     def scan_content(self, image):
         """
@@ -219,27 +221,31 @@ class ImageDiff:
         if not self.diff:
             self.compare_images()
 
-        output = tarfile.open(path, "w")
+        with ExitStack() as stack:
+            output = stack.enter_context(tarfile.open(path, 'w:'))
 
-        # Add removal list
-        removal_list = tempfile.mktemp()
-        self.generate_removal_list(removal_list)
-        output.add(removal_list, arcname="removed")
+            fd, removal_list = tempfile.mkstemp()
+            os.close(fd)
+            # Remove the temporary file when the 'with' exits.
+            stack.callback(os.remove, removal_list)
+            self.generate_removal_list(removal_list)
+            output.add(removal_list, arcname='removed')
 
-        # Copy all the added and modified
-        for change in sorted(self.diff):
-            if change[1] == "del":
-                continue
+            # Copy all the added and modified
+            for name, action in sorted(self.diff):
+                if action == 'del':
+                    continue
 
-            newfile = self.target_file.getmember(change[0])
-            print("adding: %s" % newfile)
-            if newfile.isfile():
-                output.addfile(newfile,
-                               fileobj=self.target_file.extract(change[0]))
-            else:
-                output.addfile(newfile)
+                newfile = self.target_file.getmember(name)
+                if newfile.islnk():
+                    targetfile = self.target_file.getmember(newfile.linkname)
+                    fileptr = self.target_file.extractfile(newfile)
+                    output.addfile(targetfile, fileptr)
 
-        output.close()
-
-        # Cleanup
-        os.remove(removal_list)
+                try:
+                    fileptr = self.target_file.extractfile(name)
+                except KeyError:
+                    # The file pointed to by the symlink doesn't exist in the
+                    # tarfile, so ignore the file pointer.
+                    fileptr = None
+                output.addfile(newfile, fileobj=fileptr)
