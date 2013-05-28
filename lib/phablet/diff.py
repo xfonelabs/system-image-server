@@ -143,12 +143,12 @@ class ImageDiff:
         unpack_source = tempfile.mkdtemp()
         unpack_target = tempfile.mkdtemp()
         with open("/dev/null", "a") as devnull:
-            subprocess.call(["tar", "Jxf", self.source_file.name, "-C",
+            subprocess.call(["tar", "xf", self.source_file.name, "-C",
                              unpack_source],
                             stdout=devnull,
                             stderr=devnull)
         with open("/dev/null", "a") as devnull:
-            subprocess.call(["tar", "Jxf", self.target_file.name, "-C",
+            subprocess.call(["tar", "xf", self.target_file.name, "-C",
                              unpack_target],
                             stdout=devnull,
                             stderr=devnull)
