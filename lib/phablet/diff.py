@@ -23,6 +23,8 @@ import sys
 import tarfile
 import tempfile
 
+from io import BytesIO
+
 
 def compare_files(source, target):
     """
@@ -194,21 +196,6 @@ class ImageDiff:
         for change in sorted(self.diff):
             print(" - %s (%s)" % (change[0], change[1]))
 
-    def generate_removal_list(self, path):
-        """
-            Generate a file containing the list of removed files.
-        """
-
-        if not self.diff:
-            self.compare_images()
-
-        with open(path, "w+") as fd:
-            for change in sorted(self.diff):
-                if change[1] != "del":
-                    continue
-
-                fd.write("%s\n" % change[0])
-
     def generate_diff_tarball(self, path):
         """
             Generate a tarball containing all files that are
@@ -221,23 +208,39 @@ class ImageDiff:
 
         output = tarfile.open(path, 'w:')
 
-        fd, removal_list = tempfile.mkstemp()
-        os.close(fd)
+        removed_files_list = [entry[0] for entry in self.diff
+                              if entry[1] == "del"]
+        removed_files = "\n".join(removed_files_list)
+        removed_files = removed_files.encode('utf-8')
 
-        self.generate_removal_list(removal_list)
-        output.add(removal_list, arcname='removed')
-        os.remove(removal_list)
+        removals = tarfile.TarInfo()
+        removals.name = "removed"
+        removals.size = len(removed_files)
+
+        output.addfile(removals, BytesIO(removed_files))
 
         # Copy all the added and modified
+        added = []
         for name, action in sorted(self.diff):
             if action == 'del':
                 continue
 
+            if name in added:
+                continue
+
             newfile = self.target_file.getmember(name)
             if newfile.islnk():
-                targetfile = self.target_file.getmember(newfile.linkname)
-                fileptr = self.target_file.extractfile(newfile)
-                output.addfile(targetfile, fileptr)
+                targetfile_path = os.path.normpath(os.path.join(
+                    os.path.dirname(newfile.name), newfile.linkname))
+
+                targetfile = self.target_file.getmember(targetfile_path)
+
+                if ((targetfile_path, 'add') in self.diff or
+                        (targetfile_path, 'mod') in self.diff) and \
+                        targetfile_path not in added:
+                    fileptr = self.target_file.extractfile(targetfile)
+                    output.addfile(targetfile, fileptr)
+                    added.append(targetfile.name)
 
             try:
                 fileptr = self.target_file.extractfile(name)
@@ -246,5 +249,6 @@ class ImageDiff:
                 # tarfile, so ignore the file pointer.
                 fileptr = None
             output.addfile(newfile, fileobj=fileptr)
+            added.append(newfile.name)
 
         output.close()
