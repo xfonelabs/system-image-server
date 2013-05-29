@@ -1,16 +1,19 @@
-from phablet.diff import ImageDiff
+import os
+import sys
 import tarfile
 import tempfile
-from io import BytesIO
 import unittest
-import os
 
+from io import BytesIO, StringIO
+from phablet.diff import ImageDiff
 
 class DiffTests(unittest.TestCase):
     def setUp(self):
         fd, source_tarball_path = tempfile.mkstemp()
         os.close(fd)
         fd, target_tarball_path = tempfile.mkstemp()
+        os.close(fd)
+        fd, output_tarball_path = tempfile.mkstemp()
         os.close(fd)
 
         source_tarball = tarfile.open(source_tarball_path, "w")
@@ -59,10 +62,12 @@ class DiffTests(unittest.TestCase):
         self.imagediff = ImageDiff(source_tarball_path, target_tarball_path)
         self.source_tarball_path = source_tarball_path
         self.target_tarball_path = target_tarball_path
+        self.output_tarball_path = output_tarball_path
 
     def tearDown(self):
         os.remove(self.source_tarball_path)
         os.remove(self.target_tarball_path)
+        os.remove(self.output_tarball_path)
 
     def test_content(self):
         content_set, content_dict = self.imagediff.scan_content("source")
@@ -78,4 +83,30 @@ class DiffTests(unittest.TestCase):
 
     def test_compare(self):
         self.imagediff.compare_images()
+
+        # Redirect stdout
+        old_stdout = sys.stdout
+
+        #FIXME: Would be best to have something that works with both version
+        if sys.version[0] == "3":
+            sys.stdout = StringIO()
+        else:
+            sys.stdout = BytesIO()
+
         self.imagediff.print_changes()
+
+        # Unredirect stdout
+        output = sys.stdout.getvalue()
+        sys.stdout = old_stdout
+
+        self.assertEquals(output, """ - b (del)
+ - c/c (add)
+ - c/d (mod)
+""")
+
+    def test_generate_tarball(self):
+        self.imagediff.generate_diff_tarball(self.output_tarball_path)
+        tarball = tarfile.open(self.output_tarball_path, "r")
+
+        files_list = [entry.name for entry in tarball]
+        self.assertEquals(files_list, ['removed', 'c/c', 'c/d'])
