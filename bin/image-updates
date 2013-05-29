@@ -24,7 +24,6 @@ from phablet.diff import ImageDiff
 from phablet.tools import mount, umount
 
 import argparse
-import tempfile
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="squashfs diff generator")
