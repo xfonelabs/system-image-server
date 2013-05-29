@@ -1,7 +1,7 @@
 from phablet.diff import ImageDiff
 import tarfile
 import tempfile
-from io import StringIO
+from io import BytesIO
 import unittest
 import os
 
@@ -43,15 +43,15 @@ class DiffTests(unittest.TestCase):
         d_target.size = 8
         d_target.mtime = 1234
 
-        source_tarball.addfile(a, StringIO(u"test"))
-        source_tarball.addfile(b, StringIO(u"test"))
-        source_tarball.addfile(c_dir, StringIO(u"test"))
-        source_tarball.addfile(d_source, StringIO(u"test-abc"))
+        source_tarball.addfile(a, BytesIO(b"test"))
+        source_tarball.addfile(b, BytesIO(b"test"))
+        source_tarball.addfile(c_dir, BytesIO(b"test"))
+        source_tarball.addfile(d_source, BytesIO(b"test-abc"))
 
-        target_tarball.addfile(a, StringIO(u"test"))
-        target_tarball.addfile(c_dir, StringIO(u"test"))
-        target_tarball.addfile(c, StringIO(u"test"))
-        target_tarball.addfile(d_target, StringIO(u"test-def"))
+        target_tarball.addfile(a, BytesIO(b"test"))
+        target_tarball.addfile(c_dir, BytesIO(b"test"))
+        target_tarball.addfile(c, BytesIO(b"test"))
+        target_tarball.addfile(d_target, BytesIO(b"test-def"))
 
         source_tarball.close()
         target_tarball.close()
