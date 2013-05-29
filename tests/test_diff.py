@@ -61,9 +61,8 @@ class DiffTests(unittest.TestCase):
         self.target_tarball_path = target_tarball_path
 
     def tearDown(self):
-#        os.remove(self.source_tarball_path)
-#        os.remove(self.target_tarball_path)
-        pass
+        os.remove(self.source_tarball_path)
+        os.remove(self.target_tarball_path)
 
     def test_content(self):
         content_set, content_dict = self.imagediff.scan_content("source")
