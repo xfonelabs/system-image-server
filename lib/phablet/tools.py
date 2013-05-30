@@ -15,17 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import subprocess
+from io import BytesIO
+import tarfile
+import time
 
 
-def mount(source, destination, options=("default",)):
-    if subprocess.call(['mount',
-                        '-o', ",".join(options),
-                        source, destination]) != 0:
-        raise Exception("Failed to mount '%s' on '%s' (options=%s)" %
-                        (source, destination, ",".join(options)))
+def generate_version_tarball(path, version, in_path="system/etc/ubuntu-build"):
+    tarball = tarfile.open(path, 'w:')
 
+    version_file = tarfile.TarInfo()
+    version_file.size = len(version)
+    version_file.mtime = int(time.strftime("%s", time.gmtime()))
+    version_file.name = in_path
 
-def umount(path):
-    if subprocess.call(['umount', path]) != 0:
-        raise Exception("Failed to umount '%s'" % path)
+    tarball.addfile(version_file, BytesIO(version.encode('utf-8')))
+
+    tarball.close()
