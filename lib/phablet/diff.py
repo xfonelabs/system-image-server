@@ -35,9 +35,20 @@ def compare_files(source, target):
         Returns None if the files can't be compared.
     """
 
-    if os.path.islink(source) or os.path.islink(target):
-        return os.readlink(source) == os.readlink(target)
+    # Check if source is a symlink
+    if os.path.islink(source):
+        # Check if target is too, if it's and they match, then return True
+        if os.path.islink(target) and \
+           os.readlink(source) == os.readlink(target):
+            return True
+        else:
+            return False
 
+    # If target is a symlink, then source isn't, return False
+    if os.path.islink(target):
+        return False
+
+    # Check for files we can't possibly diff
     if not os.path.isfile(source) or not os.path.isfile(target):
         return None
 
