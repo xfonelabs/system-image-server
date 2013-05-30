@@ -1,20 +1,19 @@
 import os
+import shutil
 import sys
 import tarfile
 import tempfile
 import unittest
 
 from io import BytesIO, StringIO
-from phablet.diff import ImageDiff
+from phablet.diff import ImageDiff, compare_files
 
 class DiffTests(unittest.TestCase):
     def setUp(self):
-        fd, source_tarball_path = tempfile.mkstemp()
-        os.close(fd)
-        fd, target_tarball_path = tempfile.mkstemp()
-        os.close(fd)
-        fd, output_tarball_path = tempfile.mkstemp()
-        os.close(fd)
+        temp_directory = tempfile.mkdtemp()
+
+        source_tarball_path = "%s/source.tar" % temp_directory
+        target_tarball_path = "%s/target.tar" % temp_directory
 
         source_tarball = tarfile.open(source_tarball_path, "w")
         target_tarball = tarfile.open(target_tarball_path, "w")
@@ -126,12 +125,10 @@ class DiffTests(unittest.TestCase):
         self.imagediff = ImageDiff(source_tarball_path, target_tarball_path)
         self.source_tarball_path = source_tarball_path
         self.target_tarball_path = target_tarball_path
-        self.output_tarball_path = output_tarball_path
+        self.temp_directory = temp_directory
 
     def tearDown(self):
-        os.remove(self.source_tarball_path)
-        os.remove(self.target_tarball_path)
-        os.remove(self.output_tarball_path)
+        shutil.rmtree(self.temp_directory)
 
     def test_content(self):
         content_set, content_dict = self.imagediff.scan_content("source")
@@ -146,8 +143,41 @@ class DiffTests(unittest.TestCase):
     def test_content_invalid_image(self):
         self.assertRaises(KeyError, self.imagediff.scan_content, "invalid")
 
-    def test_compare(self):
-        diff_set = self.imagediff.compare_images()
+    def test_compare_files(self):
+        missing_file = "%s/missing" % self.temp_directory
+        self.assertEquals(compare_files(missing_file, missing_file), None)
+
+        same_symlink = "%s/symlink" % self.temp_directory
+        os.symlink("/a/b/c", same_symlink)
+        self.assertEquals(compare_files(same_symlink, same_symlink), True)
+
+        # Redirect output
+        old_stderr = sys.stderr
+        if sys.version[0] == "3":
+            sys.stderr = StringIO()
+        else:
+            sys.stderr = BytesIO()
+
+        good_file = "%s/good-file" % self.temp_directory
+        open(good_file, "w+").close()
+        unreadable_file = "%s/unreadable-file" % self.temp_directory
+        open(unreadable_file, "w+").close()
+        os.chmod(unreadable_file, 0o000)
+        self.assertEquals(compare_files(unreadable_file, good_file), False)
+        self.assertEquals(compare_files(good_file, unreadable_file), False)
+
+        # Unredirect output
+        output = sys.stderr.getvalue()
+        sys.stderr = old_stderr
+
+        self.assertEquals("Unable to hash: %s\nUnable to hash: %s\n" %
+                          (unreadable_file, unreadable_file), output)
+
+        self.assertEquals(compare_files(same_symlink, good_file), False)
+        self.assertEquals(compare_files(good_file, same_symlink), False)
+
+    def test_compare_image(self):
+        self.imagediff.compare_images()
 
     def test_print_changes(self):
         # Redirect stdout
@@ -175,8 +205,10 @@ class DiffTests(unittest.TestCase):
 """)
 
     def test_generate_tarball(self):
-        self.imagediff.generate_diff_tarball(self.output_tarball_path)
-        tarball = tarfile.open(self.output_tarball_path, "r")
+        output_tarball = "%s/output.tar" % self.temp_directory
+
+        self.imagediff.generate_diff_tarball(output_tarball)
+        tarball = tarfile.open(output_tarball, "r")
 
         files_list = [entry.name for entry in tarball]
         self.assertEquals(files_list, ['removed', 'c/c', 'c/a_i', 'c/d', 'c/j',
