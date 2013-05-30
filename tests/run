@@ -34,4 +34,4 @@ if coverage:
         shutil.rmtree('tests/coverage')
     cov.stop()
     cov.html_report(include=glob.glob("lib/phablet/*.py"),
-                                      directory='tests/coverage')
+                    directory='tests/coverage')

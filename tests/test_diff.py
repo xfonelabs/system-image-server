@@ -8,6 +8,7 @@ import unittest
 from io import BytesIO, StringIO
 from phablet.diff import ImageDiff, compare_files
 
+
 class DiffTests(unittest.TestCase):
     def setUp(self):
         temp_directory = tempfile.mkdtemp()
@@ -177,7 +178,8 @@ class DiffTests(unittest.TestCase):
         self.assertEquals(compare_files(good_file, same_symlink), False)
 
     def test_compare_image(self):
-        self.imagediff.compare_images()
+        diff_set = self.imagediff.compare_images()
+        self.assertTrue(("c/a_i", "add") in diff_set)
 
     def test_print_changes(self):
         # Redirect stdout
