@@ -15,18 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import hashlib
 import os
-import shutil
-import subprocess
-import sys
 import tarfile
-import tempfile
 
 from io import BytesIO
 
 
-def compare_files(source, target):
+def compare_files(fd_source, fd_target):
     """
         Compare two files.
 
@@ -35,39 +30,13 @@ def compare_files(source, target):
         Returns None if the files can't be compared.
     """
 
-    # Check if source is a symlink
-    if os.path.islink(source):
-        # Check if target is too, if it's and they match, then return True
-        if os.path.islink(target) and \
-           os.readlink(source) == os.readlink(target):
-            return True
-        else:
-            return False
+    if fd_source == fd_target:
+        return True
 
-    # If target is a symlink, then source isn't, return False
-    if os.path.islink(target):
+    if not fd_source or not fd_target:
         return False
 
-    # Check for files we can't possibly diff
-    if not os.path.isfile(source) or not os.path.isfile(target):
-        return None
-
-    hash_source = None
-    hash_target = None
-
-    try:
-        with open(source, "rb") as fd_source:
-            hash_source = hashlib.sha1(fd_source.read()).hexdigest()
-    except:
-        sys.stderr.write("Unable to hash: %s\n" % source)
-
-    try:
-        with open(target, "rb") as fd_target:
-            hash_target = hashlib.sha1(fd_target.read()).hexdigest()
-    except:
-        sys.stderr.write("Unable to hash: %s\n" % target)
-
-    return hash_source == hash_target
+    return fd_source.read() == fd_target.read()
 
 
 def list_tarfile(tarfile):
@@ -152,20 +121,6 @@ class ImageDiff:
                 changetype = "mod"
             changes.add((change[0], changetype))
 
-        # Unpack both tarballs to allow for quick checksuming
-        unpack_source = tempfile.mkdtemp()
-        unpack_target = tempfile.mkdtemp()
-        with open("/dev/null", "a") as devnull:
-            subprocess.call(["tar", "xf", self.source_file.name, "-C",
-                             unpack_source],
-                            stdout=devnull,
-                            stderr=devnull)
-        with open("/dev/null", "a") as devnull:
-            subprocess.call(["tar", "xf", self.target_file.name, "-C",
-                             unpack_target],
-                            stdout=devnull,
-                            stderr=devnull)
-
         # Ignore files that only vary in mtime
         # (separate loop to run after de-dupe)
         for change in sorted(changes):
@@ -182,16 +137,11 @@ class ImageDiff:
                         continue
 
                     if (source_file.isfile() and target_file.isfile()
-                            and compare_files("%s/%s" %
-                                              (unpack_source, change[0]),
-                                              "%s/%s" %
-                                              (unpack_target, change[0]))):
+                            and compare_files(
+                                self.source_file.extractfile(change[0]),
+                                self.target_file.extractfile(change[0]))):
                         changes.remove(change)
                         continue
-
-        # Cleanup
-        shutil.rmtree(unpack_source)
-        shutil.rmtree(unpack_target)
 
         self.diff = changes
         return changes

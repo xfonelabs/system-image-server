@@ -145,37 +145,8 @@ class DiffTests(unittest.TestCase):
         self.assertRaises(KeyError, self.imagediff.scan_content, "invalid")
 
     def test_compare_files(self):
-        missing_file = "%s/missing" % self.temp_directory
-        self.assertEquals(compare_files(missing_file, missing_file), None)
-
-        same_symlink = "%s/symlink" % self.temp_directory
-        os.symlink("/a/b/c", same_symlink)
-        self.assertEquals(compare_files(same_symlink, same_symlink), True)
-
-        # Redirect output
-        old_stderr = sys.stderr
-        if sys.version[0] == "3":
-            sys.stderr = StringIO()
-        else:
-            sys.stderr = BytesIO()
-
-        good_file = "%s/good-file" % self.temp_directory
-        open(good_file, "w+").close()
-        unreadable_file = "%s/unreadable-file" % self.temp_directory
-        open(unreadable_file, "w+").close()
-        os.chmod(unreadable_file, 0o000)
-        self.assertEquals(compare_files(unreadable_file, good_file), False)
-        self.assertEquals(compare_files(good_file, unreadable_file), False)
-
-        # Unredirect output
-        output = sys.stderr.getvalue()
-        sys.stderr = old_stderr
-
-        self.assertEquals("Unable to hash: %s\nUnable to hash: %s\n" %
-                          (unreadable_file, unreadable_file), output)
-
-        self.assertEquals(compare_files(same_symlink, good_file), False)
-        self.assertEquals(compare_files(good_file, same_symlink), False)
+        self.assertEquals(compare_files(None, None), True)
+        self.assertEquals(compare_files(None, BytesIO(b"abc")), False)
 
     def test_compare_image(self):
         diff_set = self.imagediff.compare_images()

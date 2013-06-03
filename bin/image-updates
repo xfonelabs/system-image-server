@@ -21,7 +21,6 @@ import sys
 sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 
 from phablet.diff import ImageDiff
-from phablet.tools import mount, umount
 
 import argparse
 
