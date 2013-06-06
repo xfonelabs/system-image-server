@@ -1,3 +1,4 @@
+import glob
 import os
 import shutil
 import tarfile
@@ -49,3 +50,42 @@ class DiffTests(unittest.TestCase):
         self.assertRaises(Exception, tools.xz_compress, test_file)
         self.assertRaises(Exception, tools.xz_uncompress, "%s.xz" % test_file)
         self.assertRaises(Exception, tools.xz_uncompress, test_file)
+
+    def test_sign_file(self):
+        if not os.path.isdir("gpg/keys/signing"):
+            print("Missing signing key, can't proceed")
+            return
+
+        test_string = "test-string"
+
+        test_file = "%s/test.txt" % self.temp_directory
+        with open(test_file, "w+") as fd:
+            fd.write(test_string)
+
+        # Detached armored signature
+        [os.remove(path) for path in glob.glob("%s.*" % test_file)]
+        self.assertTrue(tools.sign_file("signing", test_file))
+        self.assertTrue(os.path.exists("%s.asc" % test_file))
+
+        # Detached binary signature
+        [os.remove(path) for path in glob.glob("%s.*" % test_file)]
+        self.assertTrue(tools.sign_file("signing", test_file, armor=False))
+        self.assertTrue(os.path.exists("%s.sig" % test_file))
+
+        # Standard armored signature
+        [os.remove(path) for path in glob.glob("%s.*" % test_file)]
+        self.assertTrue(tools.sign_file("signing", test_file, detach=False))
+        self.assertTrue(os.path.exists("%s.asc" % test_file))
+
+        # Standard binary signature
+        [os.remove(path) for path in glob.glob("%s.*" % test_file)]
+        self.assertTrue(tools.sign_file("signing", test_file, detach=False,
+                                        armor=False))
+        self.assertTrue(os.path.exists("%s.gpg" % test_file))
+
+        # Failure cases
+        self.assertRaises(Exception, tools.sign_file, "invalid", test_file)
+        [os.remove(path) for path in glob.glob("%s.*" % test_file)]
+        tools.sign_file("signing", test_file)
+        self.assertRaises(Exception, tools.sign_file, "signing", test_file)
+        self.assertRaises(Exception, tools.sign_file, "signing", "invalid")
