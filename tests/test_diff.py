@@ -1,4 +1,3 @@
-import os
 import shutil
 import sys
 import tarfile
@@ -6,7 +5,7 @@ import tempfile
 import unittest
 
 from io import BytesIO, StringIO
-from phablet.diff import ImageDiff, compare_files
+from systemimage.diff import ImageDiff, compare_files
 
 
 class DiffTests(unittest.TestCase):

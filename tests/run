@@ -33,5 +33,5 @@ if coverage:
     if os.path.exists('tests/coverage'):
         shutil.rmtree('tests/coverage')
     cov.stop()
-    cov.html_report(include=glob.glob("lib/phablet/*.py"),
+    cov.html_report(include=glob.glob("lib/systemimage/*.py"),
                     directory='tests/coverage')
