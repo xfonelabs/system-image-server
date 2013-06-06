@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from io import BytesIO, StringIO
-from phablet.tools import generate_version_tarball
+from phablet.tools import generate_version_tarball, xz_compress, xz_uncompress
 
 
 class DiffTests(unittest.TestCase):
@@ -26,3 +26,27 @@ class DiffTests(unittest.TestCase):
         self.assertTrue(version_file)
 
         self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4")
+
+    def test_xz_compress(self):
+        test_string = "test-string"
+
+        # Simple compress/uncompress
+        test_file = "%s/test.txt" % self.temp_directory
+        with open(test_file, "w+") as fd:
+            fd.write(test_string)
+
+        self.assertEquals(xz_compress(test_file), 0)
+        self.assertTrue(os.path.exists("%s.xz" % test_file))
+
+        os.remove(test_file)
+        self.assertTrue(not os.path.exists(test_file))
+
+        self.assertEquals(xz_uncompress("%s.xz" % test_file), 0)
+        self.assertTrue(os.path.exists(test_file))
+
+        with open(test_file, "r") as fd:
+            self.assertEquals(fd.read(), test_string)
+
+        self.assertRaises(Exception, xz_compress, test_file)
+        self.assertRaises(Exception, xz_uncompress, "%s.xz" % test_file)
+        self.assertRaises(Exception, xz_uncompress, test_file)
