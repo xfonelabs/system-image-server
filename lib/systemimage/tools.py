@@ -89,6 +89,7 @@ def xz_uncompress(path, destination=None):
 
     return retval
 
+
 def sign_file(key, path, destination=None, detach=True, armor=True):
     """
         Sign a file and publish the signature.
