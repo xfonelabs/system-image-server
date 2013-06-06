@@ -1,2 +1,5 @@
 lib/phablet/__pycache__
 tests/coverage
+gpg/keyrings/*
+gpg/keys/*
+images/*
