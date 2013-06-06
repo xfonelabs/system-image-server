@@ -16,7 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from io import BytesIO
-import gpgme
 import os
 import subprocess
 import tarfile
@@ -86,50 +85,5 @@ def xz_uncompress(path, destination=None):
     with open(destination, "wb+") as fd:
         retval = subprocess.call(['xz', '-d', '-c', path],
                                  stdout=fd)
-
-    return retval
-
-
-def sign_file(key, path, destination=None, detach=True, armor=True):
-    """
-        Sign a file and publish the signature.
-        The key parameter must be a valid key unders gpg/keys/.
-        The path must be that of a valid file.
-        The destination defaults to <path>.gpg (non-armored) or
-        <path>.asc (armored).
-        The detach and armor parameters respectively control the use of
-        detached signatures and base64 armoring.
-    """
-
-    if not os.path.isdir("gpg/keys/%s" % key):
-        raise IndexError("Invalid GPG key name '%s'." % key)
-
-    if not os.path.isfile(path):
-        raise Exception("Invalid path '%s'." % path)
-
-    if not destination:
-        if armor:
-            destination = "%s.asc" % path
-        elif detach:
-            destination = "%s.sig" % path
-        else:
-            destination = "%s.gpg" % path
-
-    if os.path.exists(destination):
-        raise Exception("destination already exists.")
-
-    os.environ['GNUPGHOME'] = "gpg/keys/%s" % key
-
-    # Create a GPG context, assuming no passphrase
-    ctx = gpgme.Context()
-    ctx.armor = armor
-    [key] = ctx.keylist()
-    ctx.signers = [key]
-
-    with open(path, "rb") as fd_in, open(destination, "wb+") as fd_out:
-        if detach:
-            retval = ctx.sign(fd_in, fd_out, gpgme.SIG_MODE_DETACH)
-        else:
-            retval = ctx.sign(fd_in, fd_out, gpgme.SIG_MODE_NORMAL)
 
     return retval
