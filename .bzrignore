@@ -3,3 +3,4 @@ tests/coverage
 gpg/keyrings/*
 gpg/keys/*
 images/*
+tests/keys/*

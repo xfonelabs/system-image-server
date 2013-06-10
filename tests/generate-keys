@@ -1,0 +1,63 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import gpgme
+import os
+import shutil
+import time
+
+target_dir = "tests/keys/"
+if not os.path.exists(target_dir):
+    raise Exception("Missing tests/keys directory")
+
+year = time.gmtime().tm_year
+keys = (("master", "[TESTING] Ubuntu Archive Master Signing Key",
+                   "ftpmaster@ubuntu.com", 0),
+        ("system", "[TESTING] Ubuntu System Image Master Signing Key",
+                   "system-image@ubuntu.com", 0),
+        ("signing", "[TESTING] Ubuntu System Image Signing Key (%s)"
+                    % year, "system-image@ubuntu.com", "2y"),
+        ("device", "[TESTING] Random OEM Signing Key (%s)" % year,
+                   "system-image@ubuntu.com", "2y"))
+
+for key_name, key_description, key_email, key_expiry in keys:
+    key_dir = "%s/%s/" % (target_dir, key_name)
+    if os.path.exists(key_dir):
+        shutil.rmtree(key_dir)
+    os.makedirs(key_dir)
+
+    key_params = """<GnupgKeyParms format="internal">
+Key-Type: RSA
+Key-Length: 2048
+Key-Usage: sign
+Name-Real: %s
+Name-Email: %s
+Expire-Date: %s
+</GnupgKeyParms>
+""" % (key_description, key_email, key_expiry)
+
+    os.environ['GNUPGHOME'] = key_dir
+
+    ctx = gpgme.Context()
+    result = ctx.genkey(key_params)
+    key = ctx.get_key(result.fpr, True)
+    [uid] = key.uids
+    print(uid.name, uid.email)
+
+# All done, let's mark it as done
+open("tests/keys/generated", "w+").close()
