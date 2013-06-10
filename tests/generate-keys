@@ -55,7 +55,7 @@ Expire-Date: %s
     result = ctx.genkey(key_params)
     key = ctx.get_key(result.fpr, True)
     [uid] = key.uids
-    print(uid.name, uid.email)
+    print("%s <%s>" % (uid.name, uid.email))
 
 # All done, let's mark it as done
 open("tests/keys/generated", "w+").close()
