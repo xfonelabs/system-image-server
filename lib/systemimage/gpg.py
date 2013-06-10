@@ -158,7 +158,7 @@ class Keyring:
 
         gpg_key = ctx.get_key(key)
 
-        with open(path, "w+") as fd:
+        with open(path, "wb+") as fd:
             for subkey in gpg_key.subkeys:
                 ctx.export(subkey.keyid, fd)
 
