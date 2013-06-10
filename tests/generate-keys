@@ -19,20 +19,18 @@
 import gpgme
 import os
 import shutil
-import time
 
 target_dir = "tests/keys/"
 if not os.path.exists(target_dir):
     raise Exception("Missing tests/keys directory")
 
-year = time.gmtime().tm_year
 keys = (("master", "[TESTING] Ubuntu Archive Master Signing Key",
                    "ftpmaster@ubuntu.com", 0),
         ("system", "[TESTING] Ubuntu System Image Master Signing Key",
                    "system-image@ubuntu.com", 0),
-        ("signing", "[TESTING] Ubuntu System Image Signing Key (%s)"
-                    % year, "system-image@ubuntu.com", "2y"),
-        ("device", "[TESTING] Random OEM Signing Key (%s)" % year,
+        ("signing", "[TESTING] Ubuntu System Image Signing Key (YYYY)",
+                    "system-image@ubuntu.com", "2y"),
+        ("device", "[TESTING] Random OEM Signing Key (YYYY)",
                    "system-image@ubuntu.com", "2y"))
 
 for key_name, key_description, key_email, key_expiry in keys:
