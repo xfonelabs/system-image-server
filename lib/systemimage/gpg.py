@@ -34,7 +34,9 @@ def sign_file(key, path, destination=None, detach=True, armor=True):
         detached signatures and base64 armoring.
     """
 
-    if not os.path.isdir("gpg/keys/%s" % key):
+    key_path = "%s/%s" % (os.environ.get("KEY_PATH", "gpg/keys"), key)
+
+    if not os.path.isdir(key_path):
         raise IndexError("Invalid GPG key name '%s'." % key)
 
     if not os.path.isfile(path):
@@ -51,7 +53,7 @@ def sign_file(key, path, destination=None, detach=True, armor=True):
     if os.path.exists(destination):
         raise Exception("destination already exists.")
 
-    os.environ['GNUPGHOME'] = "gpg/keys/%s" % key
+    os.environ['GNUPGHOME'] = key_path
 
     # Create a GPG context, assuming no passphrase
     ctx = gpgme.Context()
@@ -81,7 +83,10 @@ class Keyring:
     keyring_path = None
 
     def __init__(self, keyring_name):
-        keyring_path = "gpg/keyrings/%s" % keyring_name
+        keyring_path = "%s/%s" % (os.environ.get("KEYRING_PATH",
+                                                 "gpg/keyrings"),
+                                  keyring_name)
+
         if not os.path.isdir(keyring_path):
             os.makedirs(keyring_path)
 
@@ -104,7 +109,7 @@ class Keyring:
         """
 
         if not destination:
-            destination = "gpg/keyrings/%s.tar" % self.keyring_name
+            destination = "%s.tar" % self.keyring_path
 
         if os.path.isfile(destination):
             os.remove(destination)
