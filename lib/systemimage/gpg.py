@@ -141,7 +141,8 @@ class Keyring:
             keyring_json['model'] = keyring_model
 
         with open("%s/keyring.json" % self.keyring_path, "w+") as fd:
-            fd.write(json.dumps(keyring_json))
+            fd.write("%s\n" % json.dumps(keyring_json, sort_keys=True,
+                                         indent=4, separators=(',', ': ')))
 
     def list_keys(self):
         os.environ['GNUPGHOME'] = self.keyring_path
