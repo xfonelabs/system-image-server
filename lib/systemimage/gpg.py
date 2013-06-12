@@ -23,6 +23,34 @@ import tarfile
 from io import BytesIO
 
 
+def generate_signing_key(keyring_path, key_name, key_email, key_expiry):
+    """
+        Generate a new 2048bit RSA signing key.
+    """
+
+    if not os.path.isdir(keyring_path):
+        raise Exception("Keyring path doesn't exist: %s" % keyring_path)
+
+    key_params = """<GnupgKeyParms format="internal">
+Key-Type: RSA
+Key-Length: 2048
+Key-Usage: sign
+Name-Real: %s
+Name-Email: %s
+Expire-Date: %s
+</GnupgKeyParms>
+""" % (key_name, key_email, key_expiry)
+
+    os.environ['GNUPGHOME'] = keyring_path
+
+    ctx = gpgme.Context()
+    result = ctx.genkey(key_params)
+    key = ctx.get_key(result.fpr, True)
+    [uid] = key.uids
+
+    return uid
+
+
 def sign_file(key, path, destination=None, detach=True, armor=True):
     """
         Sign a file and publish the signature.

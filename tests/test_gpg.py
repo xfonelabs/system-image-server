@@ -136,3 +136,14 @@ class GPGTests(unittest.TestCase):
 
         os.remove("%s/testing.tar" % keyring_path)
         shutil.rmtree("%s/testing" % keyring_path)
+
+    def test_generate_signing_key(self):
+        key_dir = os.path.join(self.temp_directory, "key")
+
+        os.mkdir(key_dir)
+
+        self.assertRaises(Exception, gpg.generate_signing_key, "", "", "", "")
+
+        uid = gpg.generate_signing_key(key_dir, "test-key", "a@b.c", "2y")
+        self.assertEquals(uid.name, "test-key")
+        self.assertEquals(uid.email, "a@b.c")
