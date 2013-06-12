@@ -194,7 +194,7 @@ class Keyring:
 
         with open(path, "wb+") as fd:
             for subkey in gpg_key.subkeys:
-                ctx.export(subkey.keyid, fd)
+                ctx.export(str(subkey.keyid), fd)
 
     def import_key(self, path, armor=True):
         os.environ['GNUPGHOME'] = self.keyring_path
@@ -218,7 +218,7 @@ class Keyring:
         for key in list(ctx.keylist()):
             for subkey in key.subkeys:
                 content = BytesIO()
-                ctx.export(subkey.keyid, content)
+                ctx.export(str(subkey.keyid), content)
                 keys.append(content)
 
         os.environ['GNUPGHOME'] = self.keyring_path
