@@ -91,7 +91,7 @@ class TreeTests(unittest.TestCase):
                                        {'index': '/testing/test/index.json'}}})
 
         device_keyring = os.path.join(self.temp_directory, "testing",
-                          "test", "device.tar.xz")
+                                      "test", "device.tar.xz")
         open(device_keyring, "w+").close()
 
         test_tree.generate_index("I know what I'm doing")
@@ -110,7 +110,6 @@ class TreeTests(unittest.TestCase):
                                        {'path': '/testing/test/device.tar.xz',
                                         'signature': '/testing/test/'
                                                      'device.tar.xz.asc'}}}})
-
 
         # Test grabbing a device entry
         self.assertRaises(KeyError, test_tree.get_device, "invalid", "test")
