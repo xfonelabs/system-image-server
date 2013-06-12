@@ -55,7 +55,7 @@ class ToolTests(unittest.TestCase):
         self.assertTrue(os.path.exists("%s.xz" % test_file))
 
         os.remove(test_file)
-        self.assertTrue(not os.path.exists(test_file))
+        self.assertFalse(os.path.exists(test_file))
 
         self.assertEquals(tools.xz_uncompress("%s.xz" % test_file), 0)
         self.assertTrue(os.path.exists(test_file))
