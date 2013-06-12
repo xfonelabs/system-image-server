@@ -38,8 +38,6 @@ class GPGTests(unittest.TestCase):
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
     def test_sign_file(self):
-        os.environ['KEY_PATH'] = "tests/keys"
-
         test_string = "test-string"
 
         test_file = "%s/test.txt" % self.temp_directory
