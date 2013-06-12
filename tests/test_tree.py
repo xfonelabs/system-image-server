@@ -32,6 +32,8 @@ class TreeTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
     def test_channels(self):
         # Test getting a tree instance
         test_tree = tree.Tree(self.temp_directory)
