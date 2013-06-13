@@ -1,6 +1,7 @@
 lib/phablet/__pycache__
 tests/coverage
-gpg/keyrings/*
-gpg/keys/*
+secret/gpg/keyrings/*
+secret/gpg/keys/*
+secret/ssh/*
 www/*
 tests/keys/*
