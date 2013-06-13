@@ -1,0 +1,18 @@
+[global]
+base_path = /some/fs/path
+gpg_key_path = secret/gpg/keys/
+gpg_keyring_path = secret/gpg/keyrings/
+publish_path = www/
+mirrors = a, b
+
+[mirror_default]
+ssh_user = mirror
+ssh_key = secret/ssh/mirror
+ssh_port = 22
+ssh_command = sync-mirror
+
+[mirror_a]
+ssh_host = a.example.com
+
+[mirror_b]
+ssh_host = b.example.com
