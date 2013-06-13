@@ -1,7 +1,8 @@
+etc/config
 lib/phablet/__pycache__
-tests/coverage
 secret/gpg/keyrings/*
 secret/gpg/keys/*
 secret/ssh/*
-www/*
+tests/coverage
 tests/keys/*
+www/*
