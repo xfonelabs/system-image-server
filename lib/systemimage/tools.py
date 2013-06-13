@@ -87,3 +87,18 @@ def xz_uncompress(path, destination=None):
                                  stdout=fd)
 
     return retval
+
+
+def trigger_mirror(host, port, username, key, command):
+    return subprocess.call(['ssh',
+                            '-i', key,
+                            '-l', username,
+                            '-p', str(port),
+                            host,
+                            command])
+
+
+def sync_mirrors(mirrors):
+    for mirror in mirrors:
+        trigger_mirror(mirror.ssh_host, mirror.ssh_port, mirror.ssh_user,
+                       mirror.ssh_key, mirror.ssh_command)

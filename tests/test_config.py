@@ -21,6 +21,12 @@ import tempfile
 import unittest
 
 from systemimage import config
+from systemimage import tools
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class ConfigTests(unittest.TestCase):
@@ -31,7 +37,8 @@ class ConfigTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
-    def test_config(self):
+    @mock.patch("subprocess.call", return_value=0)
+    def test_config(self, mock_call):
         # Good complete config
         config_path = os.path.join(self.temp_directory, "config")
 
@@ -47,13 +54,21 @@ ssh_port = 22
 ssh_command = command
 
 [mirror_a]
-ssh_host = host
+ssh_host = hosta
 
 [mirror_b]
-ssh_host = host
-""")
+ssh_host = hostb
+""" % self.temp_directory)
 
         configobj = config.Config(config_path)
+
+        # Test ssh sync
+        tools.sync_mirrors(configobj.mirrors)
+        expected_calls = [mock.call(['ssh', '-i', 'key', '-l', 'user',
+                                     '-p', '22', 'hosta', 'command']),
+                          mock.call(['ssh', '-i', 'key', '-l', 'user',
+                                     '-p', '22', 'hostb', 'command'])]
+        self.assertEquals(mock_call.call_args_list, expected_calls)
 
         # Invalid config
         invalid_config_path = os.path.join(self.temp_directory,
