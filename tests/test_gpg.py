@@ -29,18 +29,19 @@ from systemimage import gpg
 class GPGTests(unittest.TestCase):
     def setUp(self):
         temp_directory = tempfile.mkdtemp()
-        os.mkdir("%s/keyrings" % temp_directory)
+        os.mkdir(os.path.join(temp_directory, "keyrings"))
         self.temp_directory = temp_directory
 
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipIf(not os.path.exists(os.path.join("tests", "keys",
+                                                     "generated")),
+                     "No GPG testing keys present. Run generate-keys")
     def test_sign_file(self):
         test_string = "test-string"
 
-        test_file = "%s/test.txt" % self.temp_directory
+        test_file = os.path.join(self.temp_directory, "test.txt")
         with open(test_file, "w+") as fd:
             fd.write(test_string)
 
@@ -72,14 +73,15 @@ class GPGTests(unittest.TestCase):
         self.assertRaises(Exception, gpg.sign_file, "signing", test_file)
         self.assertRaises(Exception, gpg.sign_file, "signing", "invalid")
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipIf(not os.path.exists(os.path.join("tests", "keys",
+                                                     "generated")),
+                     "No GPG testing keys present. Run generate-keys")
     def test_keyring(self):
-        keyring_path = "%s/keyrings" % self.temp_directory
+        keyring_path = os.path.join(self.temp_directory, "keyrings")
 
         os.environ['KEYRING_PATH'] = keyring_path
         keyring = gpg.Keyring("testing")
-        self.assertTrue(os.path.exists("%s/testing" % keyring_path))
+        self.assertTrue(os.path.exists(os.path.join(keyring_path, "testing")))
         self.assertEquals(keyring.keyring_model, None)
         self.assertEquals(keyring.keyring_name, "testing")
         self.assertEquals(keyring.keyring_type, None)
@@ -95,7 +97,7 @@ class GPGTests(unittest.TestCase):
         self.assertEquals(keyring.keyring_type, "test")
         self.assertEquals(keyring.keyring_expiry, expiry)
 
-        keyring.import_keys("tests/keys/signing/")
+        keyring.import_keys(os.path.join("tests", "keys", "signing"))
 
         # Check that the keyring matches
         keys = keyring.list_keys()
@@ -106,7 +108,7 @@ class GPGTests(unittest.TestCase):
                           "[TESTING] Ubuntu System Image Signing Key (YYYY) "
                           "<system-image@ubuntu.com>")
 
-        temp_key = "%s/key.asc" % self.temp_directory
+        temp_key = os.path.join(self.temp_directory, "key.asc")
         keyring.export_key(temp_key, key_id)
         self.assertTrue(os.path.exists(temp_key))
         keyring.del_key(key_id)
@@ -126,16 +128,14 @@ class GPGTests(unittest.TestCase):
                           "missing", "abcd")
         self.assertRaises(gpgme.GpgmeError, keyring.del_key, "abcd")
 
-        temp_tarball = "%s/keyring.tar" % self.temp_directory
+        temp_tarball = os.path.join(self.temp_directory, "keyring.tar")
         keyring.generate_tarball(temp_tarball)
         keyring.generate_tarball(temp_tarball)
         self.assertTrue(os.path.exists(temp_tarball))
 
         keyring.generate_tarball()
-        self.assertTrue(os.path.exists("%s/testing.tar" % keyring_path))
-
-        os.remove("%s/testing.tar" % keyring_path)
-        shutil.rmtree("%s/testing" % keyring_path)
+        self.assertTrue(os.path.exists(os.path.join(keyring_path,
+                                                    "testing.tar")))
 
     def test_generate_signing_key(self):
         key_dir = os.path.join(self.temp_directory, "key")
