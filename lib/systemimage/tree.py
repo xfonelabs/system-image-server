@@ -23,7 +23,27 @@ import shutil
 import time
 
 from contextlib import contextmanager
+from hashlib import sha1
 from systemimage import gpg
+
+
+def expand_path(path, base="/"):
+    """
+        Takes a path and returns a tuple containing the absolute path
+        and a relative path (relative to base).
+    """
+
+    if path.startswith(base):
+        path = re.sub('^%s' % re.escape(base), "", path)
+
+    if path.startswith(os.sep):
+        relpath = path[1:]
+    else:
+        relpath = path
+
+    abspath = os.path.join(base, relpath)
+
+    return abspath, relpath
 
 
 @contextmanager
@@ -289,15 +309,7 @@ class Tree:
             if device_name not in channels[channel_name]:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
-            if path.startswith(self.path):
-                path = re.sub('^%s' % re.escape(self.path), "", path)
-
-            if path.startswith(os.sep):
-                relpath = path[1:]
-            else:
-                relpath = path
-
-            abspath = os.path.join(self.path, relpath)
+            abspath, relpath = expand_path(path, self.path)
 
             if not os.path.exists(abspath):
                 raise Exception("Specified GPG keyring doesn't exists: %s" %
@@ -317,8 +329,120 @@ class Tree:
 class Device:
     def __init__(self, path):
         self.path = path
+        self.indexpath = os.path.join(path, "index.json")
 
-    def publish_image(self, entry_type, version, description,
-                      base=None, bootme=False, minversion=None,
-                      *paths):
-        pass
+    def create_image(self, entry_type, version, description, paths,
+                     base=None, bootme=False, minversion=None):
+        """
+            Add a new image to the index.
+        """
+
+        if len(paths) == 0:
+            raise Exception("No file passed for this image.")
+
+        files = []
+        count = 0
+
+        with index_json(self.indexpath, True) as index:
+            for path in paths:
+                abspath, relpath = expand_path(path, self.path)
+
+                if not os.path.exists(abspath):
+                    raise Exception("Specified file doesn't exists: %s"
+                                    % abspath)
+
+                if not os.path.exists("%s.asc" % abspath):
+                    raise Exception("The GPG file signature doesn't exists: "
+                                    "%s.asc" % abspath)
+
+                with open(abspath, "r") as fd:
+                    checksum = sha1(fd.read().encode('utf-8')).hexdigest()
+
+                files.append({'order': count,
+                              'path': "/%s" % "/".join(relpath.split(os.sep)),
+                              'checksum': checksum,
+                              'signature': "/%s.asc" % "/".join(
+                                  relpath.split(os.sep)),
+                              'size': int(os.stat(abspath).st_size)})
+
+                count += 1
+
+            image = {}
+
+            if entry_type == "delta":
+                if not base:
+                    raise KeyError("Missing base version for delta image.")
+                image['base'] = int(base)
+            elif base:
+                raise KeyError("Base version set for full image.")
+
+            if bootme:
+                image['bootme'] = bootme
+
+            if minversion:
+                if entry_type == "delta":
+                    raise KeyError("Minimum version set for delta image.")
+                image['minversion'] = minversion
+
+            image['description'] = description
+            image['files'] = files
+            image['type'] = entry_type
+            image['version'] = version
+            index['images'].append(image)
+
+    def get_image(self, entry_type, version, base=None):
+        """
+            Look for an image and return a dict representation of it.
+        """
+
+        if entry_type not in ("full", "delta"):
+            raise ValueError("Invalid image type: %s" % entry_type)
+
+        if entry_type == "delta" and not base:
+            raise ValueError("Missing base version for delta image.")
+
+        with index_json(self.indexpath) as index:
+            match = []
+            for image in index['images']:
+                if (image['type'] == entry_type and image['version'] == version
+                        and (image['type'] == "full" or
+                             image['base'] == base)):
+                    match.append(image)
+
+            if len(match) != 1:
+                raise IndexError("Couldn't find a match.")
+
+            return match[0]
+
+    def list_images(self):
+        """
+            Returns a list of all existing images, each image is a dict.
+            This is simply a decoded version of the image array in index.json
+        """
+
+        with index_json(self.indexpath) as index:
+            return index['images']
+
+    def remove_image(self, entry_type, version, base=None):
+        image = self.get_image(entry_type, version, base)
+        with index_json(self.indexpath, True) as index:
+            index['images'].remove(image)
+
+    def set_description(self, entry_type, version, description,
+                        translations={}, base=None):
+
+        if translations and not isinstance(translations, dict):
+            raise TypeError("translations must be a dict.")
+
+        image = self.get_image(entry_type, version, base)
+
+        with index_json(self.indexpath, True) as index:
+            for entry in index['images']:
+                if entry != image:
+                    continue
+
+                entry['description'] = description
+                for langid, value in translations.items():
+                    entry['description_%s' % langid] = value
+
+                break

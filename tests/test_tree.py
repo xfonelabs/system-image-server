@@ -156,3 +156,97 @@ class TreeTests(unittest.TestCase):
         self.assertRaises(Exception, test_tree.set_device_keyring, "testing",
                           "test", "unsigned")
         os.remove(unsigned_path)
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
+    def test_index(self):
+        device = tree.Device(self.temp_directory)
+
+        # Check without files
+        self.assertRaises(Exception, device.create_image, "full", 1234,
+                          "test", [])
+
+        # Check with missing file
+        self.assertRaises(Exception, device.create_image, "full", 1234,
+                          "test", ["file"])
+
+        # Check with missing signature
+        open(os.path.join(self.temp_directory, "file"), "w+").close()
+        self.assertRaises(Exception, device.create_image, "full", 1234,
+                          "test", ["file"])
+
+        # Check with missing base version
+        gpg.sign_file("signing", os.path.join(self.temp_directory, "file"))
+        self.assertRaises(KeyError, device.create_image, "delta", 1234,
+                          "test", ["file"])
+
+        # Check with extra base version
+        self.assertRaises(KeyError, device.create_image, "full", 1234,
+                          "test", ["file"], base=1233)
+
+        # Check with extra minimum version
+        self.assertRaises(KeyError, device.create_image, "delta", 1234,
+                          "test", ["file"], base=1233, minversion=1233)
+
+        # Valid full image
+        open(os.path.join(self.temp_directory, "second"), "w+").close()
+        gpg.sign_file("signing", os.path.join(self.temp_directory, "second"))
+        device.create_image("full", 1234, "abc", ["file", "second"],
+                            minversion=1233, bootme=True)
+
+        # Valid delta image
+        device.create_image("delta", 1234, "abc", ["file", "second"],
+                            base=1233, bootme=True)
+
+        # Check the image list
+        self.assertEquals(
+            device.list_images(),
+            [{'bootme': True, 'description': 'abc', 'minversion': 1233,
+              'type': 'full', 'version': 1234,
+              'files': [{'signature': '/file.asc', 'path': '/file',
+                         'checksum': 'da39a3ee5e6b4b0d3255'
+                                     'bfef95601890afd80709',
+                         'size': 0, 'order': 0},
+                        {'signature': '/second.asc', 'path': '/second',
+                         'checksum': 'da39a3ee5e6b4b0d3255'
+                                     'bfef95601890afd80709',
+                         'size': 0, 'order': 1}]},
+             {'bootme': True, 'description': 'abc', 'type': 'delta',
+              'base': 1233, 'version': 1234,
+              'files': [{'signature': '/file.asc', 'path': '/file',
+                         'checksum': 'da39a3ee5e6b4b0d3255'
+                                     'bfef95601890afd80709',
+                         'size': 0, 'order': 0},
+                        {'signature': '/second.asc', 'path': '/second',
+                         'checksum': 'da39a3ee5e6b4b0d3255'
+                                     'bfef95601890afd80709',
+                         'size': 0, 'order': 1}]}])
+
+        # Set descriptions
+        device.set_description("delta", 1234, "test", {"fr": "essai"}, 1233)
+        entry = device.get_image("delta", 1234, 1233)
+        self.assertEquals(entry['description'], "test")
+        self.assertEquals(entry['description_fr'], "essai")
+
+        self.assertRaises(TypeError, device.set_description, "delta", 1234,
+                          "test", ['test'], 1233)
+        # Remove the images
+        device.remove_image("delta", 1234, 1233)
+        device.remove_image("full", 1234)
+        self.assertEquals(device.list_images(), [])
+
+        # Error case of remove_image
+        self.assertRaises(ValueError, device.remove_image, "invalid", 1234)
+        self.assertRaises(ValueError, device.remove_image, "delta", 1234)
+        self.assertRaises(IndexError, device.remove_image, "delta", 1234, 1232)
+
+        # Test invalid json
+        with open(device.indexpath, "w+") as fd:
+            fd.write("test")
+
+        self.assertRaises(ValueError, device.list_images)
+
+        with open(device.indexpath, "w+") as fd:
+            fd.write("[]")
+
+        self.assertRaises(TypeError, device.list_images)
