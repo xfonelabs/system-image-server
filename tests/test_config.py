@@ -64,10 +64,10 @@ ssh_host = hostb
 
         # Test ssh sync
         tools.sync_mirrors(configobj.mirrors)
-        expected_calls = [mock.call(['ssh', '-i', 'key', '-l', 'user',
-                                     '-p', '22', 'hosta', 'command']),
-                          mock.call(['ssh', '-i', 'key', '-l', 'user',
-                                     '-p', '22', 'hostb', 'command'])]
+        expected_calls = [((['ssh', '-i', 'key', '-l', 'user',
+                             '-p', '22', 'hosta', 'command'],), {}),
+                          ((['ssh', '-i', 'key', '-l', 'user',
+                             '-p', '22', 'hostb', 'command'],), {})]
         self.assertEquals(mock_call.call_args_list, expected_calls)
 
         # Invalid config
