@@ -37,7 +37,7 @@ class ConfigTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
-    @mock.patch("subprocess.call", return_value=0)
+    @mock.patch("subprocess.call")
     def test_config(self, mock_call):
         # Good complete config
         config_path = os.path.join(self.temp_directory, "config")
