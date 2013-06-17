@@ -20,14 +20,22 @@ import shutil
 import tempfile
 import unittest
 
-from systemimage import tree
-from systemimage import gpg
+from systemimage import config, gpg, tree
 
 
 class TreeTests(unittest.TestCase):
     def setUp(self):
         temp_directory = tempfile.mkdtemp()
         self.temp_directory = temp_directory
+
+        os.mkdir(os.path.join(self.temp_directory, "etc"))
+        config_path = os.path.join(self.temp_directory, "etc", "config")
+        with open(config_path, "w+") as fd:
+            fd.write("""[global]
+base_path = %s
+gpg_key_path = %s
+""" % (self.temp_directory, os.path.join("tests", "keys")))
+        self.config = config.Config(config_path)
 
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
@@ -36,11 +44,12 @@ class TreeTests(unittest.TestCase):
                      "No GPG testing keys present. Run tests/generate-keys")
     def test_channels(self):
         # Test getting a tree instance
-        test_tree = tree.Tree(self.temp_directory)
+        os.makedirs(self.config.publish_path)
+        test_tree = tree.Tree(self.config)
         self.assertEquals(test_tree.list_channels(), {})
 
         # Test invalid tree path
-        self.assertRaises(Exception, tree.Tree,
+        self.assertRaises(Exception, tree.Tree, self.config,
                           os.path.join(self.temp_directory, "invalid"))
 
         # Test channel creation
@@ -72,8 +81,8 @@ class TreeTests(unittest.TestCase):
         test_tree.create_device("testing", "test")
 
         self.assertTrue(
-            os.path.exists(os.path.join(self.temp_directory,
-                                        "testing/test/index.json")))
+            os.path.exists(os.path.join(self.config.publish_path,
+                                        "testing", "test", "index.json")))
 
         self.assertEquals(
             test_tree.list_channels(), {'testing':
@@ -84,7 +93,7 @@ class TreeTests(unittest.TestCase):
         self.assertRaises(KeyError, test_tree.create_device, "testing", "test")
 
         # Test the index generation
-        os.mkdir(os.path.join(self.temp_directory, "testing", "empty"))
+        os.mkdir(os.path.join(self.config.publish_path, "testing", "empty"))
         self.assertRaises(Exception, test_tree.generate_index)
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
@@ -92,7 +101,7 @@ class TreeTests(unittest.TestCase):
                                        {'test':
                                        {'index': '/testing/test/index.json'}}})
 
-        device_keyring = os.path.join(self.temp_directory, "testing",
+        device_keyring = os.path.join(self.config.publish_path, "testing",
                                       "test", "device.tar.xz")
         open(device_keyring, "w+").close()
 
@@ -102,7 +111,7 @@ class TreeTests(unittest.TestCase):
                                        {'test':
                                        {'index': '/testing/test/index.json'}}})
 
-        gpg.sign_file("signing", device_keyring)
+        gpg.sign_file(self.config, "signing", device_keyring)
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
@@ -122,15 +131,15 @@ class TreeTests(unittest.TestCase):
         # Test device removal
         test_tree.create_device("testing", "to-remove")
         self.assertTrue(
-            os.path.exists(os.path.join(self.temp_directory,
-                                        "testing/to-remove/index.json")))
+            os.path.exists(os.path.join(self.config.publish_path,
+                                        "testing", "to-remove", "index.json")))
         self.assertRaises(KeyError, test_tree.remove_device, "invalid", "test")
         self.assertRaises(KeyError, test_tree.remove_device, "testing",
                           "invalid")
         test_tree.remove_device("testing", "to-remove")
         self.assertFalse(
-            os.path.exists(os.path.join(self.temp_directory,
-                                        "testing/to-remove/index.json")))
+            os.path.exists(os.path.join(self.config.publish_path,
+                                        "testing", "to-remove", "index.json")))
 
         self.assertEquals(
             test_tree.list_channels(), {'testing':
@@ -151,7 +160,7 @@ class TreeTests(unittest.TestCase):
         self.assertRaises(Exception, test_tree.set_device_keyring, "testing",
                           "test", "invalid")
 
-        unsigned_path = os.path.join(self.temp_directory, "unsigned")
+        unsigned_path = os.path.join(self.config.publish_path, "unsigned")
         open(unsigned_path, "w+").close()
         self.assertRaises(Exception, test_tree.set_device_keyring, "testing",
                           "test", "unsigned")
@@ -160,7 +169,7 @@ class TreeTests(unittest.TestCase):
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
     def test_index(self):
-        device = tree.Device(self.temp_directory)
+        device = tree.Device(self.config, self.temp_directory)
 
         # Check without files
         self.assertRaises(Exception, device.create_image, "full", 1234,
@@ -176,7 +185,8 @@ class TreeTests(unittest.TestCase):
                           "test", ["file"])
 
         # Check with missing base version
-        gpg.sign_file("signing", os.path.join(self.temp_directory, "file"))
+        gpg.sign_file(self.config, "signing", os.path.join(self.temp_directory,
+                      "file"))
         self.assertRaises(KeyError, device.create_image, "delta", 1234,
                           "test", ["file"])
 
@@ -190,7 +200,8 @@ class TreeTests(unittest.TestCase):
 
         # Valid full image
         open(os.path.join(self.temp_directory, "second"), "w+").close()
-        gpg.sign_file("signing", os.path.join(self.temp_directory, "second"))
+        gpg.sign_file(self.config, "signing", os.path.join(self.temp_directory,
+                      "second"))
         device.create_image("full", 1234, "abc", ["file", "second"],
                             minversion=1233, bootme=True)
 

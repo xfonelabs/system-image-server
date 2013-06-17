@@ -27,7 +27,7 @@ from systemimage import gpg, tools
 
 
 @contextmanager
-def channels_json(path, commit=False):
+def channels_json(config, path, commit=False):
     """
         Context function (to be used with "with") that will open a
         channels.json file, parse it, validate it and return the
@@ -64,7 +64,7 @@ def channels_json(path, commit=False):
                                              indent=4, separators=(',', ': ')))
 
             # Move the signature
-            gpg.sign_file("signing", new_path)
+            gpg.sign_file(config, "signing", new_path)
             if os.path.exists("%s.asc" % path):
                 os.remove("%s.asc" % path)
             os.rename("%s.asc" % new_path, "%s.asc" % path)
@@ -76,7 +76,7 @@ def channels_json(path, commit=False):
 
 
 @contextmanager
-def index_json(path, commit=False):
+def index_json(config, path, commit=False):
     """
         Context function (to be used with "with") that will open an
         index.json file, parse it, validate it and return the
@@ -119,7 +119,7 @@ def index_json(path, commit=False):
                                              indent=4, separators=(',', ': ')))
 
             # Move the signature
-            gpg.sign_file("signing", new_path)
+            gpg.sign_file(config, "signing", new_path)
             if os.path.exists("%s.asc" % path):
                 os.remove("%s.asc" % path)
             os.rename("%s.asc" % new_path, "%s.asc" % path)
@@ -131,10 +131,14 @@ def index_json(path, commit=False):
 
 
 class Tree:
-    def __init__(self, path):
+    def __init__(self, config, path=None):
+        if not path:
+            path = config.publish_path
+
         if not os.path.isdir(path):
             raise Exception("Invalid path: %s" % path)
 
+        self.config = config
         self.path = path
         self.indexpath = os.path.join(path, "channels.json")
 
@@ -143,7 +147,7 @@ class Tree:
             Creates a new channel entry in the tree.
         """
 
-        with channels_json(self.indexpath, True) as channels:
+        with channels_json(self.config, self.indexpath, True) as channels:
             if channel_name in channels:
                 raise KeyError("Channel already exists: %s" % channel_name)
 
@@ -157,7 +161,7 @@ class Tree:
             Creates a new device entry in the tree.
         """
 
-        with channels_json(self.indexpath, True) as channels:
+        with channels_json(self.config, self.indexpath, True) as channels:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
@@ -170,7 +174,8 @@ class Tree:
 
             # Create an empty index if it doesn't exist, if it does,
             # just validate it
-            with index_json(os.path.join(device_path, "index.json"), True):
+            with index_json(self.config, os.path.join(device_path,
+                                                      "index.json"), True):
                 pass
 
             device = {}
@@ -226,14 +231,14 @@ class Tree:
             Returns a Device instance.
         """
 
-        with channels_json(self.indexpath) as channels:
+        with channels_json(self.config, self.indexpath) as channels:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
             if device_name not in channels[channel_name]:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
-            return Device(os.path.join(self.path, channel_name))
+            return Device(self.config, os.path.join(self.path, channel_name))
 
     def list_channels(self):
         """
@@ -242,7 +247,7 @@ class Tree:
             This is simply a decoded version of channels.json
         """
 
-        with channels_json(self.indexpath) as channels:
+        with channels_json(self.config, self.indexpath) as channels:
             return channels
 
     def remove_channel(self, channel_name):
@@ -250,7 +255,7 @@ class Tree:
             Remove a channel and everything it contains.
         """
 
-        with channels_json(self.indexpath, True) as channels:
+        with channels_json(self.config, self.indexpath, True) as channels:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
@@ -264,7 +269,7 @@ class Tree:
             Remove a device and everything it contains.
         """
 
-        with channels_json(self.indexpath, True) as channels:
+        with channels_json(self.config, self.indexpath, True) as channels:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
@@ -282,7 +287,7 @@ class Tree:
             Passing None as the path will unset any existing value.
         """
 
-        with channels_json(self.indexpath, True) as channels:
+        with channels_json(self.config, self.indexpath, True) as channels:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
@@ -307,7 +312,8 @@ class Tree:
 
 
 class Device:
-    def __init__(self, path):
+    def __init__(self, config, path):
+        self.config = config
         self.path = path
         self.indexpath = os.path.join(path, "index.json")
 
@@ -323,7 +329,7 @@ class Device:
         files = []
         count = 0
 
-        with index_json(self.indexpath, True) as index:
+        with index_json(self.config, self.indexpath, True) as index:
             for path in paths:
                 abspath, relpath = tools.expand_path(path, self.path)
 
@@ -381,7 +387,7 @@ class Device:
         if entry_type == "delta" and not base:
             raise ValueError("Missing base version for delta image.")
 
-        with index_json(self.indexpath) as index:
+        with index_json(self.config, self.indexpath) as index:
             match = []
             for image in index['images']:
                 if (image['type'] == entry_type and image['version'] == version
@@ -400,12 +406,12 @@ class Device:
             This is simply a decoded version of the image array in index.json
         """
 
-        with index_json(self.indexpath) as index:
+        with index_json(self.config, self.indexpath) as index:
             return index['images']
 
     def remove_image(self, entry_type, version, base=None):
         image = self.get_image(entry_type, version, base)
-        with index_json(self.indexpath, True) as index:
+        with index_json(self.config, self.indexpath, True) as index:
             index['images'].remove(image)
 
     def set_description(self, entry_type, version, description,
@@ -416,7 +422,7 @@ class Device:
 
         image = self.get_image(entry_type, version, base)
 
-        with index_json(self.indexpath, True) as index:
+        with index_json(self.config, self.indexpath, True) as index:
             for entry in index['images']:
                 if entry != image:
                     continue

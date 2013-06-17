@@ -23,7 +23,7 @@ import tempfile
 import time
 import unittest
 
-from systemimage import gpg
+from systemimage import config, gpg
 
 
 class GPGTests(unittest.TestCase):
@@ -31,6 +31,15 @@ class GPGTests(unittest.TestCase):
         temp_directory = tempfile.mkdtemp()
         os.mkdir(os.path.join(temp_directory, "keyrings"))
         self.temp_directory = temp_directory
+
+        os.mkdir(os.path.join(self.temp_directory, "etc"))
+        config_path = os.path.join(self.temp_directory, "etc", "config")
+        with open(config_path, "w+") as fd:
+            fd.write("""[global]
+base_path = %s
+gpg_key_path = %s
+""" % (self.temp_directory, os.path.join("tests", "keys")))
+        self.config = config.Config(config_path)
 
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
@@ -47,40 +56,45 @@ class GPGTests(unittest.TestCase):
 
         # Detached armored signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file("signing", test_file))
+        self.assertTrue(gpg.sign_file(self.config, "signing", test_file))
         self.assertTrue(os.path.exists("%s.asc" % test_file))
 
         # Detached binary signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file("signing", test_file, armor=False))
+        self.assertTrue(gpg.sign_file(self.config, "signing", test_file,
+                                      armor=False))
         self.assertTrue(os.path.exists("%s.sig" % test_file))
 
         # Standard armored signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file("signing", test_file, detach=False))
+        self.assertTrue(gpg.sign_file(self.config, "signing", test_file,
+                                      detach=False))
         self.assertTrue(os.path.exists("%s.asc" % test_file))
 
         # Standard binary signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file("signing", test_file, detach=False,
-                                      armor=False))
+        self.assertTrue(gpg.sign_file(self.config, "signing", test_file,
+                                      detach=False, armor=False))
         self.assertTrue(os.path.exists("%s.gpg" % test_file))
 
         # Failure cases
-        self.assertRaises(Exception, gpg.sign_file, "invalid", test_file)
+        self.assertRaises(Exception, gpg.sign_file, self.config, "invalid",
+                          test_file)
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        gpg.sign_file("signing", test_file)
-        self.assertRaises(Exception, gpg.sign_file, "signing", test_file)
-        self.assertRaises(Exception, gpg.sign_file, "signing", "invalid")
+        gpg.sign_file(self.config, "signing", test_file)
+        self.assertRaises(Exception, gpg.sign_file, self.config, "signing",
+                          test_file)
+        self.assertRaises(Exception, gpg.sign_file, self.config, "signing",
+                          "invalid")
 
     @unittest.skipIf(not os.path.exists(os.path.join("tests", "keys",
                                                      "generated")),
                      "No GPG testing keys present. Run generate-keys")
     def test_keyring(self):
-        keyring_path = os.path.join(self.temp_directory, "keyrings")
+        keyring_path = os.path.join(self.temp_directory, "secret", "gpg",
+                                    "keyrings")
 
-        os.environ['KEYRING_PATH'] = keyring_path
-        keyring = gpg.Keyring("testing")
+        keyring = gpg.Keyring(self.config, "testing")
         self.assertTrue(os.path.exists(os.path.join(keyring_path, "testing")))
         self.assertEquals(keyring.keyring_model, None)
         self.assertEquals(keyring.keyring_name, "testing")
@@ -91,7 +105,7 @@ class GPGTests(unittest.TestCase):
         keyring.set_metadata(keyring_type="test", keyring_model="test",
                              keyring_expiry=expiry)
 
-        keyring = gpg.Keyring("testing")
+        keyring = gpg.Keyring(self.config, "testing")
         self.assertEquals(keyring.keyring_model, "test")
         self.assertEquals(keyring.keyring_name, "testing")
         self.assertEquals(keyring.keyring_type, "test")

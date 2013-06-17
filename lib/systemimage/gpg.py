@@ -51,10 +51,10 @@ Expire-Date: %s
     return uid
 
 
-def sign_file(key, path, destination=None, detach=True, armor=True):
+def sign_file(config, key, path, destination=None, detach=True, armor=True):
     """
         Sign a file and publish the signature.
-        The key parameter must be a valid key unders secret/gpg/keys/.
+        The key parameter must be a valid key under config.gpg_key_path.
         The path must be that of a valid file.
         The destination defaults to <path>.gpg (non-armored) or
         <path>.asc (armored).
@@ -62,7 +62,7 @@ def sign_file(key, path, destination=None, detach=True, armor=True):
         detached signatures and base64 armoring.
     """
 
-    key_path = "%s/%s" % (os.environ.get("KEY_PATH", "secret/gpg/keys"), key)
+    key_path = "%s/%s" % (config.gpg_key_path, key)
 
     if not os.path.isdir(key_path):
         raise IndexError("Invalid GPG key name '%s'." % key)
@@ -110,10 +110,8 @@ class Keyring:
     keyring_model = None
     keyring_path = None
 
-    def __init__(self, keyring_name):
-        keyring_path = "%s/%s" % (os.environ.get("KEYRING_PATH",
-                                                 "secret/gpg/keyrings"),
-                                  keyring_name)
+    def __init__(self, config, keyring_name):
+        keyring_path = "%s/%s" % (config.gpg_keyring_path, keyring_name)
 
         if not os.path.isdir(keyring_path):
             os.makedirs(keyring_path)
