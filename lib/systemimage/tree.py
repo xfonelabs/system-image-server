@@ -18,32 +18,12 @@
 import copy
 import json
 import os
-import re
 import shutil
 import time
 
 from contextlib import contextmanager
 from hashlib import sha1
-from systemimage import gpg
-
-
-def expand_path(path, base="/"):
-    """
-        Takes a path and returns a tuple containing the absolute path
-        and a relative path (relative to base).
-    """
-
-    if path.startswith(base):
-        path = re.sub('^%s' % re.escape(base), "", path)
-
-    if path.startswith(os.sep):
-        relpath = path[1:]
-    else:
-        relpath = path
-
-    abspath = os.path.join(base, relpath)
-
-    return abspath, relpath
+from systemimage import gpg, tools
 
 
 @contextmanager
@@ -309,7 +289,7 @@ class Tree:
             if device_name not in channels[channel_name]:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
-            abspath, relpath = expand_path(path, self.path)
+            abspath, relpath = tools.expand_path(path, self.path)
 
             if not os.path.exists(abspath):
                 raise Exception("Specified GPG keyring doesn't exists: %s" %
@@ -345,7 +325,7 @@ class Device:
 
         with index_json(self.indexpath, True) as index:
             for path in paths:
-                abspath, relpath = expand_path(path, self.path)
+                abspath, relpath = tools.expand_path(path, self.path)
 
                 if not os.path.exists(abspath):
                     raise Exception("Specified file doesn't exists: %s"

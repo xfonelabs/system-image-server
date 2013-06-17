@@ -17,9 +17,29 @@
 
 from io import BytesIO
 import os
+import re
 import subprocess
 import tarfile
 import time
+
+
+def expand_path(path, base="/"):
+    """
+        Takes a path and returns a tuple containing the absolute path
+        and a relative path (relative to base).
+    """
+
+    if path.startswith(base):
+        path = re.sub('^%s' % re.escape(base), "", path)
+
+    if path.startswith(os.sep):
+        relpath = path[1:]
+    else:
+        relpath = path
+
+    abspath = os.path.join(base, relpath)
+
+    return abspath, relpath
 
 
 def generate_version_tarball(path, version, in_path="system/etc/ubuntu-build"):
