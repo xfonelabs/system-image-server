@@ -41,7 +41,7 @@ gpg.sign_file(conf, "image-master", "%s.xz" % path)
 
 # device-signing keyring
 device_signing = gpg.Keyring(conf, "device-signing")
-device_signing.set_metadata("image-signing", int(time.strftime("%s",
+device_signing.set_metadata("device-signing", int(time.strftime("%s",
                                                  time.localtime())) + 2678400)
 device_signing.import_keys(os.path.join(conf.gpg_key_path, "device-signing"))
 path = device_signing.generate_tarball()
