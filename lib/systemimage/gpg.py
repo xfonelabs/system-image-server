@@ -132,6 +132,7 @@ class Keyring:
     def generate_tarball(self, destination=None):
         """
             Generate a tarball of the keyring and its json metadata.
+            Returns the path to the tarball.
         """
 
         if not destination:
@@ -146,6 +147,8 @@ class Keyring:
         tarball.add("%s/pubring.gpg" % self.keyring_path,
                     arcname="keyring.gpg")
         tarball.close()
+
+        return destination
 
     def set_metadata(self, keyring_type, keyring_expiry=None,
                      keyring_model=None):
