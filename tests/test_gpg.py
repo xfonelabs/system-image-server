@@ -56,24 +56,24 @@ gpg_key_path = %s
 
         # Detached armored signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file(self.config, "signing", test_file))
+        self.assertTrue(gpg.sign_file(self.config, "image-signing", test_file))
         self.assertTrue(os.path.exists("%s.asc" % test_file))
 
         # Detached binary signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file(self.config, "signing", test_file,
+        self.assertTrue(gpg.sign_file(self.config, "image-signing", test_file,
                                       armor=False))
         self.assertTrue(os.path.exists("%s.sig" % test_file))
 
         # Standard armored signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file(self.config, "signing", test_file,
+        self.assertTrue(gpg.sign_file(self.config, "image-signing", test_file,
                                       detach=False))
         self.assertTrue(os.path.exists("%s.asc" % test_file))
 
         # Standard binary signature
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        self.assertTrue(gpg.sign_file(self.config, "signing", test_file,
+        self.assertTrue(gpg.sign_file(self.config, "image-signing", test_file,
                                       detach=False, armor=False))
         self.assertTrue(os.path.exists("%s.gpg" % test_file))
 
@@ -81,11 +81,11 @@ gpg_key_path = %s
         self.assertRaises(Exception, gpg.sign_file, self.config, "invalid",
                           test_file)
         [os.remove(path) for path in glob.glob("%s.*" % test_file)]
-        gpg.sign_file(self.config, "signing", test_file)
-        self.assertRaises(Exception, gpg.sign_file, self.config, "signing",
-                          test_file)
-        self.assertRaises(Exception, gpg.sign_file, self.config, "signing",
-                          "invalid")
+        gpg.sign_file(self.config, "image-signing", test_file)
+        self.assertRaises(Exception, gpg.sign_file, self.config,
+                          "image-signing", test_file)
+        self.assertRaises(Exception, gpg.sign_file, self.config,
+                          "image-signing", "invalid")
 
     @unittest.skipIf(not os.path.exists(os.path.join("tests", "keys",
                                                      "generated")),
@@ -111,7 +111,7 @@ gpg_key_path = %s
         self.assertEquals(keyring.keyring_type, "test")
         self.assertEquals(keyring.keyring_expiry, expiry)
 
-        keyring.import_keys(os.path.join("tests", "keys", "signing"))
+        keyring.import_keys(os.path.join("tests", "keys", "image-signing"))
 
         # Check that the keyring matches
         keys = keyring.list_keys()

@@ -64,7 +64,7 @@ def channels_json(config, path, commit=False):
                                              indent=4, separators=(',', ': ')))
 
             # Move the signature
-            gpg.sign_file(config, "signing", new_path)
+            gpg.sign_file(config, "image-signing", new_path)
             if os.path.exists("%s.asc" % path):
                 os.remove("%s.asc" % path)
             os.rename("%s.asc" % new_path, "%s.asc" % path)
@@ -119,7 +119,7 @@ def index_json(config, path, commit=False):
                                              indent=4, separators=(',', ': ')))
 
             # Move the signature
-            gpg.sign_file(config, "signing", new_path)
+            gpg.sign_file(config, "image-signing", new_path)
             if os.path.exists("%s.asc" % path):
                 os.remove("%s.asc" % path)
             os.rename("%s.asc" % new_path, "%s.asc" % path)

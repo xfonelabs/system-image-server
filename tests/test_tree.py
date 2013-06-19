@@ -111,7 +111,7 @@ gpg_key_path = %s
                                        {'test':
                                        {'index': '/testing/test/index.json'}}})
 
-        gpg.sign_file(self.config, "signing", device_keyring)
+        gpg.sign_file(self.config, "image-signing", device_keyring)
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
@@ -185,8 +185,8 @@ gpg_key_path = %s
                           "test", ["file"])
 
         # Check with missing base version
-        gpg.sign_file(self.config, "signing", os.path.join(self.temp_directory,
-                      "file"))
+        gpg.sign_file(self.config, "image-signing",
+                      os.path.join(self.temp_directory, "file"))
         self.assertRaises(KeyError, device.create_image, "delta", 1234,
                           "test", ["file"])
 
@@ -200,8 +200,8 @@ gpg_key_path = %s
 
         # Valid full image
         open(os.path.join(self.temp_directory, "second"), "w+").close()
-        gpg.sign_file(self.config, "signing", os.path.join(self.temp_directory,
-                      "second"))
+        gpg.sign_file(self.config, "image-signing",
+                      os.path.join(self.temp_directory, "second"))
         device.create_image("full", 1234, "abc", ["file", "second"],
                             minversion=1233, bootme=True)
 
