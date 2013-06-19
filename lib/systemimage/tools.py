@@ -53,7 +53,7 @@ def generate_version_tarball(path, version, in_path="system/etc/ubuntu-build"):
 
     version_file = tarfile.TarInfo()
     version_file.size = len(version)
-    version_file.mtime = int(time.strftime("%s", time.gmtime()))
+    version_file.mtime = int(time.strftime("%s", time.localtime()))
     version_file.name = in_path
 
     tarball.addfile(version_file, BytesIO(version.encode('utf-8')))
