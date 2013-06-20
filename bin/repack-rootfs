@@ -1,0 +1,73 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import tools
+
+import argparse
+import shutil
+import tarfile
+import tempfile
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="repack rootfs")
+
+    parser.add_argument("source", metavar="SOURCE-TARBALL")
+    parser.add_argument("target", metavar="TARGET-TARBALL")
+
+    args = parser.parse_args()
+
+    # Some checks
+    if not os.path.exists(args.source):
+        parser.error("Source tarball '%s' doesn't exist." % args.source)
+
+    if os.path.exists(args.target):
+        parser.error("Target tarball '%s' already exists." % args.target)
+
+    temp_dir = tempfile.mkdtemp()
+
+    # Unpack the source tarball
+    tools.gzip_uncompress(args.source, os.path.join(temp_dir, "source.tar"))
+
+    # Generate a new shifted tarball
+    source_tarball = tarfile.open(os.path.join(temp_dir, "source.tar"), "r:")
+    target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"), "w:")
+
+    added = []
+    for entry in source_tarball:
+        fileptr = None
+        if entry.isfile():
+            try:
+                fileptr = source_tarball.extractfile(entry.name)
+            except KeyError:
+                pass
+
+        entry.name = "system/%s" % entry.name
+        target_tarball.addfile(entry, fileobj=fileptr)
+        added.append(entry.name)
+
+    source_tarball.close()
+    target_tarball.close()
+
+    # Compress the target tarball
+    tools.xz_compress(os.path.join(temp_dir, "target.tar"), args.target)
+
+    shutil.rmtree(temp_dir)
