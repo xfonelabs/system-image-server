@@ -363,8 +363,8 @@ class Device:
                     raise Exception("The GPG file signature doesn't exists: "
                                     "%s.asc" % abspath)
 
-                with open(abspath, "r") as fd:
-                    checksum = sha1(fd.read().encode('utf-8')).hexdigest()
+                with open(abspath, "rb") as fd:
+                    checksum = sha1(fd.read()).hexdigest()
 
                 files.append({'order': count,
                               'path': "/%s" % "/".join(relpath.split(os.sep)),
