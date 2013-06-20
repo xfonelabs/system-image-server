@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from io import BytesIO
+import gzip
 import os
 import re
 import subprocess
@@ -59,6 +60,55 @@ def generate_version_tarball(path, version, in_path="system/etc/ubuntu-build"):
     tarball.addfile(version_file, BytesIO(version.encode('utf-8')))
 
     tarball.close()
+
+
+def gzip_compress(path, destination=None, level=9):
+    """
+        Compress a file (path) using gzip.
+        By default, creates a .gz version of the file in the same directory.
+        An alternate destination path may be provided.
+        The compress level is 9 by default but can be overriden.
+    """
+
+    if not destination:
+        destination = "%s.gz" % path
+
+    if os.path.exists(destination):
+        raise Exception("destination already exists.")
+
+    uncompressed = open(path, "rb")
+    compressed = gzip.open(destination, "wb+", level)
+    compressed.writelines(uncompressed)
+    compressed.close()
+    uncompressed.close()
+
+    return destination
+
+
+def gzip_uncompress(path, destination=None):
+    """
+        Uncompress a file (path) using gzip.
+        By default, uses the source path without the .gz prefix as the target.
+        An alternate destination path may be provided.
+    """
+
+    if not destination and path[-3:] != ".gz":
+        raise Exception("unspecified destination and path doesn't end"
+                        " with .gz")
+
+    if not destination:
+        destination = path[:-3]
+
+    if os.path.exists(destination):
+        raise Exception("destination already exists.")
+
+    compressed = gzip.open(path, "rb")
+    uncompressed = open(destination, "wb+")
+    uncompressed.writelines(compressed)
+    uncompressed.close()
+    compressed.close()
+
+    return destination
 
 
 def xz_compress(path, destination=None, level=9):

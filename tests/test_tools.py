@@ -43,6 +43,32 @@ class ToolTests(unittest.TestCase):
 
         self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4")
 
+    def test_gzip_compress(self):
+        test_string = "test-string"
+
+        # Simple compress/uncompress
+        test_file = "%s/test.txt" % self.temp_directory
+        with open(test_file, "w+") as fd:
+            fd.write(test_string)
+
+        self.assertEquals(tools.gzip_compress(test_file), "%s.gz" % test_file)
+        self.assertTrue(os.path.exists("%s.gz" % test_file))
+
+        os.remove(test_file)
+        self.assertFalse(os.path.exists(test_file))
+
+        self.assertEquals(tools.gzip_uncompress("%s.gz" % test_file),
+                          test_file)
+        self.assertTrue(os.path.exists(test_file))
+
+        with open(test_file, "r") as fd:
+            self.assertEquals(fd.read(), test_string)
+
+        self.assertRaises(Exception, tools.gzip_compress, test_file)
+        self.assertRaises(Exception, tools.gzip_uncompress,
+                          "%s.gz" % test_file)
+        self.assertRaises(Exception, tools.gzip_uncompress, test_file)
+
     def test_xz_compress(self):
         test_string = "test-string"
 
