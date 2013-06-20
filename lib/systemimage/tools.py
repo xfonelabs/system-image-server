@@ -168,7 +168,7 @@ def trigger_mirror(host, port, username, key, command):
                             command])
 
 
-def sync_mirrors(mirrors):
-    for mirror in mirrors:
+def sync_mirrors(config):
+    for mirror in config.mirrors:
         trigger_mirror(mirror.ssh_host, mirror.ssh_port, mirror.ssh_user,
                        mirror.ssh_key, mirror.ssh_command)

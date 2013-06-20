@@ -60,10 +60,10 @@ ssh_host = hosta
 ssh_host = hostb
 """ % self.temp_directory)
 
-        configobj = config.Config(config_path)
+        conf = config.Config(config_path)
 
         # Test ssh sync
-        tools.sync_mirrors(configobj.mirrors)
+        tools.sync_mirrors(conf)
         expected_calls = [((['ssh', '-i', 'key', '-l', 'user',
                              '-p', '22', 'hosta', 'command'],), {}),
                           ((['ssh', '-i', 'key', '-l', 'user',
@@ -88,8 +88,8 @@ ssh_host = hostb
         with open(empty_config_path, "w+") as fd:
             fd.write("")
 
-        configobj = config.Config(empty_config_path)
-        self.assertEquals(configobj.base_path, os.getcwd())
+        conf = config.Config(empty_config_path)
+        self.assertEquals(conf.base_path, os.getcwd())
 
         # Single mirror config
         single_mirror_config_path = os.path.join(self.temp_directory,
@@ -108,8 +108,8 @@ ssh_command = command
 ssh_host = host
 """)
 
-        configobj = config.Config(single_mirror_config_path)
-        self.assertEquals(configobj.mirrors[0].ssh_command, "command")
+        conf = config.Config(single_mirror_config_path)
+        self.assertEquals(conf.mirrors[0].ssh_command, "command")
 
         # Missing mirror_default
         missing_default_config_path = os.path.join(self.temp_directory,
