@@ -20,7 +20,7 @@ import shutil
 import tempfile
 import unittest
 
-from systemimage import config, gpg, tree
+from systemimage import config, gpg, tree, tools
 
 
 class TreeTests(unittest.TestCase):
@@ -47,6 +47,28 @@ gpg_key_path = %s
         os.makedirs(self.config.publish_path)
         test_tree = tree.Tree(self.config)
         self.assertEquals(test_tree.list_channels(), {})
+
+        # Test publishing a keyring
+        keyring = gpg.Keyring(self.config, "image-signing")
+        keyring.set_metadata("image-signing")
+        keyring.import_keys(os.path.join(self.config.gpg_key_path,
+                            "image-signing"))
+        self.assertRaises(Exception, test_tree.publish_keyring,
+                          "image-signing")
+        keyring_tar = keyring.generate_tarball()
+        tools.xz_compress(keyring_tar)
+        self.assertRaises(Exception, test_tree.publish_keyring,
+                          "image-signing")
+        gpg.sign_file(self.config, "image-master", "%s.xz" % keyring_tar)
+        test_tree.publish_keyring("image-signing")
+
+        self.assertTrue(os.path.exists(os.path.join(self.config.publish_path,
+                                                    "gpg", "image-signing"
+                                                           ".tar.xz")))
+
+        self.assertTrue(os.path.exists(os.path.join(self.config.publish_path,
+                                                    "gpg", "image-signing"
+                                                           ".tar.xz.asc")))
 
         # Test invalid tree path
         self.assertRaises(Exception, tree.Tree, self.config,

@@ -240,6 +240,28 @@ class Tree:
 
             return Device(self.config, os.path.join(self.path, channel_name))
 
+    def publish_keyring(self, keyring_name):
+        """
+            Publish the keyring under gpg/
+        """
+
+        gpg_path = os.path.join(self.config.publish_path, "gpg")
+
+        if not os.path.exists(gpg_path):
+            os.mkdir(gpg_path)
+
+        keyring_path = os.path.join(self.config.gpg_keyring_path, keyring_name)
+
+        if not os.path.exists("%s.tar.xz" % keyring_path):
+            raise Exception("Missing keyring: %s.tar.xz" % keyring_path)
+
+        if not os.path.exists("%s.tar.xz.asc" % keyring_path):
+            raise Exception("Missing keyring signature: %s.tar.xz.asc" %
+                            keyring_path)
+
+        shutil.copy("%s.tar.xz" % keyring_path, gpg_path)
+        shutil.copy("%s.tar.xz.asc" % keyring_path, gpg_path)
+
     def list_channels(self):
         """
             Returns a dict of all existing channels and devices for each of
