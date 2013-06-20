@@ -238,7 +238,8 @@ class Tree:
             if device_name not in channels[channel_name]:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
-            return Device(self.config, os.path.join(self.path, channel_name))
+            return Device(self.config, os.path.join(self.path, channel_name,
+                          device_name))
 
     def publish_keyring(self, keyring_name):
         """
