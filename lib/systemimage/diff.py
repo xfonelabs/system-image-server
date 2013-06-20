@@ -203,12 +203,8 @@ class ImageDiff:
                     output.addfile(targetfile, fileptr)
                     added.append(targetfile.name)
 
-            try:
+            if newfile.isfile():
                 fileptr = self.target_file.extractfile(name)
-            except KeyError:
-                # The file pointed to by the symlink doesn't exist in the
-                # tarfile, so ignore the file pointer.
-                fileptr = None
             output.addfile(newfile, fileobj=fileptr)
             added.append(newfile.name)
 
