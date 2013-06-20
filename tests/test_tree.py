@@ -36,6 +36,7 @@ base_path = %s
 gpg_key_path = %s
 """ % (self.temp_directory, os.path.join("tests", "keys")))
         self.config = config.Config(config_path)
+        os.makedirs(self.config.publish_path)
 
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
@@ -44,7 +45,6 @@ gpg_key_path = %s
                      "No GPG testing keys present. Run tests/generate-keys")
     def test_channels(self):
         # Test getting a tree instance
-        os.makedirs(self.config.publish_path)
         test_tree = tree.Tree(self.config)
         self.assertEquals(test_tree.list_channels(), {})
 
@@ -202,13 +202,13 @@ gpg_key_path = %s
                           "test", ["file"])
 
         # Check with missing signature
-        open(os.path.join(self.temp_directory, "file"), "w+").close()
+        open(os.path.join(self.config.publish_path, "file"), "w+").close()
         self.assertRaises(Exception, device.create_image, "full", 1234,
                           "test", ["file"])
 
         # Check with missing base version
         gpg.sign_file(self.config, "image-signing",
-                      os.path.join(self.temp_directory, "file"))
+                      os.path.join(self.config.publish_path, "file"))
         self.assertRaises(KeyError, device.create_image, "delta", 1234,
                           "test", ["file"])
 
@@ -221,9 +221,9 @@ gpg_key_path = %s
                           "test", ["file"], base=1233, minversion=1233)
 
         # Valid full image
-        open(os.path.join(self.temp_directory, "second"), "w+").close()
+        open(os.path.join(self.config.publish_path, "second"), "w+").close()
         gpg.sign_file(self.config, "image-signing",
-                      os.path.join(self.temp_directory, "second"))
+                      os.path.join(self.config.publish_path, "second"))
         device.create_image("full", 1234, "abc", ["file", "second"],
                             minversion=1233, bootme=True)
 

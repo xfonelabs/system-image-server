@@ -337,6 +337,7 @@ class Tree:
 class Device:
     def __init__(self, config, path):
         self.config = config
+        self.pub_path = self.config.publish_path
         self.path = path
         self.indexpath = os.path.join(path, "index.json")
 
@@ -354,7 +355,7 @@ class Device:
 
         with index_json(self.config, self.indexpath, True) as index:
             for path in paths:
-                abspath, relpath = tools.expand_path(path, self.path)
+                abspath, relpath = tools.expand_path(path, self.pub_path)
 
                 if not os.path.exists(abspath):
                     raise Exception("Specified file doesn't exists: %s"
