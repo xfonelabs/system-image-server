@@ -22,7 +22,7 @@ import shutil
 import time
 
 from contextlib import contextmanager
-from hashlib import sha1
+from hashlib import sha256
 from systemimage import gpg, tools
 
 
@@ -366,7 +366,7 @@ class Device:
                                     "%s.asc" % abspath)
 
                 with open(abspath, "rb") as fd:
-                    checksum = sha1(fd.read()).hexdigest()
+                    checksum = sha256(fd.read()).hexdigest()
 
                 files.append({'order': count,
                               'path': "/%s" % "/".join(relpath.split(os.sep)),

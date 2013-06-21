@@ -237,22 +237,22 @@ gpg_key_path = %s
             [{'bootme': True, 'description': 'abc', 'minversion': 1233,
               'type': 'full', 'version': 1234,
               'files': [{'signature': '/file.asc', 'path': '/file',
-                         'checksum': 'da39a3ee5e6b4b0d3255'
-                                     'bfef95601890afd80709',
+                         'checksum': 'e3b0c44298fc1c149afbf4c8996fb924'
+                                     '27ae41e4649b934ca495991b7852b855',
                          'size': 0, 'order': 0},
                         {'signature': '/second.asc', 'path': '/second',
-                         'checksum': 'da39a3ee5e6b4b0d3255'
-                                     'bfef95601890afd80709',
+                         'checksum': 'e3b0c44298fc1c149afbf4c8996fb924'
+                                     '27ae41e4649b934ca495991b7852b855',
                          'size': 0, 'order': 1}]},
              {'bootme': True, 'description': 'abc', 'type': 'delta',
               'base': 1233, 'version': 1234,
               'files': [{'signature': '/file.asc', 'path': '/file',
-                         'checksum': 'da39a3ee5e6b4b0d3255'
-                                     'bfef95601890afd80709',
+                         'checksum': 'e3b0c44298fc1c149afbf4c8996fb924'
+                                     '27ae41e4649b934ca495991b7852b855',
                          'size': 0, 'order': 0},
                         {'signature': '/second.asc', 'path': '/second',
-                         'checksum': 'da39a3ee5e6b4b0d3255'
-                                     'bfef95601890afd80709',
+                         'checksum': 'e3b0c44298fc1c149afbf4c8996fb924'
+                                     '27ae41e4649b934ca495991b7852b855',
                          'size': 0, 'order': 1}]}])
 
         # Set descriptions
