@@ -27,8 +27,6 @@ import shutil
 import sys
 import unittest
 
-os.environ['KEY_PATH'] = "tests/keys"
-
 coverage = True
 try:
     from coverage import coverage

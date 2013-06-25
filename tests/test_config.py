@@ -182,6 +182,6 @@ ssh_user = other-user
         os.makedirs(os.path.join(test_path, "etc"))
         with open(os.path.join(test_path, "etc", "config"), "w+") as fd:
             fd.write("[global]\nbase_path = a/b/c")
-        os.environ['SYSTEM_IMAGE_PATH'] = test_path
+        os.environ['SYSTEM_IMAGE_ROOT'] = test_path
         test_config = config.Config()
         self.assertEquals(test_config.base_path, "a/b/c")

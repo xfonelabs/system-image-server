@@ -50,7 +50,7 @@ def parse_config(path):
 class Config:
     def __init__(self, path=None):
         if not path:
-            path = "%s/etc/config" % os.environ.get("SYSTEM_IMAGE_PATH",
+            path = "%s/etc/config" % os.environ.get("SYSTEM_IMAGE_ROOT",
                                                     os.getcwd())
 
         self.load_config(path)
@@ -67,7 +67,7 @@ class Config:
 
         # Set defaults
         self.base_path = config['global'].get(
-            "base_path", os.environ.get("SYSTEM_IMAGE_PATH", os.getcwd()))
+            "base_path", os.environ.get("SYSTEM_IMAGE_ROOT", os.getcwd()))
         self.gpg_key_path = config['global'].get(
             "gpg_key_path", os.path.join(self.base_path,
                                          "secret", "gpg", "keys"))
