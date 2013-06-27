@@ -203,6 +203,7 @@ class ImageDiff:
                     output.addfile(targetfile, fileptr)
                     added.append(targetfile.name)
 
+            fileptr = None
             if newfile.isfile():
                 fileptr = self.target_file.extractfile(name)
             output.addfile(newfile, fileobj=fileptr)
