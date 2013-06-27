@@ -21,17 +21,18 @@ import sys
 sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 
 from systemimage.diff import ImageDiff
+from systemimage.tools import xz_compress, xz_uncompress
 
 import argparse
+import shutil
+import tempfile
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="squashfs diff generator")
+    parser = argparse.ArgumentParser(description="diff generator")
 
     parser.add_argument("source", metavar="SOURCE-TARBALL")
     parser.add_argument("target", metavar="TARGET-TARBALL")
-    parser.add_argument("output", metavar="OUTPUT-PREFIX", nargs="?",
-                        help="Output a squashfs with the diff along with "
-                             "a file listing all removals.")
+    parser.add_argument("output", metavar="OUTPUT-TARBALL", nargs="?")
 
     args = parser.parse_args()
 
@@ -42,10 +43,33 @@ if __name__ == '__main__':
     if not os.path.exists(args.target):
         parser.error("Target tarball '%s' doesn't exist." % args.target)
 
+    if (args.source.endswith(".tar") and args.target.endswith(".tar")
+            and (args.output.endswith(".tar") or not args.output)):
+        use_tempdir = False
+    else:
+        use_tempdir = True
+        tempdir = tempfile.mkdtemp()
+
+        if args.source.endswith(".xz"):
+            xz_uncompress(args.source, os.path.join(tempdir, "source.tar"))
+            args.source = os.path.join(tempdir, "source.tar")
+
+        if args.target.endswith(".xz"):
+            xz_uncompress(args.target, os.path.join(tempdir, "target.tar"))
+            args.target = os.path.join(tempdir, "target.tar")
+
     imagediff = ImageDiff(args.source, args.target)
 
     # Do something with the changes
     if not hasattr(args, "output") or not args.output:
         imagediff.print_changes()
     else:
-        imagediff.generate_diff_tarball(args.output)
+        if args.output.endswith(".xz"):
+            imagediff.generate_diff_tarball(os.path.join(tempdir,
+                                                         "output.tar"))
+            xz_compress(os.path.join(tempdir, "output.tar"), args.output)
+        else:
+            imagediff.generate_diff_tarball(args.output)
+
+    if use_tempdir:
+        shutil.rmtree(tempdir)
