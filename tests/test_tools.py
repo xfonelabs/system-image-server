@@ -41,7 +41,7 @@ class ToolTests(unittest.TestCase):
         version_file = version_tarfile.extractfile("a/b/version")
         self.assertTrue(version_file)
 
-        self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4")
+        self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4\n")
 
     def test_gzip_compress(self):
         test_string = "test-string"
