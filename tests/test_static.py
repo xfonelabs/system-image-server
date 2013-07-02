@@ -34,6 +34,9 @@ class StaticTests(unittest.TestCase):
                 if not n.startswith(".") and not n.endswith("~")]
             if dirpath.split(os.sep)[-1] == "bin":
                 for filename in filenames:
+                    if filename in ("simg2img"):
+                        continue
+
                     paths.append(os.path.join(dirpath, filename))
             else:
                 for filename in filenames:
