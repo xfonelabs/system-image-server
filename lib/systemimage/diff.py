@@ -17,6 +17,7 @@
 
 import os
 import tarfile
+import time
 
 from io import BytesIO
 
@@ -177,6 +178,9 @@ class ImageDiff:
         removals = tarfile.TarInfo()
         removals.name = "removed"
         removals.size = len(removed_files)
+        removals.mtime = int(time.strftime("%s", time.localtime()))
+        removals.uname = "root"
+        removals.gname = "root"
 
         output.addfile(removals, BytesIO(removed_files))
 
