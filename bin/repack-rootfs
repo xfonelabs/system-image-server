@@ -18,6 +18,7 @@
 
 import os
 import sys
+import time
 sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 
 from systemimage import tools
@@ -53,6 +54,11 @@ if __name__ == '__main__':
 
     added = []
     for entry in source_tarball:
+        # FIXME: Will need to be done on the real rootfs
+        # Skip some files
+        if entry.name in ("SWAP.swap", "etc/mtab"):
+            continue
+
         fileptr = None
         if entry.isfile():
             try:
@@ -60,9 +66,68 @@ if __name__ == '__main__':
             except KeyError:
                 pass
 
+        # Update hardlinks to point to the right target
+        if entry.islnk():
+            entry.linkname = "system/%s" % entry.linkname
+
         entry.name = "system/%s" % entry.name
         target_tarball.addfile(entry, fileobj=fileptr)
         added.append(entry.name)
+
+    # FIXME: Will need to be done on the real rootfs
+    # Add some symlinks and directories
+    ## /android
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.DIRTYPE
+    new_file.name = "system/android"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    ## /data
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.DIRTYPE
+    new_file.name = "system/data"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    ## /etc/mtab
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.SYMTYPE
+    new_file.name = "system/etc/mtab"
+    new_file.linkname = "/proc/mounts"
+    new_file.mode = 0o444
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    ## /system
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.SYMTYPE
+    new_file.name = "system/system"
+    new_file.linkname = "/android/system"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    ## /vendor
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.SYMTYPE
+    new_file.name = "system/vendor"
+    new_file.linkname = "/android/system/vendor"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
 
     source_tarball.close()
     target_tarball.close()
