@@ -69,7 +69,8 @@ if __name__ == '__main__':
     subprocess.call(["resize2fs", "-M", system_img])
 
     ## include in tarball
-    target_tarball.add(system_img, arcname="system/var/lib/lxc/system.img",
+    target_tarball.add(system_img,
+                       arcname="system/var/lib/lxc/android/system.img",
                        filter=root_ownership)
 
     # boot image
