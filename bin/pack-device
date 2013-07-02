@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+import time
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import tools
+
+import argparse
+import shutil
+import subprocess
+import tarfile
+import tempfile
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="pack device specific files")
+
+    parser.add_argument("system_image", metavar="SYSTEM-IMAGE")
+    parser.add_argument("boot_image", metavar="BOOT-IMAGE")
+    parser.add_argument("target", metavar="TARGET-TARBALL")
+
+    args = parser.parse_args()
+
+    # Some checks
+    if not os.path.exists(args.system_image):
+        parser.error("System image '%s' doesn't exist." % args.system_image)
+
+    if not os.path.exists(args.boot_image):
+        parser.error("Boot image '%s' doesn't exist." % args.boot_image)
+
+    if os.path.exists(args.target):
+        parser.error("Target tarball '%s' already exists." % args.target)
+
+    temp_dir = tempfile.mkdtemp()
+
+    # Generate a new tarball
+    target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"), "w:")
+
+    def root_ownership(tarinfo):
+        tarinfo.mode = 0o644
+        tarinfo.mtime = int(time.strftime("%s", time.localtime()))
+        tarinfo.uname = "root"
+        tarinfo.gname = "root"
+        return tarinfo
+
+    # system image
+    ## convert to raw image
+    system_img = os.path.join(temp_dir, "system.img")
+    subprocess.call(["bin/simg2img", args.system_image, system_img])
+
+    ## shrink to minimal size
+    subprocess.call(["resize2fs", "-M", system_img])
+
+    ## include in tarball
+    target_tarball.add(system_img, arcname="system/var/lib/lxc/system.img",
+                       filter=root_ownership)
+
+    # boot image
+    target_tarball.add(args.boot_image, arcname="boot.img",
+                       filter=root_ownership)
+
+    target_tarball.close()
+
+    # Compress the target tarball
+    tools.xz_compress(os.path.join(temp_dir, "target.tar"), args.target)
+
+    shutil.rmtree(temp_dir)
