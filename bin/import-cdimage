@@ -1,0 +1,254 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import config, gpg, tools, tree
+
+import argparse
+import glob
+import subprocess
+import time
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="import all new files from cdimage")
+
+    parser.add_argument("cdimage_path", metavar="IMAGE-PATH")
+    parser.add_argument("channel", metavar="CHANNEL")
+
+    args = parser.parse_args()
+
+    conf = config.Config()
+    pub = tree.Tree(conf)
+
+    # Some checks
+    if not os.path.exists(args.cdimage_path):
+        parser.error("Invalid path: %s" % args.cdimage_path)
+
+    if args.channel not in pub.list_channels():
+        parser.error("Invalid channel: %s" % args.channel)
+
+    # Load the list of known files
+    known_sums = []
+    import_state = os.path.join(conf.base_path, "state",
+                                "import-%s" % args.channel)
+    if os.path.exists(import_state):
+        with open(import_state, "r") as fd:
+            known_sums = [line.strip() for line in fd]
+
+    # Build a dict of device_name => Device object
+    devices = {}
+    for device_name in pub.list_channels()[args.channel]:
+        devices[device_name] = pub.get_device(args.channel, device_name)
+
+    # Build a dict of new files to process for each device
+    to_process = {device_name: set() for device_name in devices}
+    to_process['ubuntu'] = set()
+    to_publish = {device_name: set() for device_name in devices}
+
+    for path in sorted(glob.glob("%s/*/SHA256SUMS" % args.cdimage_path)):
+        dir_path = os.path.dirname(path)
+        version = os.path.basename(dir_path)
+
+        if [True for ignore in ("current", "pending") if ignore in path]:
+            continue
+
+        with open(path, "r") as fd:
+            for line in fd:
+                fields = line.split()
+                file_sum = fields[0]
+                file_name = fields[1].strip("*")
+
+                if file_sum in known_sums:
+                    continue
+
+                if "boot-armhf" in file_name or "system-armel" in file_name:
+                    device = file_name.split("+")[-1].split(".")[0]
+                    if not device in to_process:
+                        continue
+
+                    to_process[device].add(version)
+                elif "touch-armhf.tar.gz" in file_name:
+                    to_process['ubuntu'].add(version)
+                else:
+                    continue
+
+                known_sums.append(file_sum)
+
+    # Import the rootfs images
+    for version in sorted(to_process['ubuntu']):
+        path = os.path.join(args.cdimage_path, version,
+                            "saucy-preinstalled-touch-armhf.tar.gz")
+
+        path_out = os.path.join(conf.publish_path, args.channel, "ubuntu",
+                                "ubuntu-%s.full.tar.xz" % version)
+
+        if os.path.exists(path_out):
+            continue
+
+        subprocess.call(["bin/repack-rootfs", path, path_out])
+        gpg.sign_file(conf, "image-signing", path_out)
+
+        for device in to_publish:
+            to_publish[device].add(version)
+
+    # Import the system images
+    for device in devices:
+        for version in sorted(to_process[device]):
+            system_path = os.path.join(args.cdimage_path, version,
+                                       "saucy-preinstalled-system-armel+"
+                                       "%s.img" % device)
+            boot_path = os.path.join(args.cdimage_path, version,
+                                     "saucy-preinstalled-boot-armhf+"
+                                     "%s.img" % device)
+
+            path_out = os.path.join(conf.publish_path, args.channel, device,
+                                    "%s-%s.full.tar.xz" % (device, version))
+
+            if os.path.exists(path_out):
+                continue
+
+            subprocess.call(["bin/pack-device", system_path, boot_path,
+                             path_out])
+            gpg.sign_file(conf, "image-signing", path_out)
+
+            to_publish[device].add(version)
+
+    # Generate delta images
+    for entry in list(devices.keys()) + ['ubuntu']:
+        base_path = os.path.join(conf.publish_path, args.channel, entry)
+
+        tarballs = {tarball.split(".full")[0].split("-")[-1]: tarball
+                    for tarball in glob.glob("%s/*.full.tar.xz" % base_path)}
+        versions = sorted(tarballs.keys())
+
+        for i in range(len(tarballs)):
+
+            if i == 0:
+                continue
+
+            path_src = tarballs[versions[i-1]]
+            path_dst = tarballs[versions[i]]
+            path_out = path_dst.replace(".full.tar.xz",
+                                        ".delta-%s.tar.xz" % versions[i-1])
+
+            if os.path.exists(path_out):
+                continue
+
+            subprocess.call(["bin/generate-diff", path_src,
+                             path_dst, path_out])
+            gpg.sign_file(conf, "image-signing", path_out)
+
+    # Publish
+    for device_name, versions in sorted(to_publish.items()):
+        print("Processing updates for: %s" % device_name)
+        for version in sorted(versions):
+            print(" - %s" % version)
+
+            # Grab last full and delta
+            images = devices[device_name].list_images()
+            full_images = sorted([image for image in images
+                                  if image['type'] == "full"],
+                                 key=lambda image: image['version'])
+            delta_images = sorted([image for image in images
+                                   if image['type'] == "delta"],
+                                  key=lambda image: image['version'])
+            last_full = None
+            last_delta = None
+            if full_images:
+                last_full = full_images[-1]
+            if delta_images:
+                last_delta = delta_images[-1]
+
+            # Publish a full image
+            dep = os.path.join(conf.publish_path, args.channel, device_name,
+                               "%s-%s.full.tar.xz" % (device_name, version))
+            if not os.path.exists(dep):
+                dep = "%s%s" % (conf.publish_path,
+                                last_full['files'][1]['path'])
+
+            indep = os.path.join(conf.publish_path, args.channel, "ubuntu",
+                                 "ubuntu-%s.full.tar.xz" % version)
+            if not os.path.exists(indep):
+                indep = "%s%s" % (conf.publish_path,
+                                  last_full['files'][0]['path'])
+
+            last_version = 0
+            if last_full and last_full['version'] > last_version:
+                last_version = last_full['version']
+            if last_delta and last_delta['version'] > last_version:
+                last_version = last_delta['version']
+
+            new_version = int(time.strftime("%Y%m00", time.gmtime()))
+            if last_version >= new_version:
+                new_version = last_version + 1
+
+            version_path = os.path.join(conf.publish_path, args.channel,
+                                        device_name,
+                                        "version-%s.tar.xz" % new_version)
+            if not os.path.exists(version_path):
+                tools.generate_version_tarball(
+                    version_path.replace(".xz", ""), str(new_version))
+
+                tools.xz_compress(version_path.replace(".xz", ""))
+                os.remove(version_path.replace(".xz", ""))
+                gpg.sign_file(conf, "image-signing", version_path)
+
+            devices[device_name].create_image(
+                "full", new_version, str(version), [indep, dep, version_path])
+
+            # Publish delta images
+            dep = glob.glob("%s/%s-%s.delta-*.tar.xz" %
+                            (os.path.join(conf.publish_path, args.channel,
+                                          device_name), device_name, version))
+            indep = glob.glob("%s/ubuntu/ubuntu-%s.delta-*.tar.xz" %
+                              (os.path.join(conf.publish_path, args.channel),
+                               version))
+
+            delta_versions = [entry.split(".")[-3].split("-")[-1]
+                              for entry in dep + indep]
+
+            for delta_version in sorted(set(delta_versions)):
+                base_version = [entry['version'] for entry in images
+                                if entry['description'] == str(delta_version)]
+                if not base_version:
+                    continue
+
+                files = []
+
+                delta_indep = [entry for entry in dep
+                               if "delta-%s" % delta_version in entry]
+                if delta_indep:
+                    files.append(delta_indep[0])
+
+                delta_dep = [entry for entry in dep
+                             if "delta-%s" % delta_version in entry]
+                if delta_dep:
+                    files.append(delta_dep[0])
+
+                files.append(version_path)
+
+                devices[device_name].create_image(
+                    "delta", new_version, str(version),
+                    files, base=base_version[0])
+
+    with open(import_state, "w+") as fd:
+        fd.write("\n".join(known_sums))

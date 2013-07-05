@@ -6,3 +6,4 @@ secret/ssh/*
 tests/coverage
 tests/keys/*
 www/*
+state/*
