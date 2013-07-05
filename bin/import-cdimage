@@ -223,7 +223,7 @@ if __name__ == '__main__':
                               (os.path.join(conf.publish_path, args.channel),
                                version))
 
-            delta_versions = [entry.split(".")[-3].split("-")[-1]
+            delta_versions = [entry.split(".tar.xz")[0].split("-")[-1]
                               for entry in dep + indep]
 
             for delta_version in sorted(set(delta_versions)):
