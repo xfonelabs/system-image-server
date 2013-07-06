@@ -234,7 +234,7 @@ if __name__ == '__main__':
 
                 files = []
 
-                delta_indep = [entry for entry in dep
+                delta_indep = [entry for entry in indep
                                if "delta-%s" % delta_version in entry]
                 if delta_indep:
                     files.append(delta_indep[0])
