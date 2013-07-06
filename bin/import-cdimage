@@ -66,10 +66,12 @@ if __name__ == '__main__':
 
     versions = [path.split("/")[-2]
                 for path in glob.glob("%s/*/SHA256SUMS" % args.cdimage_path)
-                if not [True for ignore in ("current", "pending") if ignore in path]]
+                if not [True for ignore in ("current",
+                                            "pending") if ignore in path]]
 
     for version in sorted(versions):
-        with open("%s/%s/SHA256SUMS" % (args.cdimage_path, version), "r") as fd:
+        with open("%s/%s/SHA256SUMS" % (args.cdimage_path,
+                                        version), "r") as fd:
             for line in fd:
                 fields = line.split()
                 file_sum = fields[0]
