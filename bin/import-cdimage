@@ -64,14 +64,12 @@ if __name__ == '__main__':
     to_process['ubuntu'] = set()
     to_publish = {device_name: set() for device_name in devices}
 
-    for path in sorted(glob.glob("%s/*/SHA256SUMS" % args.cdimage_path)):
-        dir_path = os.path.dirname(path)
-        version = os.path.basename(dir_path)
+    versions = [path.split("/")[-2]
+                for path in glob.glob("%s/*/SHA256SUMS" % args.cdimage_path)
+                if not [True for ignore in ("current", "pending") if ignore in path]]
 
-        if [True for ignore in ("current", "pending") if ignore in path]:
-            continue
-
-        with open(path, "r") as fd:
+    for version in sorted(versions):
+        with open("%s/%s/SHA256SUMS" % (args.cdimage_path, version), "r") as fd:
             for line in fd:
                 fields = line.split()
                 file_sum = fields[0]
