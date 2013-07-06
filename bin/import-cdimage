@@ -252,3 +252,5 @@ if __name__ == '__main__':
 
     with open(import_state, "w+") as fd:
         fd.write("\n".join(known_sums))
+
+    tools.sync_mirrors(conf)
