@@ -146,8 +146,13 @@ def xz_compress(path, destination=None, level=9):
     if os.path.exists(destination):
         raise Exception("destination already exists.")
 
+    if find_on_path("pxz"):
+        xz_command = "pxz"
+    else:
+        xz_command = "xz"
+
     with open(destination, "wb+") as fd:
-        retval = subprocess.call(['pxz', '-z', '-%s' % level, '-c', path],
+        retval = subprocess.call([xz_command, '-z', '-%s' % level, '-c', path],
                                  stdout=fd)
     return retval
 

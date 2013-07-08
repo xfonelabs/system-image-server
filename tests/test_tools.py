@@ -88,6 +88,29 @@ class ToolTests(unittest.TestCase):
 
         self.assertEquals(tools.xz_uncompress("%s.xz" % test_file), 0)
         self.assertTrue(os.path.exists(test_file))
+        os.remove("%s.xz" % test_file)
+
+        with open(test_file, "r") as fd:
+            self.assertEquals(fd.read(), test_string)
+
+        # Forcing xz
+        bin_dir = os.path.join(self.temp_directory, "bin")
+        os.mkdir(bin_dir)
+        os.symlink("/usr/bin/xz", os.path.join(bin_dir, "xz"))
+        os.environ['PATH'] = bin_dir
+
+        test_file = "%s/test.txt" % self.temp_directory
+        with open(test_file, "w+") as fd:
+            fd.write(test_string)
+
+        self.assertEquals(tools.xz_compress(test_file), 0)
+        self.assertTrue(os.path.exists("%s.xz" % test_file))
+
+        os.remove(test_file)
+        self.assertFalse(os.path.exists(test_file))
+
+        self.assertEquals(tools.xz_uncompress("%s.xz" % test_file), 0)
+        self.assertTrue(os.path.exists(test_file))
 
         with open(test_file, "r") as fd:
             self.assertEquals(fd.read(), test_string)
