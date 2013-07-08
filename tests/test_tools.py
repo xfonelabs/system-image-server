@@ -28,9 +28,12 @@ class ToolTests(unittest.TestCase):
     def setUp(self):
         temp_directory = tempfile.mkdtemp()
         self.temp_directory = temp_directory
+        self.old_path = os.environ.get("PATH", None)
 
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
+        if self.old_path:
+            os.environ['PATH'] = self.old_path
 
     def test_generate_version_tarball(self):
         version_tarball = "%s/version.tar" % self.temp_directory
@@ -92,3 +95,25 @@ class ToolTests(unittest.TestCase):
         self.assertRaises(Exception, tools.xz_compress, test_file)
         self.assertRaises(Exception, tools.xz_uncompress, "%s.xz" % test_file)
         self.assertRaises(Exception, tools.xz_uncompress, test_file)
+
+    # Imported from cdimage.osextras
+    def test_find_on_path_missing_environment(self):
+        os.environ.pop("PATH", None)
+        self.assertFalse(tools.find_on_path("ls"))
+
+    def test_find_on_path_present_executable(self):
+        bin_dir = os.path.join(self.temp_directory, "bin")
+        os.mkdir(bin_dir)
+        program = os.path.join(bin_dir, "program")
+        open(program, "w+").close()
+        os.chmod(program, 0o755)
+        os.environ["PATH"] = "::%s" % bin_dir
+        self.assertTrue(tools.find_on_path("program"))
+
+    def test_find_on_path_present_not_executable(self):
+        bin_dir = os.path.join(self.temp_directory, "bin")
+        os.mkdir(bin_dir)
+        program = os.path.join(bin_dir, "program")
+        open(program, "w+").close()
+        os.environ["PATH"] = bin_dir
+        self.assertFalse(tools.find_on_path("program"))

@@ -43,6 +43,22 @@ def expand_path(path, base="/"):
     return abspath, relpath
 
 
+# Imported from cdimage.osextras
+def find_on_path(command):
+    """Is command on the executable search path?"""
+
+    if 'PATH' not in os.environ:
+        return False
+    path = os.environ['PATH']
+    for element in path.split(os.pathsep):
+        if not element:
+            continue
+        filename = os.path.join(element, command)
+        if os.path.isfile(filename) and os.access(filename, os.X_OK):
+            return True
+    return False
+
+
 def generate_version_tarball(path, version, in_path="system/etc/ubuntu-build"):
     """
         Generates a tarball which contains a single file (in_path).
@@ -131,7 +147,7 @@ def xz_compress(path, destination=None, level=9):
         raise Exception("destination already exists.")
 
     with open(destination, "wb+") as fd:
-        retval = subprocess.call(['xz', '-z', '-%s' % level, '-c', path],
+        retval = subprocess.call(['pxz', '-z', '-%s' % level, '-c', path],
                                  stdout=fd)
     return retval
 
