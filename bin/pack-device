@@ -70,7 +70,7 @@ if __name__ == '__main__':
     ## shrink to minimal size
     with open(os.path.devnull, "w") as devnull:
         subprocess.call(["resize2fs", "-M", system_img],
-                        stdout=devnull)
+                        stdout=devnull, stderr=devnull)
 
     ## include in tarball
     target_tarball.add(system_img,
