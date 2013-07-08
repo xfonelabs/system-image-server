@@ -33,6 +33,11 @@ if __name__ == '__main__':
 
     parser.add_argument("cdimage_path", metavar="IMAGE-PATH")
     parser.add_argument("channel", metavar="CHANNEL")
+    parser.add_argument('-n', '--dry-run', help="Don't actually "
+                                                "convert/publish any file",
+                        action="store_true", default=False)
+    parser.add_argument('-q', '--quiet', help="Hide all info messages",
+                        action="store_true", default=False)
 
     args = parser.parse_args()
 
@@ -104,8 +109,12 @@ if __name__ == '__main__':
         if os.path.exists(path_out):
             continue
 
-        subprocess.call(["bin/repack-rootfs", path, path_out])
-        gpg.sign_file(conf, "image-signing", path_out)
+        if not args.quiet:
+            print("Repacking '%s' as '%s'." % (path, path_out))
+
+        if not args.dry_run:
+            subprocess.call(["bin/repack-rootfs", path, path_out])
+            gpg.sign_file(conf, "image-signing", path_out)
 
         for device in to_publish:
             to_publish[device].add(version)
@@ -126,9 +135,14 @@ if __name__ == '__main__':
             if os.path.exists(path_out):
                 continue
 
-            subprocess.call(["bin/pack-device", system_path, boot_path,
-                             path_out])
-            gpg.sign_file(conf, "image-signing", path_out)
+            if not args.quiet:
+                print("Packing '%s' and '%s' as '%s'." % (system_path,
+                                                          boot_path, path_out))
+
+            if not args.dry_run:
+                subprocess.call(["bin/pack-device", system_path, boot_path,
+                                 path_out])
+                gpg.sign_file(conf, "image-signing", path_out)
 
             to_publish[device].add(version)
 
@@ -153,15 +167,21 @@ if __name__ == '__main__':
             if os.path.exists(path_out):
                 continue
 
-            subprocess.call(["bin/generate-diff", path_src,
-                             path_dst, path_out])
-            gpg.sign_file(conf, "image-signing", path_out)
+            if not args.quiet:
+                print("Generating diff from '%s' to '%s'." % (path_src,
+                                                              path_dst))
+
+            if not args.dry_run:
+                subprocess.call(["bin/generate-diff", path_src,
+                                 path_dst, path_out])
+                gpg.sign_file(conf, "image-signing", path_out)
 
     # Publish
     for device_name, versions in sorted(to_publish.items()):
-        print("Processing updates for: %s" % device_name)
         for version in sorted(versions):
-            print(" - %s" % version)
+            if not args.quiet:
+                print("Processing updates for: %s => %s" %
+                      (device_name, version))
 
             # Grab last full and delta
             images = devices[device_name].list_images()
@@ -204,16 +224,24 @@ if __name__ == '__main__':
             version_path = os.path.join(conf.publish_path, args.channel,
                                         device_name,
                                         "version-%s.tar.xz" % new_version)
-            if not os.path.exists(version_path):
-                tools.generate_version_tarball(
-                    version_path.replace(".xz", ""), str(new_version))
 
-                tools.xz_compress(version_path.replace(".xz", ""))
-                os.remove(version_path.replace(".xz", ""))
-                gpg.sign_file(conf, "image-signing", version_path)
+            if not args.quiet:
+                print("Publishing full image '%s' (%s) to %s" % (new_version,
+                                                                 version,
+                                                                 device_name))
 
-            devices[device_name].create_image(
-                "full", new_version, str(version), [indep, dep, version_path])
+            if not args.dry_run:
+                if not os.path.exists(version_path):
+                    tools.generate_version_tarball(
+                        version_path.replace(".xz", ""), str(new_version))
+
+                    tools.xz_compress(version_path.replace(".xz", ""))
+                    os.remove(version_path.replace(".xz", ""))
+                    gpg.sign_file(conf, "image-signing", version_path)
+
+                devices[device_name].create_image(
+                    "full", new_version, str(version), [indep, dep,
+                                                        version_path])
 
             # Publish delta images
             dep = glob.glob("%s/%s-%s.delta-*.tar.xz" %
@@ -246,11 +274,20 @@ if __name__ == '__main__':
 
                 files.append(version_path)
 
-                devices[device_name].create_image(
-                    "delta", new_version, str(version),
-                    files, base=base_version[0])
+                if not args.quiet:
+                    print("Publishing delta image from '%s' to '%s' (%s) to %s"
+                          % (base_version[0], new_version, version,
+                             device_name))
+                if not args.dry_run:
+                    devices[device_name].create_image(
+                        "delta", new_version, str(version),
+                        files, base=base_version[0])
 
-    with open(import_state, "w+") as fd:
-        fd.write("\n".join(known_sums))
+    if not args.quiet:
+        print("Saving new known hashes")
 
-    tools.sync_mirrors(conf)
+    if not args.dry_run:
+        with open(import_state, "w+") as fd:
+            fd.write("\n".join(known_sums))
+
+        tools.sync_mirrors(conf)
