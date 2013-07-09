@@ -244,17 +244,32 @@ if __name__ == '__main__':
                                                         version_path])
 
             # Publish delta images
+            delta_versions = {}
+
+            ## Look for hardware dependent deltas
             dep = glob.glob("%s/%s-%s.delta-*.tar.xz" %
                             (os.path.join(conf.publish_path, args.channel,
                                           device_name), device_name, version))
+            for entry in dep:
+                delta_version = entry.split(".tar.xz")[0].split("-")[-1]
+                if delta_version not in delta_versions:
+                    delta_versions[delta_version] = {}
+
+                delta_versions[delta_version]['dep'] = entry
+
+            ## Look for hardware independent deltas
             indep = glob.glob("%s/ubuntu/ubuntu-%s.delta-*.tar.xz" %
                               (os.path.join(conf.publish_path, args.channel),
                                version))
+            for entry in indep:
+                delta_version = entry.split(".tar.xz")[0].split("-")[-1]
+                if delta_version not in delta_versions:
+                    delta_versions[delta_version] = {}
 
-            delta_versions = [entry.split(".tar.xz")[0].split("-")[-1]
-                              for entry in dep + indep]
+                delta_versions[delta_version]['indep'] = entry
 
-            for delta_version in sorted(set(delta_versions)):
+            ## Generate the new image entries
+            for delta_version, file_list in sorted(delta_versions.items()):
                 base_version = [entry['version'] for entry in images
                                 if entry['description'] == str(delta_version)]
                 if not base_version:
@@ -262,15 +277,11 @@ if __name__ == '__main__':
 
                 files = []
 
-                delta_indep = [entry for entry in indep
-                               if "delta-%s" % delta_version in entry]
-                if delta_indep:
-                    files.append(delta_indep[0])
+                if 'indep' in file_list:
+                    files.append(file_list['indep'])
 
-                delta_dep = [entry for entry in dep
-                             if "delta-%s" % delta_version in entry]
-                if delta_dep:
-                    files.append(delta_dep[0])
+                if 'dep' in file_list:
+                    files.append(file_list['dep'])
 
                 files.append(version_path)
 
