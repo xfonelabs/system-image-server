@@ -252,8 +252,8 @@ if __name__ == '__main__':
                                           device_name), device_name, version))
             for entry in dep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
-                base_version = [entry['version'] for entry in images
-                                if entry['description'] == str(delta_version)]
+                base_version = [image['version'] for image in images
+                                if image['description'] == str(delta_version)]
                 if not base_version:
                     continue
 
@@ -270,8 +270,8 @@ if __name__ == '__main__':
                                version))
             for entry in indep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
-                base_version = [entry['version'] for entry in images
-                                if entry['description'] == str(delta_version)]
+                base_version = [image['version'] for image in images
+                                if image['description'] == str(delta_version)]
                 if not base_version:
                     continue
 
