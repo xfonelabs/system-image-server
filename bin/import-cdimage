@@ -252,10 +252,17 @@ if __name__ == '__main__':
                                           device_name), device_name, version))
             for entry in dep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
-                if delta_version not in delta_versions:
-                    delta_versions[delta_version] = {}
+                base_version = [entry['version'] for entry in images
+                                if entry['description'] == str(delta_version)]
+                if not base_version:
+                    continue
 
-                delta_versions[delta_version]['dep'] = entry
+                base_version = base_version[0]
+
+                if base_version not in delta_versions:
+                    delta_versions[base_version] = {}
+
+                delta_versions[base_version]['dep'] = entry
 
             ## Look for hardware independent deltas
             indep = glob.glob("%s/ubuntu/ubuntu-%s.delta-*.tar.xz" %
@@ -263,18 +270,20 @@ if __name__ == '__main__':
                                version))
             for entry in indep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
-                if delta_version not in delta_versions:
-                    delta_versions[delta_version] = {}
-
-                delta_versions[delta_version]['indep'] = entry
-
-            ## Generate the new image entries
-            for delta_version, file_list in sorted(delta_versions.items()):
                 base_version = [entry['version'] for entry in images
                                 if entry['description'] == str(delta_version)]
                 if not base_version:
                     continue
 
+                base_version = base_version[0]
+
+                if base_version not in delta_versions:
+                    delta_versions[base_version] = {}
+
+                delta_versions[base_version]['indep'] = entry
+
+            ## Generate the new image entries
+            for base_version, file_list in sorted(delta_versions.items()):
                 files = []
 
                 if 'indep' in file_list:
@@ -287,12 +296,12 @@ if __name__ == '__main__':
 
                 if not args.quiet:
                     print("Publishing delta image from '%s' to '%s' (%s) to %s"
-                          % (base_version[0], new_version, version,
+                          % (base_version, new_version, version,
                              device_name))
                 if not args.dry_run:
                     devices[device_name].create_image(
                         "delta", new_version, str(version),
-                        files, base=base_version[0])
+                        files, base=base_version)
 
     if not args.quiet:
         print("Saving new known hashes")
