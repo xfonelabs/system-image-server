@@ -118,12 +118,27 @@ class DiffTests(unittest.TestCase):
         j.type = tarfile.SYMTYPE
         j.linkname = "j_non-existent"
 
+        # Standard directory
+        k_dir = tarfile.TarInfo()
+        k_dir.name = "dir"
+        k_dir.type = tarfile.DIRTYPE
+        k_dir.mode = 0o755
+
+        # Dangling symlink
+        l = tarfile.TarInfo()
+        l.name = "dir"
+        l.type = tarfile.SYMTYPE
+        l.linkname = "l_non-existent"
+
+        source_tarball.addfile(a, BytesIO(b"test"))
+        source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(b, BytesIO(b"test"))
         source_tarball.addfile(c_dir)
         source_tarball.addfile(d_source, BytesIO(b"test-abc"))
         source_tarball.addfile(g_source, BytesIO(b"test"))
         source_tarball.addfile(h_source, BytesIO(b"test"))
+        source_tarball.addfile(k_dir)
 
         target_tarball.addfile(a, BytesIO(b"test"))
         target_tarball.addfile(c_dir)
@@ -135,6 +150,7 @@ class DiffTests(unittest.TestCase):
         target_tarball.addfile(h_target, BytesIO(b"test"))
         target_tarball.addfile(i)
         target_tarball.addfile(j)
+        target_tarball.addfile(l)
 
         source_tarball.close()
         target_tarball.close()
@@ -150,12 +166,12 @@ class DiffTests(unittest.TestCase):
     def test_content(self):
         content_set, content_dict = self.imagediff.scan_content("source")
         self.assertEquals(sorted(content_dict.keys()),
-                          ['a', 'b', 'c', 'c/d', 'c/g', 'c/h'])
+                          ['a', 'b', 'c', 'c/d', 'c/g', 'c/h', 'dir'])
 
         content_set, content_dict = self.imagediff.scan_content("target")
         self.assertEquals(sorted(content_dict.keys()),
                           ['a', 'c', 'c/a_i', 'c/c', 'c/d', 'c/g', 'c/h',
-                           'c/j', 'e', 'f'])
+                           'c/j', 'dir', 'e', 'f'])
 
     def test_content_invalid_image(self):
         self.assertRaises(KeyError, self.imagediff.scan_content, "invalid")
@@ -189,6 +205,7 @@ class DiffTests(unittest.TestCase):
  - c/c (add)
  - c/d (mod)
  - c/j (add)
+ - dir (mod)
  - e (add)
  - f (add)
 """)
@@ -201,4 +218,4 @@ class DiffTests(unittest.TestCase):
 
         files_list = [entry.name for entry in tarball]
         self.assertEquals(files_list, ['removed', 'c/c', 'c/a_i', 'c/d', 'c/j',
-                                       'e', 'f'])
+                                       'dir', 'e', 'f'])

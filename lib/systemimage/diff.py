@@ -128,6 +128,11 @@ class ImageDiff:
             if change[1] == "mod":
                 fstat_source = self.source_content[1][change[0]][1]
                 fstat_target = self.target_content[1][change[0]][1]
+
+                # Skip differences between directories and files
+                if not fstat_source or not fstat_target:
+                    continue
+
                 if fstat_source[0:7] == fstat_target[0:7]:
                     source_file = self.source_file.getmember(change[0])
                     target_file = self.target_file.getmember(change[0])
