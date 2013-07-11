@@ -86,10 +86,10 @@ if __name__ == '__main__':
     new_file.gname = "root"
     target_tarball.addfile(new_file)
 
-    ## /data
+    ## /userdata
     new_file = tarfile.TarInfo()
     new_file.type = tarfile.DIRTYPE
-    new_file.name = "system/data"
+    new_file.name = "system/userdata"
     new_file.mode = 0o755
     new_file.mtime = int(time.strftime("%s", time.localtime()))
     new_file.uname = "root"
@@ -107,16 +107,18 @@ if __name__ == '__main__':
     new_file.gname = "root"
     target_tarball.addfile(new_file)
 
-    ## /system
-    new_file = tarfile.TarInfo()
-    new_file.type = tarfile.SYMTYPE
-    new_file.name = "system/system"
-    new_file.linkname = "/android/system"
-    new_file.mode = 0o755
-    new_file.mtime = int(time.strftime("%s", time.localtime()))
-    new_file.uname = "root"
-    new_file.gname = "root"
-    target_tarball.addfile(new_file)
+    ## Android partitions
+    for android_path in ("cache", "data", "factory", "firmware", "persist",
+                         "system"):
+        new_file = tarfile.TarInfo()
+        new_file.type = tarfile.SYMTYPE
+        new_file.name = "system/%s" % android_path
+        new_file.linkname = "/android/%s" % android_path
+        new_file.mode = 0o755
+        new_file.mtime = int(time.strftime("%s", time.localtime()))
+        new_file.uname = "root"
+        new_file.gname = "root"
+        target_tarball.addfile(new_file)
 
     ## /vendor
     new_file = tarfile.TarInfo()
