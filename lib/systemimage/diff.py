@@ -175,10 +175,13 @@ class ImageDiff:
 
         output = tarfile.open(path, 'w:')
 
+        # List both deleted files and modified files in the removal list
+        # that's needed to allow file type change (e.g. directory to symlink)
         removed_files_list = [entry[0] for entry in self.diff
-                              if entry[1] == "del"]
+                              if entry[1] in ("del", "mod")]
+
         removed_files = "\n".join(removed_files_list)
-        removed_files = removed_files.encode('utf-8')
+        removed_files = "%s\n" % removed_files.encode('utf-8')
 
         removals = tarfile.TarInfo()
         removals.name = "removed"
