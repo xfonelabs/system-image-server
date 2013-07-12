@@ -252,12 +252,14 @@ if __name__ == '__main__':
                                           device_name), device_name, version))
             for entry in dep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
+                filename = "%s-%s.full.tar.xz" % (device_name, delta_version)
                 base_version = [image['version'] for image in images
-                                if image['description'] == str(delta_version)]
+                                if [fileentry for fileentry in image['files']
+                                    if fileentry['path'].endswith(filename)]]
                 if not base_version:
                     continue
 
-                base_version = base_version[0]
+                base_version = sorted(base_version)[-1]
 
                 if base_version not in delta_versions:
                     delta_versions[base_version] = {}
@@ -270,8 +272,10 @@ if __name__ == '__main__':
                                version))
             for entry in indep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
+                filename = "ubuntu-%s.full.tar.xz" % delta_version
                 base_version = [image['version'] for image in images
-                                if image['description'] == str(delta_version)]
+                                if [fileentry for fileentry in image['files']
+                                    if fileentry['path'].endswith(filename)]]
                 if not base_version:
                     continue
 
