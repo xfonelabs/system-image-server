@@ -128,6 +128,9 @@ if __name__ == '__main__':
             boot_path = os.path.join(args.cdimage_path, version,
                                      "saucy-preinstalled-boot-armhf+"
                                      "%s.img" % device)
+            recovery_path = os.path.join(args.cdimage_path, version,
+                                         "saucy-preinstalled-recovery-armel+"
+                                         "%s.img" % device)
 
             path_out = os.path.join(conf.publish_path, args.channel, device,
                                     "%s-%s.full.tar.xz" % (device, version))
@@ -141,7 +144,7 @@ if __name__ == '__main__':
 
             if not args.dry_run:
                 subprocess.call(["bin/pack-device", system_path, boot_path,
-                                 path_out])
+                                 recovery_path, path_out])
                 gpg.sign_file(conf, "image-signing", path_out)
 
             to_publish[device].add(version)
