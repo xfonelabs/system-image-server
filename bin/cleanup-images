@@ -1,0 +1,79 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import config, tools, tree
+
+import argparse
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="images cleanup")
+
+    parser.add_argument("channel", metavar="CHANNEL")
+    parser.add_argument("keep", metavar="KEEP-COUNT", type=int)
+    parser.add_argument('-n', '--dry-run', help="Don't actually "
+                                                "convert/publish any file",
+                        action="store_true", default=False)
+    parser.add_argument('-q', '--quiet', help="Hide all info messages",
+                        action="store_true", default=False)
+
+    args = parser.parse_args()
+
+    conf = config.Config()
+    pub = tree.Tree(conf)
+
+    # Some checks
+    if not args.channel in pub.list_channels():
+        parser.error("Invalid channel: %s" % args.channel)
+
+    # Iterate through the devices
+    for device_name in pub.list_channels()[args.channel]:
+        if not args.quiet:
+            print("=== Removals for %s ===" % device_name)
+        device = pub.get_device(args.channel, device_name)
+        full_images = sorted([image for image in device.list_images()
+                              if image['type'] == "full"],
+                             key=lambda image: image['version'])
+        full_remove = full_images[:-args.keep]
+
+        remove_version = [image['version'] for image in full_remove]
+
+        for image in device.list_images():
+            if image['version'] in remove_version:
+                if image['type'] == "full":
+                    if not args.quiet:
+                        print("Removing full image: %s" % image['version'])
+                    if not args.dry_run:
+                        device.remove_image(image['type'], image['version'])
+                else:
+                    if not args.quiet:
+                        print("Removing delta image: %s => %s" %
+                              (image['base'], image['version']))
+                    if not args.dry_run:
+                        device.remove_image(image['type'], image['version'],
+                                            image['base'])
+        if not args.quiet:
+            print("")
+
+    if not args.quiet:
+        print("Syncing mirror")
+    if not args.dry_run:
+        tools.sync_mirrors(conf)
