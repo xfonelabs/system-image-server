@@ -43,7 +43,7 @@ if __name__ == '__main__':
     existing_files = set()
     empty_dirs = set()
     for dirpath, dirnames, filenames in os.walk(pub.path):
-        if dirpath == "www/gpg":
+        if dirpath == os.path.join(pub.path, "gpg"):
             continue
 
         if not filenames and not dirnames:
@@ -80,18 +80,18 @@ if __name__ == '__main__':
     # Report missing files and extra files
     if not args.quiet:
         print("=== Orphaned files ===")
-        for entry in existing_files - listed_files:
+        for entry in sorted(existing_files - listed_files):
             print(" - %s" % entry)
         print("")
 
         print("=== Missing files ===")
-        for entry in listed_files - existing_files:
+        for entry in sorted(listed_files - existing_files):
             print(" - %s" % entry)
         print("")
 
     # Remove them
     if not args.dry_run:
-        for entry in existing_files - listed_files:
+        for entry in sorted(existing_files - listed_files):
             if not args.quiet:
                 print("Removing: %s" % entry)
             os.remove(entry)
