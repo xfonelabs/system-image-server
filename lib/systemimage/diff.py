@@ -133,6 +133,21 @@ class ImageDiff:
                 if not fstat_source or not fstat_target:
                     continue
 
+                # Deal with switched hardlinks
+                if (fstat_source[0:2] == fstat_target[0:2] and
+                        fstat_source[3] != fstat_target[3] and
+                        (fstat_source[3] == "1" or fstat_target[3] == "1") and
+                        fstat_source[4:5] == fstat_target[4:5] and
+                        fstat_source[7] == fstat_target[7]):
+                    source_file = self.source_file.getmember(change[0])
+                    target_file = self.target_file.getmember(change[0])
+                    if compare_files(
+                            self.source_file.extractfile(change[0]),
+                            self.target_file.extractfile(change[0])):
+                        changes.remove(change)
+                        continue
+
+                # Deal with regular files
                 if fstat_source[0:7] == fstat_target[0:7]:
                     source_file = self.source_file.getmember(change[0])
                     target_file = self.target_file.getmember(change[0])

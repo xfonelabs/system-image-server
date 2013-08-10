@@ -130,6 +130,28 @@ class DiffTests(unittest.TestCase):
         l.type = tarfile.SYMTYPE
         l.linkname = "l_non-existent"
 
+        # Standard file
+        m_source = tarfile.TarInfo()
+        m_source.name = "m"
+        m_source.size = 4
+
+        # Hard link
+        m_target = tarfile.TarInfo()
+        m_target.name = "m"
+        m_target.type = tarfile.LNKTYPE
+        m_target.linkname = "n"
+
+        # Hard link
+        n_source = tarfile.TarInfo()
+        n_source.name = "n"
+        n_source.type = tarfile.LNKTYPE
+        n_source.linkname = "m"
+
+        # Standard file
+        n_target = tarfile.TarInfo()
+        n_target.name = "n"
+        n_target.size = 4
+
         source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(a, BytesIO(b"test"))
@@ -139,6 +161,8 @@ class DiffTests(unittest.TestCase):
         source_tarball.addfile(g_source, BytesIO(b"test"))
         source_tarball.addfile(h_source, BytesIO(b"test"))
         source_tarball.addfile(k_dir)
+        source_tarball.addfile(m_source, BytesIO(b"test"))
+        source_tarball.addfile(n_source)
 
         target_tarball.addfile(a, BytesIO(b"test"))
         target_tarball.addfile(c_dir)
@@ -151,6 +175,8 @@ class DiffTests(unittest.TestCase):
         target_tarball.addfile(i)
         target_tarball.addfile(j)
         target_tarball.addfile(l)
+        target_tarball.addfile(n_target, BytesIO(b"test"))
+        target_tarball.addfile(m_target)
 
         source_tarball.close()
         target_tarball.close()
@@ -166,12 +192,13 @@ class DiffTests(unittest.TestCase):
     def test_content(self):
         content_set, content_dict = self.imagediff.scan_content("source")
         self.assertEquals(sorted(content_dict.keys()),
-                          ['a', 'b', 'c', 'c/d', 'c/g', 'c/h', 'dir'])
+                          ['a', 'b', 'c', 'c/d', 'c/g', 'c/h', 'dir', 'm',
+                           'n'])
 
         content_set, content_dict = self.imagediff.scan_content("target")
         self.assertEquals(sorted(content_dict.keys()),
                           ['a', 'c', 'c/a_i', 'c/c', 'c/d', 'c/g', 'c/h',
-                           'c/j', 'dir', 'e', 'f'])
+                           'c/j', 'dir', 'e', 'f', 'm', 'n'])
 
     def test_content_invalid_image(self):
         self.assertRaises(KeyError, self.imagediff.scan_content, "invalid")
