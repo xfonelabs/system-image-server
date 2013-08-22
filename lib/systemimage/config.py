@@ -79,6 +79,12 @@ class Config:
         self.publish_path = config['global'].get(
             "publish_path", os.path.join(self.base_path, "www"))
 
+        for key in ("public_fqdn", "public_http_port", "public_https_port"):
+            if key not in config['global']:
+                continue
+
+            setattr(self, key, config['global'][key])
+
         self.mirrors = []
         if "mirrors" in config['global']:
             if not isinstance(config['global']['mirrors'], list):

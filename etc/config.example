@@ -4,6 +4,9 @@ gpg_key_path = secret/gpg/keys/
 gpg_keyring_path = secret/gpg/keyrings/
 publish_path = www/
 mirrors = a, b
+public_fqdn = system-image.example.net
+public_http_port = 80
+public_https_port = 443
 
 [mirror_default]
 ssh_user = mirror

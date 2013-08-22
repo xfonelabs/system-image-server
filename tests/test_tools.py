@@ -21,7 +21,7 @@ import tarfile
 import tempfile
 import unittest
 
-from systemimage import tools
+from systemimage import config, tools
 
 
 class ToolTests(unittest.TestCase):
@@ -30,6 +30,18 @@ class ToolTests(unittest.TestCase):
         self.temp_directory = temp_directory
         self.old_path = os.environ.get("PATH", None)
 
+        os.mkdir(os.path.join(self.temp_directory, "etc"))
+        config_path = os.path.join(self.temp_directory, "etc", "config")
+        with open(config_path, "w+") as fd:
+            fd.write("""[global]
+base_path = %s
+gpg_key_path = %s
+public_fqdn = system-image.example.net
+public_http_port = 880
+public_https_port = 8443
+""" % (self.temp_directory, os.path.join("tests", "keys")))
+        self.config = config.Config(config_path)
+
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
         if self.old_path:
@@ -37,14 +49,25 @@ class ToolTests(unittest.TestCase):
 
     def test_generate_version_tarball(self):
         version_tarball = "%s/version.tar" % self.temp_directory
-        tools.generate_version_tarball(version_tarball, "1.2.3.4",
-                                       "a/b/version")
+        tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
+                                       version_tarball, "a/b/version",
+                                       "a/b/channel")
 
         version_tarfile = tarfile.open(version_tarball, "r:")
+
         version_file = version_tarfile.extractfile("a/b/version")
         self.assertTrue(version_file)
-
         self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4\n")
+
+        channel_file = version_tarfile.extractfile("a/b/channel")
+        self.assertTrue(channel_file)
+        self.assertEquals(channel_file.read().decode('utf-8'), """[service]
+base: system-image.example.net
+http_port: 880
+https_port: 8443
+channel: testing
+build_number: 1.2.3.4
+""")
 
     def test_gzip_compress(self):
         test_string = "test-string"

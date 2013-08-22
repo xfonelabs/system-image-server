@@ -59,10 +59,14 @@ def find_on_path(command):
     return False
 
 
-def generate_version_tarball(path, version, in_path="system/etc/ubuntu-build"):
+def generate_version_tarball(config, channel, version, path,
+                             build_path="system/etc/ubuntu-build",
+                             channel_path="system/etc/system-image/"
+                                          "channel.ini"):
     """
-        Generates a tarball which contains a single file (in_path).
-        That file contains the version string (version).
+        Generates a tarball which contains two files
+        (build_path and channel_path).
+        The first contains the build id, the second a .ini config file.
         The resulting tarball is written at the provided location (path).
     """
 
@@ -71,12 +75,28 @@ def generate_version_tarball(path, version, in_path="system/etc/ubuntu-build"):
     version_file = tarfile.TarInfo()
     version_file.size = len(version) + 1
     version_file.mtime = int(time.strftime("%s", time.localtime()))
-    version_file.name = in_path
+    version_file.name = build_path
 
     # Append a line break
     version += "\n"
 
     tarball.addfile(version_file, BytesIO(version.encode('utf-8')))
+
+    channel = """[service]
+base: %s
+http_port: %s
+https_port: %s
+channel: %s
+build_number: %s
+""" % (config.public_fqdn, config.public_http_port, config.public_https_port,
+       channel, version.strip())
+
+    channel_file = tarfile.TarInfo()
+    channel_file.size = len(channel)
+    channel_file.mtime = int(time.strftime("%s", time.localtime()))
+    channel_file.name = channel_path
+
+    tarball.addfile(channel_file, BytesIO(channel.encode('utf-8')))
 
     tarball.close()
 

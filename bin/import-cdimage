@@ -236,7 +236,8 @@ if __name__ == '__main__':
             if not args.dry_run:
                 if not os.path.exists(version_path):
                     tools.generate_version_tarball(
-                        version_path.replace(".xz", ""), str(new_version))
+                        conf, args.channel, str(new_version),
+                        version_path.replace(".xz", ""))
 
                     tools.xz_compress(version_path.replace(".xz", ""))
                     os.remove(version_path.replace(".xz", ""))
