@@ -38,6 +38,9 @@ if __name__ == '__main__':
                         action="store_true", default=False)
     parser.add_argument('-q', '--quiet', help="Hide all info messages",
                         action="store_true", default=False)
+    parser.add_argument('-t', '--tested-only',
+                        help="Only import tested images",
+                        action="store_true", default=False)
 
     args = parser.parse_args()
 
@@ -75,12 +78,23 @@ if __name__ == '__main__':
                                             "pending") if ignore in path]]
 
     for version in sorted(versions):
+        whitelist = []
+        if args.tested_only:
+            if os.path.exists("%s/%s/.marked_good" % (args.cdimage_path,
+                                                      version)):
+                with open("%s/%s/.marked_good" % (args.cdimage_path,
+                                                  version), "r") as fd:
+                    whitelist = fd.read().strip().split("\n")
+
         with open("%s/%s/SHA256SUMS" % (args.cdimage_path,
                                         version), "r") as fd:
             for line in fd:
                 fields = line.split()
                 file_sum = fields[0]
                 file_name = fields[1].strip("*")
+
+                if args.tested_only and file_name not in whitelist:
+                    continue
 
                 if file_sum in known_sums:
                     continue
