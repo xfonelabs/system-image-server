@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     if (mode == "split"
             and args.proposed_channel not in pub.list_channels()):
-        parser.error("Invalid channel: %s" % args.channel)
+        parser.error("Invalid channel: %s" % args.proposed_channel)
 
     # Load the list of known files
     known_sums = []
