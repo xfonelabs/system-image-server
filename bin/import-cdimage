@@ -24,8 +24,11 @@ from systemimage import config, gpg, tools, tree
 
 import argparse
 import glob
+import shutil
 import subprocess
 import time
+
+CURRENT_SERIES = "saucy"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -38,20 +41,31 @@ if __name__ == '__main__':
                         action="store_true", default=False)
     parser.add_argument('-q', '--quiet', help="Hide all info messages",
                         action="store_true", default=False)
-    parser.add_argument('-t', '--tested-only',
-                        help="Only import tested images",
-                        action="store_true", default=False)
+    parser.add_argument('-p', '--proposed-channel', metavar="CHANNEL",
+                        help="Channel to use for the untested images",
+                        type=str, default=None)
 
     args = parser.parse_args()
 
     conf = config.Config()
     pub = tree.Tree(conf)
 
+    mode = "stable"
+    if args.proposed_channel:
+        if args.proposed_channel != args.channel:
+            mode = "split"
+        else:
+            mode = "merged"
+
     # Some checks
     if not os.path.exists(args.cdimage_path):
         parser.error("Invalid path: %s" % args.cdimage_path)
 
     if args.channel not in pub.list_channels():
+        parser.error("Invalid channel: %s" % args.channel)
+
+    if (mode == "split"
+            and args.proposed_channel not in pub.list_channels()):
         parser.error("Invalid channel: %s" % args.channel)
 
     # Load the list of known files
@@ -67,24 +81,32 @@ if __name__ == '__main__':
     for device_name in pub.list_channels()[args.channel]:
         devices[device_name] = pub.get_device(args.channel, device_name)
 
+    proposed_devices = {}
+    if mode == "split":
+        for device_name in pub.list_channels()[args.proposed_channel]:
+            proposed_devices[device_name] = pub.get_device(
+                args.proposed_channel, device_name)
+
     # Build a dict of new files to process for each device
     to_process = {device_name: set() for device_name in devices}
     to_process['ubuntu'] = set()
     to_publish = {device_name: set() for device_name in devices}
 
+    ignored_versions = ("current", "pending")
+    if mode == "split":
+        ignored_versions = ("current",)
+
     versions = [path.split("/")[-2]
                 for path in glob.glob("%s/*/SHA256SUMS" % args.cdimage_path)
-                if not [True for ignore in ("current",
-                                            "pending") if ignore in path]]
+                if not [True for ignore in ignored_versions if ignore in path]]
 
     for version in sorted(versions):
         whitelist = []
-        if args.tested_only:
-            if os.path.exists("%s/%s/.marked_good" % (args.cdimage_path,
-                                                      version)):
-                with open("%s/%s/.marked_good" % (args.cdimage_path,
-                                                  version), "r") as fd:
-                    whitelist = fd.read().strip().split("\n")
+        if os.path.exists("%s/%s/.marked_good" % (args.cdimage_path,
+                                                  version)):
+            with open("%s/%s/.marked_good" % (args.cdimage_path,
+                                              version), "r") as fd:
+                whitelist = fd.read().strip().split("\n")
 
         with open("%s/%s/SHA256SUMS" % (args.cdimage_path,
                                         version), "r") as fd:
@@ -93,14 +115,18 @@ if __name__ == '__main__':
                 file_sum = fields[0]
                 file_name = fields[1].strip("*")
 
-                if args.tested_only and file_name not in whitelist:
+                # Skip untested files unless we ignore the flag
+                if (mode != "merged" and file_name not in whitelist
+                        and version != "pending"):
                     continue
 
+                # Ignore files that were already imported
                 if file_sum in known_sums:
                     continue
 
                 if "boot-armhf" in file_name or "system-armel" in file_name:
                     device = file_name.split("+")[-1].split(".")[0]
+                    # Ignore invalid devices
                     if not device in to_process:
                         continue
 
@@ -110,58 +136,113 @@ if __name__ == '__main__':
                 else:
                     continue
 
-                known_sums.append(file_sum)
+                # We need to re-import proposed every time
+                if version != "pending":
+                    known_sums.append(file_sum)
+
+    # Reset the proposed channel
+    if mode == "split":
+        if not args.dry_run:
+            for device_name, device in proposed_devices.items():
+                stable_device = devices[device_name]
+                if os.path.exists(stable_device.indexpath):
+                    shutil.copy(stable_device.indexpath, device.indexpath)
+                    if os.path.exists("%s.asc" % device.indexpath):
+                        os.remove("%s.asc" % device.indexpath)
+                    gpg.sign_file(conf, "image-signing", device.indexpath)
+
+    # Promote images from proposed to stable
+    if mode == "split":
+        for device, versions in to_process.items():
+            stable_path = os.path.join(conf.publish_path, args.channel, device)
+            proposed_path = os.path.join(conf.publish_path,
+                                         args.proposed_channel, device)
+
+            for version in versions:
+                if version == "pending":
+                    continue
+
+                for entry in glob.glob("%s/%s-%s.*.tar.xz*" %
+                                       (proposed_path, device, version)):
+                    if not args.quiet:
+                        print("Promoting '%s' to stable." % entry)
+                    if not args.dry_run:
+                        shutil.move(entry, stable_path)
 
     # Import the rootfs images
     for version in sorted(to_process['ubuntu']):
-        path = os.path.join(args.cdimage_path, version,
-                            "saucy-preinstalled-touch-armhf.tar.gz")
+        path = os.path.realpath(os.path.join(args.cdimage_path, version,
+                                "%s-preinstalled-touch-armhf.tar.gz" %
+                                (CURRENT_SERIES)))
 
-        path_out = os.path.join(conf.publish_path, args.channel, "ubuntu",
-                                "ubuntu-%s.full.tar.xz" % version)
+        real_version = path.split("/")[-2]
 
-        if os.path.exists(path_out):
-            continue
+        if version == "pending":
+            path_out = os.path.join(conf.publish_path, args.proposed_channel,
+                                    "ubuntu",
+                                    "ubuntu-%s.full.tar.xz" % real_version)
+        else:
+            path_out = os.path.join(conf.publish_path, args.channel, "ubuntu",
+                                    "ubuntu-%s.full.tar.xz" % real_version)
 
-        if not args.quiet:
-            print("Repacking '%s' as '%s'." % (path, path_out))
+        if not os.path.exists(path_out):
+            if not args.quiet:
+                print("Repacking '%s' as '%s'." % (path, path_out))
 
-        if not args.dry_run:
-            subprocess.call(["bin/repack-rootfs", path, path_out])
-            gpg.sign_file(conf, "image-signing", path_out)
+            if not args.dry_run:
+                subprocess.call(["bin/repack-rootfs", path, path_out])
+                gpg.sign_file(conf, "image-signing", path_out)
 
         for device in to_publish:
-            to_publish[device].add(version)
+            if version == "pending":
+                to_publish[device].add((real_version, "proposed"))
+            else:
+                to_publish[device].add((real_version, "stable"))
 
     # Import the system images
     for device in devices:
         for version in sorted(to_process[device]):
-            system_path = os.path.join(args.cdimage_path, version,
-                                       "saucy-preinstalled-system-armel+"
-                                       "%s.img" % device)
-            boot_path = os.path.join(args.cdimage_path, version,
-                                     "saucy-preinstalled-boot-armhf+"
-                                     "%s.img" % device)
-            recovery_path = os.path.join(args.cdimage_path, version,
-                                         "saucy-preinstalled-recovery-armel+"
-                                         "%s.img" % device)
+            system_path = os.path.realpath(os.path.join(args.cdimage_path,
+                                           version,
+                                           "%s-preinstalled-system-armel+"
+                                           "%s.img" %
+                                           (CURRENT_SERIES, device)))
+            boot_path = os.path.realpath(os.path.join(args.cdimage_path,
+                                         version,
+                                         "%s-preinstalled-boot-armhf+"
+                                         "%s.img" % (CURRENT_SERIES, device)))
+            recovery_path = os.path.realpath(os.path.join(args.cdimage_path,
+                                             version,
+                                             "%s-preinstalled-recovery"
+                                             "-armel+%s.img" %
+                                             (CURRENT_SERIES, device)))
 
-            path_out = os.path.join(conf.publish_path, args.channel, device,
-                                    "%s-%s.full.tar.xz" % (device, version))
+            real_version = system_path.split("/")[-2]
 
-            if os.path.exists(path_out):
-                continue
+            if version == "pending":
+                path_out = os.path.join(conf.publish_path,
+                                        args.proposed_channel,
+                                        device, "%s-%s.full.tar.xz" % (device,
+                                        real_version))
+            else:
+                path_out = os.path.join(conf.publish_path, args.channel,
+                                        device, "%s-%s.full.tar.xz" % (device,
+                                        real_version))
 
-            if not args.quiet:
-                print("Packing '%s' and '%s' as '%s'." % (system_path,
-                                                          boot_path, path_out))
+            if not os.path.exists(path_out):
+                if not args.quiet:
+                    print("Packing '%s' and '%s' as '%s'." %
+                          (system_path, boot_path, path_out))
 
-            if not args.dry_run:
-                subprocess.call(["bin/pack-device", system_path, boot_path,
-                                 recovery_path, path_out])
-                gpg.sign_file(conf, "image-signing", path_out)
+                if not args.dry_run:
+                    subprocess.call(["bin/pack-device", system_path, boot_path,
+                                     recovery_path, path_out])
+                    gpg.sign_file(conf, "image-signing", path_out)
 
-            to_publish[device].add(version)
+            if version == "pending":
+                to_publish[device].add((real_version, "proposed"))
+            else:
+                to_publish[device].add((real_version, "stable"))
 
     # Generate delta images
     for entry in list(devices.keys()) + ['ubuntu']:
@@ -169,6 +250,19 @@ if __name__ == '__main__':
 
         tarballs = {tarball.split(".full")[0].split("-")[-1]: tarball
                     for tarball in glob.glob("%s/*.full.tar.xz" % base_path)}
+
+        # Append the pending image when using split channels
+        if mode == "split":
+            proposed_base_path = os.path.join(conf.publish_path,
+                                              args.proposed_channel, entry)
+            entries = glob.glob("%s/*.full.tar.xz" % proposed_base_path)
+            if entries:
+                tarball = sorted(entries)[-1]
+                tarball_version = tarball.split(".full")[0].split("-")[-1]
+
+                if tarball_version not in tarballs:
+                    tarballs[tarball_version] = tarball
+
         versions = sorted(tarballs.keys())
 
         for i in range(len(tarballs)):
@@ -181,24 +275,26 @@ if __name__ == '__main__':
             path_out = path_dst.replace(".full.tar.xz",
                                         ".delta-%s.tar.xz" % versions[i-1])
 
-            if os.path.exists(path_out):
-                continue
+            if not os.path.exists(path_out):
+                if not args.quiet:
+                    print("Generating diff from '%s' to '%s'." % (path_src,
+                                                                  path_dst))
 
-            if not args.quiet:
-                print("Generating diff from '%s' to '%s'." % (path_src,
-                                                              path_dst))
-
-            if not args.dry_run:
-                subprocess.call(["bin/generate-diff", path_src,
-                                 path_dst, path_out])
-                gpg.sign_file(conf, "image-signing", path_out)
+                if not args.dry_run:
+                    subprocess.call(["bin/generate-diff", path_src,
+                                     path_dst, path_out])
+                    gpg.sign_file(conf, "image-signing", path_out)
 
     # Publish
     for device_name, versions in sorted(to_publish.items()):
-        for version in sorted(versions):
+        for version, target_channel in sorted(versions):
             if not args.quiet:
                 print("Processing updates for: %s => %s" %
                       (device_name, version))
+
+            current_channel = args.channel
+            if target_channel == "proposed":
+                current_channel = args.proposed_channel
 
             # Grab last full and delta
             images = devices[device_name].list_images()
@@ -216,13 +312,13 @@ if __name__ == '__main__':
                 last_delta = delta_images[-1]
 
             # Publish a full image
-            dep = os.path.join(conf.publish_path, args.channel, device_name,
+            dep = os.path.join(conf.publish_path, current_channel, device_name,
                                "%s-%s.full.tar.xz" % (device_name, version))
             if not os.path.exists(dep):
                 dep = "%s%s" % (conf.publish_path,
                                 last_full['files'][1]['path'])
 
-            indep = os.path.join(conf.publish_path, args.channel, "ubuntu",
+            indep = os.path.join(conf.publish_path, current_channel, "ubuntu",
                                  "ubuntu-%s.full.tar.xz" % version)
             if not os.path.exists(indep):
                 indep = "%s%s" % (conf.publish_path,
@@ -238,8 +334,8 @@ if __name__ == '__main__':
             if last_version >= new_version:
                 new_version = last_version + 1
 
-            version_path = os.path.join(conf.publish_path, args.channel,
-                                        device_name,
+            version_path = os.path.join(conf.publish_path,
+                                        current_channel, device_name,
                                         "version-%s.tar.xz" % new_version)
 
             if not args.quiet:
@@ -250,23 +346,36 @@ if __name__ == '__main__':
             if not args.dry_run:
                 if not os.path.exists(version_path):
                     tools.generate_version_tarball(
-                        conf, args.channel, str(new_version),
+                        conf, current_channel, str(new_version),
                         version_path.replace(".xz", ""))
 
                     tools.xz_compress(version_path.replace(".xz", ""))
                     os.remove(version_path.replace(".xz", ""))
                     gpg.sign_file(conf, "image-signing", version_path)
 
-                devices[device_name].create_image(
-                    "full", new_version, str(version), [indep, dep,
-                                                        version_path])
+                if mode == "split":
+                    if target_channel == "proposed":
+                        proposed_devices[device_name].create_image(
+                            "full", new_version, str(version), [indep, dep,
+                                                                version_path])
+                    else:
+                        devices[device_name].create_image(
+                            "full", new_version, str(version), [indep, dep,
+                                                                version_path])
+                        proposed_devices[device_name].create_image(
+                            "full", new_version, str(version), [indep, dep,
+                                                                version_path])
+                else:
+                    devices[device_name].create_image(
+                        "full", new_version, str(version), [indep, dep,
+                                                            version_path])
 
             # Publish delta images
             delta_versions = {}
 
             ## Look for hardware dependent deltas
             dep = glob.glob("%s/%s-%s.delta-*.tar.xz" %
-                            (os.path.join(conf.publish_path, args.channel,
+                            (os.path.join(conf.publish_path, current_channel,
                                           device_name), device_name, version))
             for entry in dep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
@@ -286,7 +395,8 @@ if __name__ == '__main__':
 
             ## Look for hardware independent deltas
             indep = glob.glob("%s/ubuntu/ubuntu-%s.delta-*.tar.xz" %
-                              (os.path.join(conf.publish_path, args.channel),
+                              (os.path.join(conf.publish_path,
+                                            current_channel),
                                version))
             for entry in indep:
                 delta_version = entry.split(".tar.xz")[0].split("-")[-1]
@@ -321,9 +431,22 @@ if __name__ == '__main__':
                           % (base_version, new_version, version,
                              device_name))
                 if not args.dry_run:
-                    devices[device_name].create_image(
-                        "delta", new_version, str(version),
-                        files, base=base_version)
+                    if mode == "split":
+                        if target_channel == "proposed":
+                            proposed_devices[device_name].create_image(
+                                "delta", new_version, str(version),
+                                files, base=base_version)
+                        else:
+                            devices[device_name].create_image(
+                                "delta", new_version, str(version),
+                                files, base=base_version)
+                            proposed_devices[device_name].create_image(
+                                "delta", new_version, str(version),
+                                files, base=base_version)
+                    else:
+                        devices[device_name].create_image(
+                            "delta", new_version, str(version),
+                            files, base=base_version)
 
     if not args.quiet:
         print("Saving new known hashes")
