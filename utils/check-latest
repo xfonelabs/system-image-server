@@ -1,0 +1,92 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import json
+import sys
+from urllib.request import urlopen
+
+# Parse the arguments
+parser = argparse.ArgumentParser(description="system-image index parser")
+
+parser.add_argument("--server", metavar="SERVER",
+                    default="https://system-image.ubuntu.com")
+parser.add_argument("--channel", metavar="CHANNEL", default="daily-proposed")
+parser.add_argument("device", metavar="DEVICE")
+
+args = parser.parse_args()
+
+
+# Functions
+def long_version_number(image):
+    image_version = image['version']
+    details = []
+
+    for entry in image['files']:
+        file_name = entry['path'].split("/")[-1]
+        file_version = (file_name.split("-")[1].split('.full.')[0]
+                        .split('.delta.')[0])
+
+        if file_name.startswith("ubuntu-"):
+            details.append("ubuntu=%s" % file_version)
+        elif file_name.startswith("%s-" % args.device):
+            details.append("%s=%s" % (args.device, file_version))
+        elif file_name.startswith("custom-"):
+            details.append("custom=%s" % file_version)
+
+    return "%s (%s)" % (image_version, ", ".join(details))
+
+# Grab the index
+with urlopen("%s/%s/%s/index.json" % (args.server, args.channel,
+                                      args.device)) as fd:
+    device_index = json.loads(fd.read().decode("utf-8"))
+
+# Find the latest full image
+sorted_full_images = sorted([image for image in device_index['images']
+                            if image['type'] == "full"],
+                            key=lambda image: image['version'])
+latest_full = None
+if sorted_full_images:
+    latest_full = sorted_full_images[-1]
+
+# Find deltas for the latest full
+latest_deltas = None
+if latest_full:
+    latest_deltas = sorted([image for image in device_index['images']
+                            if (image['type'] == "delta" and
+                                image['version'] == latest_full['version'])],
+                           key=lambda image: image['version'])
+
+# Print the result
+if not latest_full:
+    print("No full image available in channel.")
+    sys.exit(0)
+
+print("Current full image: %s" % long_version_number(latest_full))
+if latest_deltas:
+    print("Available deltas:")
+    for delta in latest_deltas:
+        base_version = [image for image in device_index['images']
+                        if (image['type'] == "full" and
+                            image['version'] == delta['base'])]
+
+        if not base_version:
+            continue
+
+        print(" - From '%s' to '%s'" % (long_version_number(base_version[0]),
+                                        long_version_number(latest_full)))
