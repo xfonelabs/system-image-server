@@ -26,7 +26,6 @@ import argparse
 import glob
 import shutil
 import subprocess
-import time
 
 CURRENT_SERIES = "saucy"
 
@@ -330,7 +329,7 @@ if __name__ == '__main__':
             if last_delta and last_delta['version'] > last_version:
                 last_version = last_delta['version']
 
-            new_version = int(time.strftime("%Y%m00", time.gmtime()))
+            new_version = 1
             if last_version >= new_version:
                 new_version = last_version + 1
 
