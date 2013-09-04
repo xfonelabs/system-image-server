@@ -131,6 +131,16 @@ if __name__ == '__main__':
     new_file.gname = "root"
     target_tarball.addfile(new_file)
 
+    ## /lib/modules
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.DIRTYPE
+    new_file.name = "system/lib/modules"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
     source_tarball.close()
     target_tarball.close()
 
