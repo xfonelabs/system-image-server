@@ -20,6 +20,7 @@ import os
 import sys
 sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 
+from hashlib import sha256
 from systemimage import config, gpg, tools, tree
 
 import argparse
@@ -146,6 +147,43 @@ if __name__ == '__main__':
                 stable_device = devices[device_name]
                 if os.path.exists(stable_device.indexpath):
                     shutil.copy(stable_device.indexpath, device.indexpath)
+
+                    # Re-generate all the version tarballs
+                    with tree.index_json(conf, device.indexpath,
+                                         True) as index:
+                        for image in index['images']:
+                            version_file = "version-%s.tar.xz" % (
+                                           image['version'])
+                            version_tarball = os.path.join(
+                                device.path, version_file)
+
+                            if not os.path.exists(version_tarball):
+                                tools.generate_version_tarball(
+                                    conf, args.proposed_channel,
+                                    str(image['version']),
+                                    version_tarball.replace(".xz", ""))
+
+                                tools.xz_compress(
+                                    version_tarball.replace(".xz", ""))
+                                os.remove(version_tarball.replace(".xz", ""))
+                                gpg.sign_file(conf, "image-signing",
+                                              version_tarball)
+
+                            for entry in image['files']:
+                                if entry['path'].endswith(version_file):
+                                    entry['path'] = "/%s/%s/%s" % (
+                                        args.proposed_channel, device_name,
+                                        version_file)
+                                    entry['signature'] = "/%s/%s/%s.asc" % (
+                                        args.proposed_channel, device_name,
+                                        version_file)
+                                    entry['size'] = int(os.stat(
+                                        version_tarball).st_size)
+
+                                    with open(version_tarball, "rb") as fd:
+                                        entry['checksum'] = sha256(
+                                            fd.read()).hexdigest()
+
                     if os.path.exists("%s.asc" % device.indexpath):
                         os.remove("%s.asc" % device.indexpath)
                     gpg.sign_file(conf, "image-signing", device.indexpath)
@@ -221,12 +259,12 @@ if __name__ == '__main__':
             if version == "pending":
                 path_out = os.path.join(conf.publish_path,
                                         args.proposed_channel,
-                                        device, "%s-%s.full.tar.xz" % (device,
-                                        real_version))
+                                        device, "%s-%s.full.tar.xz" %
+                                                (device, real_version))
             else:
                 path_out = os.path.join(conf.publish_path, args.channel,
-                                        device, "%s-%s.full.tar.xz" % (device,
-                                        real_version))
+                                        device, "%s-%s.full.tar.xz" %
+                                                (device, real_version))
 
             if not os.path.exists(path_out):
                 if not args.quiet:
