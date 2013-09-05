@@ -69,7 +69,7 @@ if __name__ == '__main__':
     ## convert to raw image
     system_img = os.path.join(temp_dir, "system.img")
     with open(os.path.devnull, "w") as devnull:
-        subprocess.call(["bin/simg2img", args.system_image, system_img],
+        subprocess.call(["simg2img", args.system_image, system_img],
                         stdout=devnull)
 
     ## shrink to minimal size
