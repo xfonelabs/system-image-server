@@ -108,8 +108,8 @@ gpg_key_path = %s
 
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'test':
-                                       {'index': '/testing/test/index.json'}}})
+                                       {'test': {
+                                        'index': '/testing/test/index.json'}}})
 
         self.assertRaises(KeyError, test_tree.create_device, "invalid", "test")
         self.assertRaises(KeyError, test_tree.create_device, "testing", "test")
@@ -120,8 +120,8 @@ gpg_key_path = %s
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'test':
-                                       {'index': '/testing/test/index.json'}}})
+                                       {'test': {
+                                        'index': '/testing/test/index.json'}}})
 
         device_keyring = os.path.join(self.config.publish_path, "testing",
                                       "test", "device.tar.xz")
@@ -130,19 +130,20 @@ gpg_key_path = %s
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'test':
-                                       {'index': '/testing/test/index.json'}}})
+                                       {'test': {
+                                        'index': '/testing/test/index.json'}}})
 
         gpg.sign_file(self.config, "image-signing", device_keyring)
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'test':
-                                       {'index': '/testing/test/index.json',
-                                        'keyring':
-                                       {'path': '/testing/test/device.tar.xz',
-                                        'signature': '/testing/test/'
-                                                     'device.tar.xz.asc'}}}})
+                                       {'test': {
+                                        'index': '/testing/test/index.json',
+                                        'keyring': {
+                                            'path': '/testing/test/'
+                                                    'device.tar.xz',
+                                            'signature': '/testing/test/device'
+                                                         '.tar.xz.asc'}}}})
 
         # Test grabbing a device entry
         self.assertRaises(KeyError, test_tree.get_device, "invalid", "test")
@@ -165,12 +166,13 @@ gpg_key_path = %s
 
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'test':
-                                       {'index': '/testing/test/index.json',
-                                        'keyring':
-                                       {'path': '/testing/test/device.tar.xz',
-                                        'signature': '/testing/test/'
-                                                     'device.tar.xz.asc'}}}})
+                                       {'test': {
+                                        'index': '/testing/test/index.json',
+                                        'keyring': {
+                                            'path': '/testing/test/device'
+                                                    '.tar.xz',
+                                            'signature': '/testing/test/device'
+                                                         '.tar.xz.asc'}}}})
 
         # Test setting the device keyring
         self.assertRaises(KeyError, test_tree.set_device_keyring, "invalid",
