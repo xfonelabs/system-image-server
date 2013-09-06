@@ -154,7 +154,7 @@ class Tree:
             channel_path = os.path.join(self.path, channel_name)
             if not os.path.exists(channel_path):
                 os.mkdir(channel_path)
-            channels[channel_name] = {}
+            channels[channel_name] = {'devices': {}}
 
     def create_device(self, channel_name, device_name, keyring_path=None):
         """
@@ -165,7 +165,7 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
-            if device_name in channels[channel_name]:
+            if device_name in channels[channel_name]['devices']:
                 raise KeyError("Device already exists: %s" % device_name)
 
             device_path = os.path.join(self.path, channel_name, device_name)
@@ -181,7 +181,7 @@ class Tree:
             device = {}
             device['index'] = "/%s/%s/index.json" % (channel_name, device_name)
 
-            channels[channel_name][device_name] = device
+            channels[channel_name]['devices'][device_name] = device
 
         if keyring_path:
             self.set_device_keyring(channel_name, device_name, keyring_path)
@@ -235,7 +235,7 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
-            if device_name not in channels[channel_name]:
+            if device_name not in channels[channel_name]['devices']:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
             return Device(self.config, os.path.join(self.path, channel_name,
@@ -296,13 +296,13 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
-            if device_name not in channels[channel_name]:
+            if device_name not in channels[channel_name]['devices']:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
             device_path = os.path.join(self.path, channel_name, device_name)
             if os.path.exists(device_path):
                 shutil.rmtree(device_path)
-            channels[channel_name].pop(device_name)
+            channels[channel_name]['devices'].pop(device_name)
 
     def set_device_keyring(self, channel_name, device_name, path):
         """
@@ -314,7 +314,7 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
-            if device_name not in channels[channel_name]:
+            if device_name not in channels[channel_name]['devices']:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
             abspath, relpath = tools.expand_path(path, self.path)
@@ -331,7 +331,7 @@ class Tree:
             keyring['path'] = "/%s" % "/".join(relpath.split(os.sep))
             keyring['signature'] = "/%s.asc" % "/".join(relpath.split(os.sep))
 
-            channels[channel_name][device_name]['keyring'] = keyring
+            channels[channel_name]['devices'][device_name]['keyring'] = keyring
 
 
 class Device:
