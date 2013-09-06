@@ -241,6 +241,19 @@ class Tree:
             return Device(self.config, os.path.join(self.path, channel_name,
                           device_name))
 
+    def hide_channel(self, channel_name):
+        """
+            Hide a channel from the client's list.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+            channels[channel_name]['hidden'] = True
+
+        return True
+
     def publish_keyring(self, keyring_name):
         """
             Publish the keyring under gpg/
@@ -303,6 +316,20 @@ class Tree:
             if os.path.exists(device_path):
                 shutil.rmtree(device_path)
             channels[channel_name]['devices'].pop(device_name)
+
+    def show_channel(self, channel_name):
+        """
+            Show a channel from the client's list.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+            if "hidden" in channels[channel_name]:
+                channels[channel_name].pop("hidden")
+
+        return True
 
     def set_device_keyring(self, channel_name, device_name, path):
         """

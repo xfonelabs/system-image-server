@@ -98,6 +98,27 @@ gpg_key_path = %s
 
         os.remove(test_tree.indexpath)
 
+        # Test hidding a channel
+        test_tree.create_channel("testing")
+        self.assertEquals(
+            test_tree.list_channels(), {'testing':
+                                       {'devices': {}}})
+
+        test_tree.hide_channel("testing")
+        self.assertEquals(
+            test_tree.list_channels(), {'testing':
+                                       {'devices': {},
+                                        'hidden': True}})
+
+        test_tree.show_channel("testing")
+        self.assertEquals(
+            test_tree.list_channels(), {'testing':
+                                       {'devices': {}}})
+
+        self.assertRaises(KeyError, test_tree.hide_channel, "invalid")
+        self.assertRaises(KeyError, test_tree.show_channel, "invalid")
+        test_tree.remove_channel("testing")
+
         # Test device creation
         test_tree.create_channel("testing")
         test_tree.create_device("testing", "test")
