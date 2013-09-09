@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     # Build a dict of device_name => Device object
     devices = {}
-    for device_name in pub.list_channels()[args.channel]:
+    for device_name in pub.list_channels()[args.channel]['devices']:
         devices[device_name] = pub.get_device(args.channel, device_name)
 
     proposed_devices = {}
