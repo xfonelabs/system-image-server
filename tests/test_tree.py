@@ -34,6 +34,9 @@ class TreeTests(unittest.TestCase):
             fd.write("""[global]
 base_path = %s
 gpg_key_path = %s
+public_fqdn = example.net
+public_http_port = 80
+public_https_port = 443
 """ % (self.temp_directory, os.path.join("tests", "keys")))
         self.config = config.Config(config_path)
         os.makedirs(self.config.publish_path)
@@ -222,6 +225,77 @@ gpg_key_path = %s
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
+    def test_alias(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels and aliases
+        test_tree.create_channel("parent")
+        test_tree.create_channel_alias("alias", "parent")
+
+        # Test standard failure cases
+        self.assertRaises(KeyError, test_tree.create_channel_alias,
+                          "alias", "parent")
+        self.assertRaises(KeyError, test_tree.create_channel_alias,
+                          "alias1", "parent1")
+
+        self.assertRaises(KeyError, test_tree.change_channel_alias,
+                          "alias1", "parent")
+        self.assertRaises(KeyError, test_tree.change_channel_alias,
+                          "alias", "parent1")
+
+        self.assertRaises(KeyError, test_tree.sync_aliases, "missing")
+        self.assertRaises(KeyError, test_tree.sync_alias, "missing")
+        self.assertRaises(TypeError, test_tree.sync_alias, "parent")
+
+        test_tree.remove_channel("parent")
+        self.assertRaises(KeyError, test_tree.sync_alias, "alias")
+        test_tree.create_channel("parent")
+
+        # Publish a basic image
+        test_tree.create_device("parent", "device")
+        test_tree.create_device("parent", "device2")
+        test_tree.create_device("alias", "device")
+        test_tree.create_device("alias", "device1")
+
+        ## First file
+        first = os.path.join(self.config.publish_path, "parent/device/full")
+        open(first, "w+").close()
+        gpg.sign_file(self.config, "image-signing", first)
+
+        ## Second file
+        second = os.path.join(self.config.publish_path,
+                              "parent/device/version-1234.tar.xz")
+
+        tools.generate_version_tarball(self.config, "parent", "1234",
+                                       second.replace(".xz", ""))
+        tools.xz_compress(second.replace(".xz", ""))
+        os.remove(second.replace(".xz", ""))
+        gpg.sign_file(self.config, "image-signing", second)
+
+        ## Adding the entry
+        device = test_tree.get_device("parent", "device")
+        device.create_image("full", 1234, "abc",
+                            ["parent/device/full",
+                             "parent/device/version-1234.tar.xz"])
+
+        ## Adding a fake entry to the alias channel
+        device = test_tree.get_device("alias", "device")
+        device.create_image("full", 1235, "abc",
+                            ["parent/device/full",
+                             "parent/device/version-1234.tar.xz"])
+
+        # Sync the alises
+        test_tree.sync_aliases("parent")
+
+        test_tree.create_channel("new_parent")
+        test_tree.change_channel_alias("alias", "new_parent")
+
+        test_tree.remove_channel("alias")
+        test_tree.remove_channel("new_parent")
+        test_tree.remove_channel("parent")
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
     def test_index(self):
         device = tree.Device(self.config, self.temp_directory)
 
@@ -295,6 +369,7 @@ gpg_key_path = %s
 
         self.assertRaises(TypeError, device.set_description, "delta", 1234,
                           "test", ['test'], 1233)
+
         # Remove the images
         device.remove_image("delta", 1234, 1233)
         device.remove_image("full", 1234)

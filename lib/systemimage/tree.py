@@ -26,6 +26,7 @@ from hashlib import sha256
 from systemimage import gpg, tools
 
 
+# Context managers
 @contextmanager
 def channels_json(config, path, commit=False):
     """
@@ -142,6 +143,22 @@ class Tree:
         self.path = path
         self.indexpath = os.path.join(path, "channels.json")
 
+    def change_channel_alias(self, channel_name, target_name):
+        """
+            Change the target of an alias.
+        """
+
+        with channels_json(self.config, self.indexpath) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+            if target_name not in channels:
+                raise KeyError("Couldn't find target channel: %s" %
+                               target_name)
+
+        self.remove_channel(channel_name)
+        self.create_channel_alias(channel_name, target_name)
+
     def create_channel(self, channel_name):
         """
             Creates a new channel entry in the tree.
@@ -155,6 +172,27 @@ class Tree:
             if not os.path.exists(channel_path):
                 os.mkdir(channel_path)
             channels[channel_name] = {'devices': {}}
+
+    def create_channel_alias(self, channel_name, target_name):
+        """
+            Creates a new channel as an alias for an existing one.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            if channel_name in channels:
+                raise KeyError("Channel already exists: %s" % channel_name)
+
+            if target_name not in channels:
+                raise KeyError("Couldn't find target channel: %s" %
+                               target_name)
+
+            channel_path = os.path.join(self.path, channel_name)
+            if not os.path.exists(channel_path):
+                os.mkdir(channel_path)
+            channels[channel_name] = {'devices': {},
+                                      'alias': target_name}
+
+        self.sync_aliases(channel_name)
 
     def create_device(self, channel_name, device_name, keyring_path=None):
         """
@@ -359,6 +397,125 @@ class Tree:
             keyring['signature'] = "/%s.asc" % "/".join(relpath.split(os.sep))
 
             channels[channel_name]['devices'][device_name]['keyring'] = keyring
+
+    def sync_alias(self, channel_name):
+        """
+            Update a channel with data from its parent.
+        """
+
+        with channels_json(self.config, self.indexpath) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+            if "alias" not in channels[channel_name]:
+                raise TypeError("Not a channel alias")
+
+            target_name = channels[channel_name]['alias']
+
+            if target_name not in channels:
+                raise KeyError("Couldn't find target channel: %s" %
+                               target_name)
+
+            # Start by looking for added/removed devices
+            devices = set(channels[channel_name]['devices'].keys())
+            target_devices = set(channels[target_name]['devices'].keys())
+
+            ## Remove any removed device
+            for device in devices - target_devices:
+                self.remove_device(channel_name, device)
+
+            ## Add any missing device
+            for device in target_devices - devices:
+                self.create_device(channel_name, device)
+
+            # Iterate through all the devices to import builds
+            for device_name in target_devices:
+                device = self.get_device(channel_name, device_name)
+                target_device = self.get_device(target_name, device_name)
+
+                # Extract all the current builds
+                device_images = {(image['version'], image.get('base', None),
+                                  image['type'])
+                                 for image in device.list_images()}
+
+                target_images = {(image['version'], image.get('base', None),
+                                  image['type'])
+                                 for image in target_device.list_images()}
+
+                # Remove any removed image
+                for image in device_images - target_images:
+                    device.remove_image(image[2], image[0], base=image[1])
+
+                # Add any missing image
+                with index_json(self.config, device.indexpath, True) as index:
+                    for image in sorted(target_images - device_images):
+                        orig = [entry for entry in target_device.list_images()
+                                if entry['type'] == image[2] and
+                                entry['version'] == image[0] and
+                                entry.get('base', None) == image[1]]
+
+                        entry = copy.deepcopy(orig[0])
+
+                        # Remove the current version tarball
+                        version_index = len(entry['files'])
+                        for fentry in entry['files']:
+                            if fentry['path'].endswith("version-%s.tar.xz" %
+                                                       entry['version']):
+                                version_index = fentry['order']
+                                entry['files'].remove(fentry)
+                                break
+
+                        # Generate a new one
+                        path = os.path.join(device.path,
+                                            "version-%s.tar.xz" %
+                                            entry['version'])
+                        abspath, relpath = tools.expand_path(path,
+                                                             device.pub_path)
+                        if not os.path.exists(abspath):
+                            tools.generate_version_tarball(
+                                self.config, channel_name,
+                                str(entry['version']),
+                                abspath.replace(".xz", ""))
+                            tools.xz_compress(abspath.replace(".xz", ""))
+                            os.remove(abspath.replace(".xz", ""))
+                            gpg.sign_file(self.config, "image-signing",
+                                          abspath)
+
+                        with open(abspath, "rb") as fd:
+                            checksum = sha256(fd.read()).hexdigest()
+
+                        # Generate the new file entry
+                        version = {}
+                        version['order'] = version_index
+                        version['path'] = "/%s" % "/".join(
+                            relpath.split(os.sep))
+                        version['signature'] = "/%s.asc" % "/".join(
+                            relpath.split(os.sep))
+                        version['checksum'] = checksum
+                        version['size'] = int(os.stat(abspath).st_size)
+
+                        # And add it
+                        entry['files'].append(version)
+                        index['images'].append(entry)
+
+    def sync_aliases(self, channel_name):
+        """
+            Update any channel that's an alias of the current one.
+        """
+
+        with channels_json(self.config, self.indexpath) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+        alias_channels = [name
+                          for name, channel
+                          in self.list_channels().items()
+                          if channel.get("alias", None) == channel_name]
+
+        for alias_name in alias_channels:
+            self.sync_alias(alias_name)
+
+        return True
 
 
 class Device:
