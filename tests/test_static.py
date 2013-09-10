@@ -65,3 +65,14 @@ class StaticTests(unittest.TestCase):
         for line in output:
             print(line)
         self.assertEqual(0, len(output))
+
+    @unittest.skipIf(not os.path.exists("/usr/bin/pyflakes3"),
+                     "Missing pyflakes, skipping test.")
+    def test_pyflakes3_clean(self):
+        subp = subprocess.Popen(
+            ["pyflakes3"] + self.all_paths(),
+            stdout=subprocess.PIPE, universal_newlines=True)
+        output = subp.communicate()[0].splitlines()
+        for line in output:
+            print(line)
+        self.assertEqual(0, len(output))
