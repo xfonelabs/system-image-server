@@ -60,7 +60,7 @@ def list_tarfile(tarfile):
             fhash = ("%s" % entry.mode,
                      "%s" % entry.devmajor,
                      "%s" % entry.devminor,
-                     "%s" % entry.type,
+                     "%s" % entry.type.decode('utf-8'),
                      "%s" % entry.uid,
                      "%s" % entry.gid,
                      "%s" % entry.size,
