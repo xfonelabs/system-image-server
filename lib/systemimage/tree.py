@@ -228,6 +228,8 @@ class Tree:
 
             channels[channel_name] = {'devices': {}}
 
+        return True
+
     def create_channel_alias(self, channel_name, target_name):
         """
             Creates a new channel as an alias for an existing one.
@@ -244,7 +246,7 @@ class Tree:
             channels[channel_name] = {'devices': {},
                                       'alias': target_name}
 
-        self.sync_alias(channel_name)
+        return self.sync_alias(channel_name)
 
     def create_device(self, channel_name, device_name, keyring_path=None):
         """
@@ -275,6 +277,8 @@ class Tree:
 
         if keyring_path:
             self.set_device_keyring(channel_name, device_name, keyring_path)
+
+        return True
 
     def generate_index(self, magic=False):
         """
@@ -315,6 +319,8 @@ class Tree:
                     self.create_device(channel_name, device_name, keyring_path)
                 else:
                     self.create_device(channel_name, device_name)
+
+        return True
 
     def get_device(self, channel_name, device_name):
         """
@@ -403,6 +409,8 @@ class Tree:
         shutil.copy("%s.tar.xz" % keyring_path, gpg_path)
         shutil.copy("%s.tar.xz.asc" % keyring_path, gpg_path)
 
+        return True
+
     def remove_channel(self, channel_name):
         """
             Remove a channel and everything it contains.
@@ -416,6 +424,8 @@ class Tree:
             if os.path.exists(channel_path):
                 shutil.rmtree(channel_path)
             channels.pop(channel_name)
+
+        return True
 
     def remove_device(self, channel_name, device_name):
         """
@@ -433,6 +443,8 @@ class Tree:
             if os.path.exists(device_path):
                 shutil.rmtree(device_path)
             channels[channel_name]['devices'].pop(device_name)
+
+        return True
 
     def show_channel(self, channel_name):
         """
@@ -476,6 +488,8 @@ class Tree:
             keyring['signature'] = "/%s.asc" % "/".join(relpath.split(os.sep))
 
             channels[channel_name]['devices'][device_name]['keyring'] = keyring
+
+        return True
 
     def sync_alias(self, channel_name):
         """
@@ -577,6 +591,8 @@ class Tree:
                         entry['files'].append(version)
                         index['images'].append(entry)
 
+        return True
+
     def sync_aliases(self, channel_name):
         """
             Update any channel that's an alias of the current one.
@@ -663,6 +679,8 @@ class Device:
             image['version'] = version
             index['images'].append(image)
 
+        return True
+
     def get_image(self, entry_type, version, base=None):
         """
             Look for an image and return a dict representation of it.
@@ -697,12 +715,21 @@ class Device:
             return index['images']
 
     def remove_image(self, entry_type, version, base=None):
+        """
+            Remove an image.
+        """
+
         image = self.get_image(entry_type, version, base)
         with index_json(self.config, self.indexpath, True) as index:
             index['images'].remove(image)
 
+        return True
+
     def set_description(self, entry_type, version, description,
                         translations={}, base=None):
+        """
+            Set or update an image description.
+        """
 
         if translations and not isinstance(translations, dict):
             raise TypeError("translations must be a dict.")
@@ -719,3 +746,5 @@ class Device:
                     entry['description_%s' % langid] = value
 
                 break
+
+        return True
