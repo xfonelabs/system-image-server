@@ -39,62 +39,27 @@ if __name__ == '__main__':
     conf = config.Config()
     pub = tree.Tree(conf)
 
-    # List all files currently in the tree
-    existing_files = set()
-    empty_dirs = set()
-    for dirpath, dirnames, filenames in os.walk(pub.path):
-        if dirpath == os.path.join(pub.path, "gpg"):
-            continue
-
-        if not filenames and not dirnames:
-            empty_dirs.add(dirpath)
-
-        for entry in filenames:
-            existing_files.add(os.path.join(dirpath, entry))
-
-    # List all files that are supposed to be in the tree
-    listed_files = set()
-    listed_files.add(os.path.join(pub.path, "channels.json"))
-    listed_files.add(os.path.join(pub.path, "channels.json.asc"))
-    for channel, devices in pub.list_channels().items():
-        for device_name in devices:
-            if 'keyring' in devices[device_name]:
-                listed_files.add(os.path.join(
-                    pub.path, devices[device_name]['keyring']['path'][1:]))
-                listed_files.add(os.path.join(
-                    pub.path,
-                    devices[device_name]['keyring']['signature'][1:]))
-
-            device = pub.get_device(channel, device_name)
-
-            listed_files.add(os.path.join(device.path, "index.json"))
-            listed_files.add(os.path.join(device.path, "index.json.asc"))
-
-            for image in device.list_images():
-                for entry in image['files']:
-                    listed_files.add(os.path.join(pub.path,
-                                                  entry['path'][1:]))
-                    listed_files.add(os.path.join(pub.path,
-                                                  entry['signature'][1:]))
-
     # Report missing files and extra files
     if not args.quiet:
         print("=== Orphaned files ===")
-        for entry in sorted(existing_files - listed_files):
+        for entry in pub.list_orphaned_files():
             print(" - %s" % entry)
         print("")
 
         print("=== Missing files ===")
-        for entry in sorted(listed_files - existing_files):
+        for entry in pub.list_missing_files():
             print(" - %s" % entry)
         print("")
 
     # Remove them
     if not args.dry_run:
-        for entry in sorted(existing_files - listed_files):
+        for entry in pub.list_orphaned_files():
             if not args.quiet:
                 print("Removing: %s" % entry)
-            os.remove(entry)
+            if os.path.isdir(entry):
+                os.rmdir(entry)
+            else:
+                os.remove(entry)
 
         if not args.quiet:
             print("Syncing mirrors")

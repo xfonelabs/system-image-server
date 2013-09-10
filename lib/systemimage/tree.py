@@ -143,6 +143,62 @@ class Tree:
         self.path = path
         self.indexpath = os.path.join(path, "channels.json")
 
+    def __list_existing(self):
+        """
+            Returns a set of all files present in the tree and a set of
+            empty directories that can be removed.
+        """
+
+        existing_files = set()
+        empty_dirs = set()
+
+        for dirpath, dirnames, filenames in os.walk(self.path):
+            if dirpath == os.path.join(self.path, "gpg"):
+                continue
+
+            if not filenames and not dirnames:
+                empty_dirs.add(dirpath)
+
+            for entry in filenames:
+                existing_files.add(os.path.join(dirpath, entry))
+
+        return (existing_files, empty_dirs)
+
+    def __list_referenced(self):
+        """
+            Returns a set of all files that are referenced by the
+            various indexes and should be present in the tree.
+        """
+
+        listed_files = set()
+        listed_files.add(os.path.join(self.path, "channels.json"))
+        listed_files.add(os.path.join(self.path, "channels.json.asc"))
+
+        for channel, metadata in self.list_channels().items():
+            devices = metadata['devices']
+            for device in devices:
+                if 'keyring' in devices[device]:
+                    listed_files.add(os.path.join(
+                        self.path, devices[device]['keyring']['path'][1:]))
+                    listed_files.add(os.path.join(
+                        self.path,
+                        devices[device]['keyring']['signature'][1:]))
+
+                device_entry = self.get_device(channel, device)
+
+                listed_files.add(os.path.join(device_entry.path, "index.json"))
+                listed_files.add(os.path.join(device_entry.path,
+                                              "index.json.asc"))
+
+                for image in device_entry.list_images():
+                    for entry in image['files']:
+                        listed_files.add(os.path.join(self.path,
+                                                      entry['path'][1:]))
+                        listed_files.add(os.path.join(self.path,
+                                                      entry['signature'][1:]))
+
+        return listed_files
+
     def change_channel_alias(self, channel_name, target_name):
         """
             Change the target of an alias.
@@ -159,6 +215,8 @@ class Tree:
         self.remove_channel(channel_name)
         self.create_channel_alias(channel_name, target_name)
 
+        return True
+
     def create_channel(self, channel_name):
         """
             Creates a new channel entry in the tree.
@@ -168,9 +226,6 @@ class Tree:
             if channel_name in channels:
                 raise KeyError("Channel already exists: %s" % channel_name)
 
-            channel_path = os.path.join(self.path, channel_name)
-            if not os.path.exists(channel_path):
-                os.mkdir(channel_path)
             channels[channel_name] = {'devices': {}}
 
     def create_channel_alias(self, channel_name, target_name):
@@ -186,13 +241,10 @@ class Tree:
                 raise KeyError("Couldn't find target channel: %s" %
                                target_name)
 
-            channel_path = os.path.join(self.path, channel_name)
-            if not os.path.exists(channel_path):
-                os.mkdir(channel_path)
             channels[channel_name] = {'devices': {},
                                       'alias': target_name}
 
-        self.sync_aliases(channel_name)
+        self.sync_alias(channel_name)
 
     def create_device(self, channel_name, device_name, keyring_path=None):
         """
@@ -208,7 +260,7 @@ class Tree:
 
             device_path = os.path.join(self.path, channel_name, device_name)
             if not os.path.exists(device_path):
-                os.mkdir(device_path)
+                os.makedirs(device_path)
 
             # Create an empty index if it doesn't exist, if it does,
             # just validate it
@@ -292,6 +344,43 @@ class Tree:
 
         return True
 
+    def list_channels(self):
+        """
+            Returns a dict of all existing channels and devices for each of
+            those.
+            This is simply a decoded version of channels.json
+        """
+
+        with channels_json(self.config, self.indexpath) as channels:
+            return channels
+
+    def list_missing_files(self):
+        """
+            Returns a list of absolute paths that should exist but aren't
+            present on the filesystem.
+        """
+
+        all_files, empty_dirs = self.__list_existing()
+        referenced_files = self.__list_referenced()
+
+        return sorted(referenced_files - all_files)
+
+    def list_orphaned_files(self):
+        """
+            Returns a list of absolute paths to files that are present in the
+            tree but aren't referenced anywhere.
+        """
+
+        orphaned_files = set()
+
+        all_files, empty_dirs = self.__list_existing()
+        referenced_files = self.__list_referenced()
+
+        orphaned_files.update(all_files - referenced_files)
+        orphaned_files.update(empty_dirs)
+
+        return sorted(orphaned_files)
+
     def publish_keyring(self, keyring_name):
         """
             Publish the keyring under gpg/
@@ -313,16 +402,6 @@ class Tree:
 
         shutil.copy("%s.tar.xz" % keyring_path, gpg_path)
         shutil.copy("%s.tar.xz.asc" % keyring_path, gpg_path)
-
-    def list_channels(self):
-        """
-            Returns a dict of all existing channels and devices for each of
-            those.
-            This is simply a decoded version of channels.json
-        """
-
-        with channels_json(self.config, self.indexpath) as channels:
-            return channels
 
     def remove_channel(self, channel_name):
         """

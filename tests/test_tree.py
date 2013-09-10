@@ -390,3 +390,38 @@ public_https_port = 443
             fd.write("[]")
 
         self.assertRaises(TypeError, device.list_images)
+
+    def test_file_lists(self):
+        test_tree = tree.Tree(self.config)
+        test_tree.create_channel("test")
+        test_tree.create_device("test", "test")
+
+        self.assertEquals(test_tree.list_missing_files(), [])
+        self.assertEquals(test_tree.list_orphaned_files(), [])
+
+        # Confirm that the gpg directory is ignored
+        if not os.path.exists(os.path.join(test_tree.path, "gpg")):
+            os.mkdir(os.path.join(test_tree.path, "gpg"))
+        self.assertEquals(test_tree.list_orphaned_files(), [])
+
+        # Confirm that it picks up missing directories
+        os.mkdir(os.path.join(test_tree.path, "invalid"))
+        self.assertEquals(test_tree.list_orphaned_files(),
+                          [os.path.join(test_tree.path, "invalid")])
+        os.rmdir(os.path.join(test_tree.path, "invalid"))
+
+        # Test that keyrings aren't considered as orphaned files
+        keyring_path = os.path.join(test_tree.path, "gpg", "device.tar.xz")
+        open(keyring_path, "w+").close()
+        gpg.sign_file(self.config, "image-signing", keyring_path)
+        test_tree.set_device_keyring("test", "test", keyring_path)
+        self.assertEquals(test_tree.list_orphaned_files(), [])
+
+        # Test that images aren't considered as orphaned files
+        image_path = os.path.join(test_tree.path,
+                                  "test", "test", "image.tar.xz")
+        open(image_path, "w+").close()
+        gpg.sign_file(self.config, "image-signing", image_path)
+        device = test_tree.get_device("test", "test")
+        device.create_image("full", 12345, "test", [image_path])
+        self.assertEquals(test_tree.list_orphaned_files(), [])
