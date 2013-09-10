@@ -681,6 +681,36 @@ class Device:
 
         return True
 
+    def expire_images(self, max_images):
+        """
+            Expire images keeping the last <max_images> full images and
+            their deltas. Also remove any delta that has an expired image
+            as its base.
+        """
+
+        full_images = sorted([image for image in self.list_images()
+                              if image['type'] == "full"],
+                             key=lambda image: image['version'])
+
+        to_remove = len(full_images) - max_images
+        if to_remove <= 0:
+            return True
+
+        full_remove = full_images[:to_remove]
+        remove_version = [image['version'] for image in full_remove]
+
+        for image in self.list_images():
+            if image['type'] == "full":
+                if image['version'] in remove_version:
+                    self.remove_image(image['type'], image['version'])
+            else:
+                if (image['version'] in remove_version
+                        or image['base'] in remove_version):
+                    self.remove_image(image['type'], image['version'],
+                                      image['base'])
+
+        return True
+
     def get_image(self, entry_type, version, base=None):
         """
             Look for an image and return a dict representation of it.

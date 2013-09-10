@@ -205,7 +205,7 @@ class ImageDiff:
         removals.uname = "root"
         removals.gname = "root"
 
-        output.addfile(removals, BytesIO(removed_files))
+        output.addfile(removals, BytesIO(removed_files.encode('utf-8')))
 
         # Copy all the added and modified
         added = []

@@ -425,3 +425,45 @@ public_https_port = 443
         device = test_tree.get_device("test", "test")
         device.create_image("full", 12345, "test", [image_path])
         self.assertEquals(test_tree.list_orphaned_files(), [])
+
+    def test_cleanup(self):
+        test_tree = tree.Tree(self.config)
+        test_tree.create_channel("test")
+        test_tree.create_device("test", "test")
+
+        # Insert a few images
+        image_path = os.path.join(test_tree.path,
+                                  "test", "test", "image.tar.xz")
+        open(image_path, "w+").close()
+        gpg.sign_file(self.config, "image-signing", image_path)
+        device = test_tree.get_device("test", "test")
+        device.create_image("full", 1, "test", [image_path])
+        device.create_image("full", 2, "test", [image_path])
+        device.create_image("delta", 2, "test", [image_path], base=1)
+        device.create_image("full", 3, "test", [image_path])
+        device.create_image("delta", 3, "test", [image_path], base=2)
+        device.create_image("delta", 3, "test", [image_path], base=1)
+        device.create_image("full", 4, "test", [image_path])
+        device.create_image("delta", 4, "test", [image_path], base=3)
+        device.create_image("delta", 4, "test", [image_path], base=2)
+        device.create_image("delta", 4, "test", [image_path], base=1)
+
+        self.assertEquals(len(device.list_images()), 10)
+
+        device.expire_images(10)
+        self.assertEquals(len(device.list_images()), 10)
+
+        device.expire_images(3)
+        self.assertEquals(len(device.list_images()), 6)
+
+        device.expire_images(3)
+        self.assertEquals(len(device.list_images()), 6)
+
+        device.expire_images(2)
+        self.assertEquals(len(device.list_images()), 3)
+
+        device.expire_images(1)
+        self.assertEquals(len(device.list_images()), 1)
+
+        device.expire_images(0)
+        self.assertEquals(len(device.list_images()), 0)
