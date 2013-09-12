@@ -213,6 +213,7 @@ def trigger_mirror(host, port, username, key, command):
 
 
 def sync_mirrors(config):
-    for mirror in config.mirrors:
+    for mirror in sorted(config.mirrors.values(),
+                         key=lambda mirror: mirror.ssh_host):
         trigger_mirror(mirror.ssh_host, mirror.ssh_port, mirror.ssh_user,
                        mirror.ssh_key, mirror.ssh_command)

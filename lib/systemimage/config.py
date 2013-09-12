@@ -79,13 +79,15 @@ class Config:
         self.publish_path = config['global'].get(
             "publish_path", os.path.join(self.base_path, "www"))
 
+        # Export some more keys as-is
         for key in ("public_fqdn", "public_http_port", "public_https_port"):
             if key not in config['global']:
                 continue
 
             setattr(self, key, config['global'][key])
 
-        self.mirrors = []
+        # Parse the mirror configuration
+        self.mirrors = {}
         if "mirrors" in config['global']:
             if not isinstance(config['global']['mirrors'], list):
                 config['global']['mirrors'] = [config['global']['mirrors']]
@@ -100,7 +102,6 @@ class Config:
                                        key)
 
                 for entry in config['global']['mirrors']:
-
                     dict_entry = "mirror_%s" % entry
                     if dict_entry not in config:
                         raise KeyError("Missing mirror section: %s" %
@@ -123,4 +124,68 @@ class Config:
                     mirror.ssh_command = config[dict_entry].get(
                         "ssh_command", config['mirror_default']['ssh_command'])
 
-                    self.mirrors.append(mirror)
+                    self.mirrors[entry] = mirror
+
+        # Parse the channel configuration
+        self.import_channels = {}
+        if "import_channels" in config['global']:
+            if not isinstance(config['global']['import_channels'], list):
+                config['global']['import_channels'] = \
+                    [config['global']['import_channels']]
+
+            if len(config['global']['import_channels']) != 0:
+                for entry in config['global']['import_channels']:
+                    dict_entry = "channel_%s" % entry
+                    if dict_entry not in config:
+                        raise KeyError("Missing channel section: %s" %
+                                       dict_entry)
+
+                    channel = type("Channel", (object,), {})
+
+                    if "versionbase" in config[dict_entry]:
+                        if config[dict_entry]["versionbase"].isdigit():
+                            channel.versionbase = int(
+                                config[dict_entry]["versionbase"])
+                        else:
+                            channel.versionbase = \
+                                config[dict_entry]["versionbase"]
+                    else:
+                        channel.versionbase = 1
+
+                    channel.fullcount = int(config[dict_entry].get(
+                        "fullcount", 0))
+
+                    channel.deltabase = [entry]
+                    if "deltabase" in config[dict_entry]:
+                        if isinstance(config[dict_entry]["deltabase"],
+                                      list):
+                            channel.deltabase = \
+                                config[dict_entry]["deltabase"]
+                        else:
+                            channel.deltabase = \
+                                [config[dict_entry]["deltabase"]]
+
+                    # Parse the file list
+                    files = config[dict_entry].get("files", [])
+                    if isinstance(files, str):
+                        files = [files]
+
+                    channel.files = []
+                    for file_entry in files:
+                        if "file_%s" % file_entry not in config[dict_entry]:
+                            raise KeyError("Missing file entry: %s" %
+                                           "file_%s" % file_entry)
+
+                        fields = (config[dict_entry]
+                                  ["file_%s" % file_entry].split(";"))
+
+                        file_dict = {}
+                        file_dict['name'] = file_entry
+                        file_dict['generator'] = fields[0]
+                        file_dict['arguments'] = []
+                        if len(fields) > 1:
+                            file_dict['arguments'] = fields[1:]
+
+                        channel.files.append(file_dict)
+
+                    self.import_channels[entry] = channel

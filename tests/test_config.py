@@ -109,7 +109,7 @@ ssh_host = host
 """)
 
         conf = config.Config(single_mirror_config_path)
-        self.assertEquals(conf.mirrors[0].ssh_command, "command")
+        self.assertEquals(conf.mirrors['a'].ssh_command, "command")
 
         # Missing mirror_default
         missing_default_config_path = os.path.join(self.temp_directory,
@@ -185,3 +185,88 @@ ssh_user = other-user
         os.environ['SYSTEM_IMAGE_ROOT'] = test_path
         test_config = config.Config()
         self.assertEquals(test_config.base_path, "a/b/c")
+
+        # Test the channels config
+        ## Multiple channels
+        channel_config_path = os.path.join(self.temp_directory,
+                                           "channel_config")
+        with open(channel_config_path, "w+") as fd:
+            fd.write("""[global]
+import_channels = a, b
+
+[channel_a]
+fullcount = 10
+files = a
+file_a = test;arg1;arg2
+
+[channel_b]
+versionbase = a
+deltabase = a, b
+files = a, b
+file_a = test;arg1;arg2
+file_b = test;arg3;arg4
+""")
+
+        conf = config.Config(channel_config_path)
+        self.assertEquals(
+            conf.import_channels['a'].files,
+            [{'name': 'a', 'generator': 'test',
+              'arguments': ['arg1', 'arg2']}])
+        self.assertEquals(
+            conf.import_channels['b'].files,
+            [{'name': 'a', 'generator': 'test',
+              'arguments': ['arg1', 'arg2']},
+             {'name': 'b', 'generator': 'test',
+              'arguments': ['arg3', 'arg4']}])
+
+        self.assertEquals(conf.import_channels['a'].fullcount, 10)
+        self.assertEquals(conf.import_channels['a'].versionbase, 1)
+        self.assertEquals(conf.import_channels['a'].deltabase, ['a'])
+
+        self.assertEquals(conf.import_channels['b'].fullcount, 0)
+        self.assertEquals(conf.import_channels['b'].versionbase, "a")
+        self.assertEquals(conf.import_channels['b'].deltabase, ["a", "b"])
+
+        ## Single channel
+        single_channel_config_path = os.path.join(self.temp_directory,
+                                                  "single_channel_config")
+        with open(single_channel_config_path, "w+") as fd:
+            fd.write("""[global]
+import_channels = a
+
+[channel_a]
+deltabase = a
+versionbase = 1
+files = a
+file_a = test;arg1;arg2
+""")
+
+        conf = config.Config(single_channel_config_path)
+        self.assertEquals(
+            conf.import_channels['a'].files,
+            [{'name': 'a', 'generator': 'test',
+              'arguments': ['arg1', 'arg2']}])
+
+        ## Invalid channel
+        invalid_channel_config_path = os.path.join(self.temp_directory,
+                                                   "invalid_channel_config")
+        with open(invalid_channel_config_path, "w+") as fd:
+            fd.write("""[global]
+import_channels = a
+""")
+
+        self.assertRaises(KeyError, config.Config, invalid_channel_config_path)
+
+        ## Invalid file
+        invalid_file_channel_config_path = os.path.join(
+            self.temp_directory, "invalid_file_channel_config")
+        with open(invalid_file_channel_config_path, "w+") as fd:
+            fd.write("""[global]
+import_channels = a
+
+[channel_a]
+files = a
+""")
+
+        self.assertRaises(KeyError, config.Config,
+                          invalid_file_channel_config_path)

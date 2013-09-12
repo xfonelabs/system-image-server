@@ -2,11 +2,38 @@
 base_path = /some/fs/path
 gpg_key_path = secret/gpg/keys/
 gpg_keyring_path = secret/gpg/keyrings/
+import_channels = saucy, saucy-proposed, saucy-customized
 publish_path = www/
 mirrors = a, b
 public_fqdn = system-image.example.net
 public_http_port = 80
 public_https_port = 443
+
+[channel_saucy]
+versionbase = saucy-proposed
+fullcount = 10
+files = ubuntu, device, version
+file_ubuntu = cdimage-ubuntu;daily-preinstalled;series=saucy,import=good
+file_device = cdimage-device;daily-preinstalled;series=saucy,import=good
+file_version = version-generator
+
+[channel_saucy-proposed]
+versionbase = 1
+fullcount = 20
+deltabase = saucy, saucy-proposed
+files = ubuntu, device, version
+file_ubuntu = cdimage-ubuntu;daily-preinstalled;series=saucy,import=any
+file_device = cdimage-device;daily-preinstalled;series=saucy,import=any
+file_version = version-generator
+
+[channel_saucy-customized]
+versionbase = 1
+fullcount = 15
+files = ubuntu, device, custom, version
+file_ubuntu = cdimage-ubuntu;daily-preinstalled;series=saucy,import=good
+file_device = cdimage-device;daily-preinstalled;series=saucy,import=good
+file_custom = http;http://www.example.net/custom/custom.tar.xz;prefix=custom-
+file_version = version-generator
 
 [mirror_default]
 ssh_user = mirror
