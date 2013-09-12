@@ -192,15 +192,15 @@ ssh_user = other-user
                                            "channel_config")
         with open(channel_config_path, "w+") as fd:
             fd.write("""[global]
-import_channels = a, b
+channels = a, b
 
 [channel_a]
+type = manual
 fullcount = 10
-files = a
-file_a = test;arg1;arg2
 
 [channel_b]
-versionbase = a
+type = auto
+versionbase = 5
 deltabase = a, b
 files = a, b
 file_a = test;arg1;arg2
@@ -209,30 +209,26 @@ file_b = test;arg3;arg4
 
         conf = config.Config(channel_config_path)
         self.assertEquals(
-            conf.import_channels['a'].files,
-            [{'name': 'a', 'generator': 'test',
-              'arguments': ['arg1', 'arg2']}])
-        self.assertEquals(
-            conf.import_channels['b'].files,
+            conf.channels['b'].files,
             [{'name': 'a', 'generator': 'test',
               'arguments': ['arg1', 'arg2']},
              {'name': 'b', 'generator': 'test',
               'arguments': ['arg3', 'arg4']}])
 
-        self.assertEquals(conf.import_channels['a'].fullcount, 10)
-        self.assertEquals(conf.import_channels['a'].versionbase, 1)
-        self.assertEquals(conf.import_channels['a'].deltabase, ['a'])
+        self.assertEquals(conf.channels['a'].fullcount, 10)
+        self.assertEquals(conf.channels['a'].versionbase, 1)
+        self.assertEquals(conf.channels['a'].deltabase, ['a'])
 
-        self.assertEquals(conf.import_channels['b'].fullcount, 0)
-        self.assertEquals(conf.import_channels['b'].versionbase, "a")
-        self.assertEquals(conf.import_channels['b'].deltabase, ["a", "b"])
+        self.assertEquals(conf.channels['b'].fullcount, 0)
+        self.assertEquals(conf.channels['b'].versionbase, 5)
+        self.assertEquals(conf.channels['b'].deltabase, ["a", "b"])
 
         ## Single channel
         single_channel_config_path = os.path.join(self.temp_directory,
                                                   "single_channel_config")
         with open(single_channel_config_path, "w+") as fd:
             fd.write("""[global]
-import_channels = a
+channels = a
 
 [channel_a]
 deltabase = a
@@ -243,7 +239,7 @@ file_a = test;arg1;arg2
 
         conf = config.Config(single_channel_config_path)
         self.assertEquals(
-            conf.import_channels['a'].files,
+            conf.channels['a'].files,
             [{'name': 'a', 'generator': 'test',
               'arguments': ['arg1', 'arg2']}])
 
@@ -252,7 +248,7 @@ file_a = test;arg1;arg2
                                                    "invalid_channel_config")
         with open(invalid_channel_config_path, "w+") as fd:
             fd.write("""[global]
-import_channels = a
+channels = a
 """)
 
         self.assertRaises(KeyError, config.Config, invalid_channel_config_path)
@@ -262,7 +258,7 @@ import_channels = a
             self.temp_directory, "invalid_file_channel_config")
         with open(invalid_file_channel_config_path, "w+") as fd:
             fd.write("""[global]
-import_channels = a
+channels = a
 
 [channel_a]
 files = a

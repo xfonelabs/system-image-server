@@ -127,14 +127,14 @@ class Config:
                     self.mirrors[entry] = mirror
 
         # Parse the channel configuration
-        self.import_channels = {}
-        if "import_channels" in config['global']:
-            if not isinstance(config['global']['import_channels'], list):
-                config['global']['import_channels'] = \
-                    [config['global']['import_channels']]
+        self.channels = {}
+        if "channels" in config['global']:
+            if not isinstance(config['global']['channels'], list):
+                config['global']['channels'] = \
+                    [config['global']['channels']]
 
-            if len(config['global']['import_channels']) != 0:
-                for entry in config['global']['import_channels']:
+            if len(config['global']['channels']) != 0:
+                for entry in config['global']['channels']:
                     dict_entry = "channel_%s" % entry
                     if dict_entry not in config:
                         raise KeyError("Missing channel section: %s" %
@@ -142,15 +142,11 @@ class Config:
 
                     channel = type("Channel", (object,), {})
 
-                    if "versionbase" in config[dict_entry]:
-                        if config[dict_entry]["versionbase"].isdigit():
-                            channel.versionbase = int(
-                                config[dict_entry]["versionbase"])
-                        else:
-                            channel.versionbase = \
-                                config[dict_entry]["versionbase"]
-                    else:
-                        channel.versionbase = 1
+                    channel.versionbase = int(config[dict_entry].get(
+                        'versionbase', 1))
+
+                    channel.type = config[dict_entry].get(
+                        "type", "manual")
 
                     channel.fullcount = int(config[dict_entry].get(
                         "fullcount", 0))
@@ -188,4 +184,4 @@ class Config:
 
                         channel.files.append(file_dict)
 
-                    self.import_channels[entry] = channel
+                    self.channels[entry] = channel
