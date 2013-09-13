@@ -4,6 +4,7 @@ channels = saucy, saucy-proposed, saucy-customized
 gpg_key_path = secret/gpg/keys/
 gpg_keyring_path = secret/gpg/keyrings/
 publish_path = www/
+state_path = state/
 mirrors = a, b
 public_fqdn = system-image.example.net
 public_http_port = 80

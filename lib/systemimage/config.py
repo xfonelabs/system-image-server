@@ -79,6 +79,9 @@ class Config:
         self.publish_path = config['global'].get(
             "publish_path", os.path.join(self.base_path, "www"))
 
+        self.state_path = config['global'].get(
+            "state_path", os.path.join(self.base_path, "state"))
+
         # Export some more keys as-is
         for key in ("public_fqdn", "public_http_port", "public_https_port"):
             if key not in config['global']:
