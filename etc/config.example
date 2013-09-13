@@ -32,7 +32,7 @@ fullcount = 15
 files = ubuntu, device, custom, version
 file_ubuntu = system-image;saucy;file=ubuntu
 file_device = system-image;saucy;file=device
-file_custom = http;http://www.example.net/custom/custom.tar.xz;prefix=custom-
+file_custom = http;http://www.example.net/custom/custom.tar.xz;prefix=custom-,monitor=http://www.example.net/custom/build_number
 file_version = version-generator
 
 [mirror_default]
