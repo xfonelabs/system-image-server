@@ -48,7 +48,7 @@ public_https_port = 8443
             os.environ['PATH'] = self.old_path
 
     def test_generate_version_tarball(self):
-        # Run without version_detail
+        # Run without version_detail or channel_target
         version_tarball = "%s/version.tar" % self.temp_directory
         tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
                                        version_tarball, "a/b/version",
@@ -71,11 +71,11 @@ build_number: 1.2.3.4
 """)
         os.remove(version_tarball)
 
-        # Run with version_detail
+        # Run with version_detail and channel_target
         version_tarball = "%s/version.tar" % self.temp_directory
         tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
                                        version_tarball, "a/b/version",
-                                       "a/b/channel", "abcdef")
+                                       "a/b/channel", "abcdef", "origin")
 
         version_tarfile = tarfile.open(version_tarball, "r:")
 
@@ -91,6 +91,7 @@ http_port: 880
 https_port: 8443
 channel: testing
 build_number: 1.2.3.4
+channel_target: origin
 version_detail: abcdef
 """)
         os.remove(version_tarball)
