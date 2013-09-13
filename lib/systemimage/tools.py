@@ -62,7 +62,8 @@ def find_on_path(command):
 def generate_version_tarball(config, channel, version, path,
                              build_path="system/etc/ubuntu-build",
                              channel_path="system/etc/system-image/"
-                                          "channel.ini"):
+                                          "channel.ini",
+                             version_detail=None):
     """
         Generates a tarball which contains two files
         (build_path and channel_path).
@@ -90,6 +91,8 @@ channel: %s
 build_number: %s
 """ % (config.public_fqdn, config.public_http_port, config.public_https_port,
        channel, version.strip())
+    if version_detail:
+        channel += "version_detail: %s\n" % version_detail
 
     channel_file = tarfile.TarInfo()
     channel_file.size = len(channel)

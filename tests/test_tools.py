@@ -48,6 +48,7 @@ public_https_port = 8443
             os.environ['PATH'] = self.old_path
 
     def test_generate_version_tarball(self):
+        # Run without version_detail
         version_tarball = "%s/version.tar" % self.temp_directory
         tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
                                        version_tarball, "a/b/version",
@@ -68,6 +69,31 @@ https_port: 8443
 channel: testing
 build_number: 1.2.3.4
 """)
+        os.remove(version_tarball)
+
+        # Run with version_detail
+        version_tarball = "%s/version.tar" % self.temp_directory
+        tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
+                                       version_tarball, "a/b/version",
+                                       "a/b/channel", "abcdef")
+
+        version_tarfile = tarfile.open(version_tarball, "r:")
+
+        version_file = version_tarfile.extractfile("a/b/version")
+        self.assertTrue(version_file)
+        self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4\n")
+
+        channel_file = version_tarfile.extractfile("a/b/channel")
+        self.assertTrue(channel_file)
+        self.assertEquals(channel_file.read().decode('utf-8'), """[service]
+base: system-image.example.net
+http_port: 880
+https_port: 8443
+channel: testing
+build_number: 1.2.3.4
+version_detail: abcdef
+""")
+        os.remove(version_tarball)
 
     def test_gzip_compress(self):
         test_string = "test-string"
