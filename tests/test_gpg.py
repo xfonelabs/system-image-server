@@ -38,7 +38,7 @@ class GPGTests(unittest.TestCase):
             fd.write("""[global]
 base_path = %s
 gpg_key_path = %s
-""" % (self.temp_directory, os.path.join("tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
         self.config = config.Config(config_path)
 
     def tearDown(self):

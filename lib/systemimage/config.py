@@ -68,19 +68,29 @@ class Config:
         # Set defaults
         self.base_path = config['global'].get(
             "base_path", os.environ.get("SYSTEM_IMAGE_ROOT", os.getcwd()))
+
         self.gpg_key_path = config['global'].get(
             "gpg_key_path", os.path.join(self.base_path,
                                          "secret", "gpg", "keys"))
+        if not self.gpg_key_path.startswith("/"):
+            self.gpg_key_path = os.path.join(self.base_path, self.gpg_key_path)
 
         self.gpg_keyring_path = config['global'].get(
             "gpg_keyring_path", os.path.join(self.base_path,
                                              "secret", "gpg", "keyrings"))
+        if not self.gpg_keyring_path.startswith("/"):
+            self.gpg_keyring_path = os.path.join(self.base_path,
+                                                 self.gpg_keyring_path)
 
         self.publish_path = config['global'].get(
             "publish_path", os.path.join(self.base_path, "www"))
+        if not self.publish_path.startswith("/"):
+            self.publish_path = os.path.join(self.base_path, self.publish_path)
 
         self.state_path = config['global'].get(
             "state_path", os.path.join(self.base_path, "state"))
+        if not self.state_path.startswith("/"):
+            self.state_path = os.path.join(self.base_path, self.state_path)
 
         # Export some more keys as-is
         for key in ("public_fqdn", "public_http_port", "public_https_port"):

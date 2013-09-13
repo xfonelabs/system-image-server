@@ -37,7 +37,7 @@ gpg_key_path = %s
 public_fqdn = example.net
 public_http_port = 80
 public_https_port = 443
-""" % (self.temp_directory, os.path.join("tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
         self.config = config.Config(config_path)
         os.makedirs(self.config.publish_path)
 
