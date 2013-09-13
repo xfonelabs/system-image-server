@@ -23,7 +23,7 @@ deltabase = saucy, saucy-proposed
 files = ubuntu, device, version
 file_ubuntu = cdimage-ubuntu;daily-preinstalled;series=saucy,import=any
 file_device = cdimage-device;daily-preinstalled;series=saucy,import=any
-file_version = version-generator
+file_version = version
 
 [channel_saucy-customized]
 type = auto
@@ -33,7 +33,7 @@ files = ubuntu, device, custom, version
 file_ubuntu = system-image;saucy;file=ubuntu
 file_device = system-image;saucy;file=device
 file_custom = http;http://www.example.net/custom/custom.tar.xz;prefix=custom-,monitor=http://www.example.net/custom/build_number
-file_version = version-generator
+file_version = version
 
 [mirror_default]
 ssh_user = mirror
