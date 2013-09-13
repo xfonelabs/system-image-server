@@ -38,7 +38,7 @@ def expand_path(path, base="/"):
     else:
         relpath = path
 
-    abspath = os.path.join(base, relpath)
+    abspath = os.path.realpath(os.path.join(base, relpath))
 
     return abspath, relpath
 
