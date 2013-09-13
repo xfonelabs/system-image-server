@@ -404,11 +404,23 @@ public_https_port = 443
             os.mkdir(os.path.join(test_tree.path, "gpg"))
         self.assertEquals(test_tree.list_orphaned_files(), [])
 
-        # Confirm that it picks up missing directories
+        # Confirm that it picks up extra directories
         os.mkdir(os.path.join(test_tree.path, "invalid"))
         self.assertEquals(test_tree.list_orphaned_files(),
                           [os.path.join(test_tree.path, "invalid")])
-        os.rmdir(os.path.join(test_tree.path, "invalid"))
+
+        # And that it gets cleared up
+        test_tree.cleanup_tree()
+        self.assertEquals(test_tree.list_orphaned_files(), [])
+
+        # Confirm that it picks up extra files
+        open(os.path.join(test_tree.path, "invalid"), "w+").close()
+        self.assertEquals(test_tree.list_orphaned_files(),
+                          [os.path.join(test_tree.path, "invalid")])
+
+        # And that it gets cleared up
+        test_tree.cleanup_tree()
+        self.assertEquals(test_tree.list_orphaned_files(), [])
 
         # Test that keyrings aren't considered as orphaned files
         keyring_path = os.path.join(test_tree.path, "gpg", "device.tar.xz")

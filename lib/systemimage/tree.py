@@ -217,6 +217,19 @@ class Tree:
 
         return True
 
+    def cleanup_tree(self):
+        """
+            Remove any orphaned file from the tree.
+        """
+
+        for entry in self.list_orphaned_files():
+            if os.path.isdir(entry):
+                os.rmdir(entry)
+            else:
+                os.remove(entry)
+
+        return True
+
     def create_channel(self, channel_name):
         """
             Creates a new channel entry in the tree.
