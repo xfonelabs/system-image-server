@@ -1,0 +1,226 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import config, generators, tools, tree
+
+import argparse
+import fcntl
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="image importer")
+    args = parser.parse_args()
+
+    # Load the configuration
+    conf = config.Config()
+
+    # Try to acquire a global lock
+    lock_file = os.path.join(conf.state_path, "global.lock")
+    fd = open(lock_file, 'w')
+
+    try:
+        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        print("Failed to acquire lock, exitting.")
+        sys.exit(0)
+
+    # Load the tree
+    tree = tree.Tree(conf)
+
+    # Iterate through the channels
+    for channel_name, channel in conf.channels.items():
+        # We're only interested in automated channels
+        if channel.type != "auto":
+            continue
+
+        # Check the channel exists
+        if channel_name not in tree.list_channels():
+            raise KeyError("Invalid channel name: %s" % channel_name)
+
+        # Iterate through the devices
+        for device_name in tree.list_channels()[channel_name]['devices']:
+            device = tree.get_device(channel_name, device_name)
+
+            # Extract last full version
+            full_images = {image['version']: image
+                           for image in device.list_images()
+                           if image['type'] == "full"}
+
+            last_full = None
+            if full_images:
+                last_full = sorted(full_images.values(),
+                                   key=lambda image: image['version'])[-1]
+
+            # Extract all delta base versions
+            delta_base = []
+            if last_full:
+                if last_full not in delta_base:
+                    delta_base.append(last_full)
+
+            # Iterate through listed channels
+            for base_channel in channel.deltabase:
+                # Skip missing channels
+                if base_channel not in tree.list_channels():
+                    continue
+
+                # Skip missing devices
+                if device_name not in (tree.list_channels()
+                                       [base_channel]['devices']):
+                    continue
+
+                # Extract the latest full image
+                base_device = tree.get_device(base_channel, device_name)
+                base_images = sorted([image
+                                      for image in base_device.list_images()
+                                      if image['type'] == "full"],
+                                     key=lambda image: image['version'])
+
+                # Check if the version is valid and add it
+                if base_images and base_images[-1]['version'] in full_images:
+                    if (full_images[base_images[-1]['version']]
+                            not in delta_base):
+                        delta_base.append(full_images
+                                          [base_images[-1]['version']])
+
+            # Allocate new version number
+            new_version = channel.versionbase
+            if last_full:
+                new_version = last_full['version'] + 1
+
+            # And the arry used to generate version_detail
+            version_detail = []
+
+            # Create new empty entries
+            new_images = {}
+            new_images['full'] = {'files': []}
+            for delta in delta_base:
+                new_images["delta_%s" % delta['version']] = {'files': []}
+
+            # Iterate through the files
+            for file_entry in channel.files:
+                # Generate the environment
+                environment = {}
+                environment['channel_name'] = channel_name
+                if "alias" in tree.list_channels()[channel_name]:
+                    environment['channel_target'] = \
+                        tree.list_channels()[channel_name]['alias']
+                environment['device'] = device
+                environment['device_name'] = device_name
+                environment['version'] = new_version
+                environment['version_detail'] = version_detail
+                environment['files'] = new_images['full']['files']
+
+                # Call file generator
+                path = generators.generate_file(conf,
+                                                file_entry['generator'],
+                                                file_entry['arguments'],
+                                                environment)
+
+                # Generators are allowed to return None when no build
+                # exists at all.
+                if not path:
+                    continue
+
+                # Get the full and relative paths
+                abspath, relpath = tools.expand_path(path, conf.publish_path)
+                urlpath = "/%s" % "/".join(relpath.split(os.sep))
+
+                # FIXME: Extract the prefix, used later for matching between
+                #        full images. This forces a specific filename format.
+                prefix = abspath.split("/")[-1].rsplit("-", 1)[0]
+
+                # Add the file to the full image
+                new_images['full']['files'].append(abspath)
+
+                # Check if same as current
+                new_file = True
+                if last_full:
+                    for file_dict in last_full['files']:
+                        if file_dict['path'] == urlpath:
+                            new_file = False
+                            break
+
+                if not new_file:
+                    continue
+
+                # Generate deltas
+                for delta in delta_base:
+                    # Extract the source
+                    src_path = None
+                    for file_dict in delta['files']:
+                        if (file_dict['path'].split("/")[-1]
+                                .startswith(prefix)):
+                            src_path = "%s/%s" % (conf.publish_path,
+                                                  file_dict['path'])
+                            break
+
+                    # Check that it's not the current file
+                    if src_path:
+                        src_path = os.path.realpath(src_path)
+                        if src_path == abspath:
+                            continue
+
+                        # Generators are allowed to return None when no delta
+                        # exists at all.
+                        delta_path = generators.generate_delta(conf, src_path,
+                                                               abspath)
+                    else:
+                        delta_path = abspath
+
+                    if not delta_path:
+                        continue
+
+                    # Get the full and relative paths
+                    delta_abspath, delta_relpath = tools.expand_path(
+                        delta_path, conf.publish_path)
+
+                    new_images['delta_%s' % delta['version']]['files'] \
+                        .append(delta_abspath)
+
+            # Check if we've got a new image
+            if len(new_images['full']['files']):
+                # Publish full image
+                device.create_image("full", new_version,
+                                    ",".join(environment['version_detail']),
+                                    new_images['full']['files'])
+                # Publish deltas
+                for delta in delta_base:
+                    device.create_image(
+                        "delta", new_version,
+                        ",".join(environment['version_detail']),
+                        new_images["delta_%s" % delta['version']]['files'],
+                        base=delta['version'])
+
+            # Expire images
+            if channel.fullcount > 0:
+                device.expire_images(channel.fullcount)
+
+        # Sync all channel aliases
+        tree.sync_aliases(channel_name)
+
+    # Remove any orphaned file
+#    tree.cleanup_tree()
+
+    # Sync the mirrors
+    tools.sync_mirrors(conf)
+
+    # Remove lock file
+    os.remove(lock_file)

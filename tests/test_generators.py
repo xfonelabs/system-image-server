@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # Copyright (C) 2013 Canonical Ltd.
@@ -16,28 +15,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+from systemimage import generators
 
-from systemimage import config, tools, tree
+import unittest
+import shutil
+import tempfile
 
-import argparse
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="images cleanup")
+class GeneratorsTests(unittest.TestCase):
+    def setUp(self):
+        temp_directory = tempfile.mkdtemp()
+        self.temp_directory = temp_directory
 
-    parser.add_argument("channel", metavar="CHANNEL")
-    parser.add_argument("keep", metavar="KEEP-COUNT", type=int)
+    def tearDown(self):
+        shutil.rmtree(self.temp_directory)
 
-    args = parser.parse_args()
-
-    conf = config.Config()
-    pub = tree.Tree(conf)
-
-    # Iterate through the devices
-    for device_name in pub.list_channels()[args.channel]:
-        device = pub.get_device(args.channel, device_name)
-        device.expire_images(args.keep)
-
-    tools.sync_mirrors(conf)
+    def test_something(self):
+        self.assertTrue(hasattr(generators, "generate_file"))
