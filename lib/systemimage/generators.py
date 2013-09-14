@@ -29,6 +29,9 @@ try:
 except ImportError:
     from urllib import urlopen, urlretrieve
 
+# Global
+CACHE = {}
+
 
 def unpack_arguments(arguments):
     """
@@ -177,15 +180,26 @@ def generate_file_cdimage_device(conf, arguments, environment):
         # Set the version_detail string
         environment['version_detail'].append("device=%s" % version)
 
-        # Generate the image hash
-        with open(boot_path, "r") as fd:
-            boot_hash = sha256(fd.read()).hexdigest()
+        # Extract the hashes
+        boot_hash = None
+        recovery_hash = None
+        system_hash = None
+        with open(os.path.join(cdimage_path, version,
+                               "SHA256SUMS"), "r") as fd:
+            for line in fd:
+                line = line.strip()
+                if line.endswith(boot_path.split("/")[-1]):
+                    boot_hash = line.split()[0]
+                elif line.endswith(recovery_path.split("/")[-1]):
+                    recovery_hash = line.split()[0]
+                elif line.endswith(system_path.split("/")[-1]):
+                    system_hash = line.split()[0]
 
-        with open(recovery_path, "r") as fd:
-            recovery_hash = sha256(fd.read()).hexdigest()
+                if boot_hash and recovery_hash and system_hash:
+                    break
 
-        with open(system_path, "r") as fd:
-            system_hash = sha256(fd.read()).hexdigest()
+        if not boot_hash or not recovery_hash or not system_hash:
+            continue
 
         global_hash = sha256("%s/%s/%s" % (boot_hash, recovery_hash,
                                            system_hash)).hexdigest()
@@ -298,9 +312,18 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         # Set the version_detail string
         environment['version_detail'].append("ubuntu=%s" % version)
 
-        # Generate the image hash
-        with open(rootfs_path, "r") as fd:
-            rootfs_hash = sha256(fd.read()).hexdigest()
+        # Extract the hash
+        rootfs_hash = None
+        with open(os.path.join(cdimage_path, version,
+                               "SHA256SUMS"), "r") as fd:
+            for line in fd:
+                line = line.strip()
+                if line.endswith(rootfs_path.split("/")[-1]):
+                    rootfs_hash = line.split()[0]
+                    break
+
+        if not rootfs_hash:
+            continue
 
         # Generate the path
         path = os.path.join(conf.publish_path, "pool",
@@ -451,10 +474,17 @@ def generate_file_http(conf, arguments, environment):
     path = None
     version = None
 
+    if "http_%s" % url in CACHE:
+        version = CACHE['http_%s' % url]
+
     # Get the version/build number
-    if "monitor" in options:
-        # Grab the current version number
-        version = urlopen(options['monitor']).read().strip()
+    if "monitor" in options or version:
+        if not version:
+            # Grab the current version number
+            version = urlopen(options['monitor']).read().strip()
+
+            # Push the result in the cache
+            CACHE['http_%s' % url] = version
 
         # Build the path
         path = os.path.realpath(os.path.join(conf.publish_path, "pool",
@@ -480,6 +510,9 @@ def generate_file_http(conf, arguments, environment):
         # Hash the file
         with open(os.path.join(tempdir, "download"), "r") as fd:
             version = sha256(fd.read()).hexdigest()
+
+        # Push the result in the cache
+        CACHE['http_%s' % url] = version
 
         # Build the path
         path = os.path.realpath(os.path.join(conf.publish_path, "pool",
