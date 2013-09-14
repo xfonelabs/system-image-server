@@ -552,6 +552,10 @@ class Tree:
                 for image in device_images - target_images:
                     device.remove_image(image[2], image[0], base=image[1])
 
+                # Create the path if it doesn't exist
+                if not os.path.exists(device.path):
+                    os.makedirs(device.path)
+
                 # Add any missing image
                 with index_json(self.config, device.indexpath, True) as index:
                     for image in sorted(target_images - device_images):

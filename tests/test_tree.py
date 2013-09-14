@@ -254,8 +254,10 @@ public_https_port = 443
         # Publish a basic image
         test_tree.create_device("parent", "device")
         test_tree.create_device("parent", "device2")
+        test_tree.create_device("parent", "device3")
         test_tree.create_device("alias", "device")
         test_tree.create_device("alias", "device1")
+        test_tree.create_device("alias", "device3")
 
         ## First file
         first = os.path.join(self.config.publish_path, "parent/device/full")
@@ -285,6 +287,8 @@ public_https_port = 443
                              "parent/device/version-1234.tar.xz"])
 
         # Sync the alises
+        device3 = test_tree.get_device("alias", "device3")
+        shutil.rmtree(device3.path)
         test_tree.sync_aliases("parent")
 
         test_tree.create_channel("new_parent")
