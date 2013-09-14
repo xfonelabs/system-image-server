@@ -105,8 +105,11 @@ if __name__ == '__main__':
             if last_full:
                 new_version = last_full['version'] + 1
 
-            # And the arry used to generate version_detail
+            # And the list used to generate version_detail
             version_detail = []
+
+            # And a list of new files
+            new_files = []
 
             # Create new empty entries
             new_images = {}
@@ -126,7 +129,7 @@ if __name__ == '__main__':
                 environment['device_name'] = device_name
                 environment['version'] = new_version
                 environment['version_detail'] = version_detail
-                environment['files'] = new_images['full']['files']
+                environment['new_files'] = new_files
 
                 # Call file generator
                 path = generators.generate_file(conf,
@@ -160,6 +163,8 @@ if __name__ == '__main__':
 
                 if not new_file:
                     continue
+
+                new_files.append(abspath)
 
                 # Generate deltas
                 for delta in delta_base:
@@ -196,7 +201,7 @@ if __name__ == '__main__':
                         .append(delta_abspath)
 
             # Check if we've got a new image
-            if len(new_images['full']['files']):
+            if len(new_files):
                 # Publish full image
                 device.create_image("full", new_version,
                                     ",".join(environment['version_detail']),

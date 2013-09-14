@@ -72,8 +72,6 @@ def generate_delta(conf, source_path, target_path):
 
     # Return pre-existing entries
     if os.path.exists(path):
-        if not os.path.exists("%s.asc" % path):
-            gpg.sign_file(conf, "image-signing", path)
         return path
 
     # Create the pool if it doesn't exist
@@ -120,9 +118,6 @@ def generate_file(conf, generator, arguments, environment):
 
     if not path:
         return None
-
-    if not os.path.exists("%s.asc" % path):
-        gpg.sign_file(conf, "image-signing", path)
 
     return path
 
@@ -210,8 +205,6 @@ def generate_file_cdimage_device(conf, arguments, environment):
 
         # Return pre-existing entries
         if os.path.exists(path):
-            if not os.path.exists("%s.asc" % path):
-                gpg.sign_file(conf, "image-signing", path)
             return path
 
         temp_dir = tempfile.mkdtemp()
@@ -331,8 +324,6 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
         # Return pre-existing entries
         if os.path.exists(path):
-            if not os.path.exists("%s.asc" % path):
-                gpg.sign_file(conf, "image-signing", path)
             return path
 
         temp_dir = tempfile.mkdtemp()
@@ -494,9 +485,6 @@ def generate_file_http(conf, arguments, environment):
 
         # Return pre-existing entries
         if os.path.exists(path):
-            if not os.path.exists("%s.asc" % path):
-                gpg.sign_file(conf, "image-signing", path)
-
             environment['version_detail'].append(
                 "%s=%s" % (options.get("name", "http"), version))
             return path
@@ -521,14 +509,9 @@ def generate_file_http(conf, arguments, environment):
                                               version)))
         # Return pre-existing entries
         if os.path.exists(path):
-            if not os.path.exists("%s.asc" % path):
-                gpg.sign_file(conf, "image-signing", path)
-
-            # Cleanup
-            shutil.rmtree(tempdir)
-
             environment['version_detail'].append(
                 "%s=%s" % (options.get("name", "http"), version))
+            shutil.rmtree(tempdir)
             return path
 
     # Create the pool if it doesn't exist
@@ -595,7 +578,7 @@ def generate_file_version(conf, arguments, environment):
     """
 
     # Don't generate version tarballs when nothing changed
-    if len(environment['files']) == 0:
+    if len(environment['new_files']) == 0:
         return None
 
     path = os.path.realpath(os.path.join(environment['device'].path,
