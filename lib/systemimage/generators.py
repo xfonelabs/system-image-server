@@ -193,7 +193,7 @@ def generate_file_cdimage_device(conf, arguments, environment):
                 continue
 
         # Set the version_detail string
-        environment['version_detail'].append("device=%s" % version)
+        version_detail = "device=%s" % version
 
         # Extract the hashes
         boot_hash = None
@@ -225,6 +225,15 @@ def generate_file_cdimage_device(conf, arguments, environment):
 
         # Return pre-existing entries
         if os.path.exists(path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
             return path
 
         temp_dir = tempfile.mkdtemp()
@@ -280,7 +289,7 @@ def generate_file_cdimage_device(conf, arguments, environment):
         metadata = {}
         metadata['generator'] = "cdimage-device"
         metadata['version'] = version
-        metadata['version_detail'] = "device=%s" % version
+        metadata['version_detail'] = version_detail
         metadata['series'] = series
         metadata['device'] = environment['device_name']
         metadata['boot_path'] = boot_path
@@ -298,6 +307,7 @@ def generate_file_cdimage_device(conf, arguments, environment):
         # Cleanup
         shutil.rmtree(temp_dir)
 
+        environment['version_detail'].append(version_detail)
         return path
 
     return None
@@ -342,7 +352,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
                 continue
 
         # Set the version_detail string
-        environment['version_detail'].append("ubuntu=%s" % version)
+        version_detail = "ubuntu=%s" % version
 
         # Extract the hash
         rootfs_hash = None
@@ -363,6 +373,15 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
         # Return pre-existing entries
         if os.path.exists(path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
             return path
 
         temp_dir = tempfile.mkdtemp()
@@ -481,7 +500,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         metadata = {}
         metadata['generator'] = "cdimage-ubuntu"
         metadata['version'] = version
-        metadata['version_detail'] = "ubuntu=%s" % version
+        metadata['version_detail'] = version_detail
         metadata['series'] = series
         metadata['rootfs_path'] = rootfs_path
         metadata['rootfs_checksum'] = rootfs_hash
@@ -494,6 +513,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         # Cleanup
         shutil.rmtree(temp_dir)
 
+        environment['version_detail'].append(version_detail)
         return path
 
     return None
@@ -530,6 +550,9 @@ def generate_file_http(conf, arguments, environment):
             # Push the result in the cache
             CACHE['http_%s' % url] = version
 
+        # Set version_detail
+        version_detail = "%s=%s" % (options.get("name", "http"), version)
+
         # Build the path
         path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                              "%s-%s.tar.xz" %
@@ -538,8 +561,15 @@ def generate_file_http(conf, arguments, environment):
 
         # Return pre-existing entries
         if os.path.exists(path):
-            environment['version_detail'].append(
-                "%s=%s" % (options.get("name", "http"), version))
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
             return path
 
     # Grab the real thing
@@ -552,6 +582,9 @@ def generate_file_http(conf, arguments, environment):
         with open(os.path.join(tempdir, "download"), "r") as fd:
             version = sha256(fd.read()).hexdigest()
 
+        # Set version_detail
+        version_detail = "%s=%s" % (options.get("name", "http"), version)
+
         # Push the result in the cache
         CACHE['http_%s' % url] = version
 
@@ -562,8 +595,15 @@ def generate_file_http(conf, arguments, environment):
                                               version)))
         # Return pre-existing entries
         if os.path.exists(path):
-            environment['version_detail'].append(
-                "%s=%s" % (options.get("name", "http"), version))
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
             shutil.rmtree(tempdir)
             return path
 
@@ -579,8 +619,7 @@ def generate_file_http(conf, arguments, environment):
     metadata = {}
     metadata['generator'] = "http"
     metadata['version'] = version
-    metadata['version_detail'] = "%s=%s" % (options.get("name", "http"),
-                                            version)
+    metadata['version_detail'] = version_detail
     metadata['url'] = url
 
     with open(path.replace(".tar.xz", ".json"), "w+") as fd:
@@ -591,8 +630,7 @@ def generate_file_http(conf, arguments, environment):
     # Cleanup
     shutil.rmtree(tempdir)
 
-    environment['version_detail'].append(
-        "%s=%s" % (options.get("name", "http"), version))
+    environment['version_detail'].append(version_detail)
     return path
 
 
