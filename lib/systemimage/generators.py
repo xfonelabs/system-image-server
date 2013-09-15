@@ -281,6 +281,8 @@ def generate_file_cdimage_device(conf, arguments, environment):
         metadata['generator'] = "cdimage-device"
         metadata['version'] = version
         metadata['version_detail'] = "device=%s" % version
+        metadata['series'] = series
+        metadata['device'] = environment['device_name']
         metadata['boot_path'] = boot_path
         metadata['boot_checksum'] = boot_hash
         metadata['recovery_path'] = recovery_path
@@ -480,6 +482,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         metadata['generator'] = "cdimage-ubuntu"
         metadata['version'] = version
         metadata['version_detail'] = "ubuntu=%s" % version
+        metadata['series'] = series
         metadata['rootfs_path'] = rootfs_path
         metadata['rootfs_checksum'] = rootfs_hash
 
@@ -688,6 +691,10 @@ def generate_file_version(conf, arguments, environment):
     metadata['generator'] = "version"
     metadata['version'] = environment['version']
     metadata['version_detail'] = "version=%s" % environment['version']
+    metadata['channel.ini'] = {}
+    metadata['channel.ini']['channel'] = environment['channel_name']
+    metadata['channel.ini']['version'] = str(environment['version'])
+    metadata['channel.ini']['version_detail'] = version_detail
 
     with open(path.replace(".tar.xz", ".json"), "w+") as fd:
         fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
