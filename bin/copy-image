@@ -1,0 +1,257 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import json
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import config, generators, tools, tree
+
+import argparse
+import fcntl
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="image copier")
+    parser.add_argument("source_channel", metavar="SOURCE-CHANNEL")
+    parser.add_argument("destination_channel", metavar="DESTINATION-CHANNEL")
+    parser.add_argument("device", metavar="DEVICE")
+    parser.add_argument("version", metavar="VERSION", type=int)
+    parser.add_argument("-k", "--keep-version", action="store_true",
+                        help="Keep the original verison number")
+
+    args = parser.parse_args()
+
+    # Load the configuration
+    conf = config.Config()
+
+    # Try to acquire a global lock
+    lock_file = os.path.join(conf.state_path, "global.lock")
+    fd = open(lock_file, 'w')
+
+    try:
+        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        print("Failed to acquire lock, exitting.")
+        sys.exit(0)
+
+    # Load the tree
+    pub = tree.Tree(conf)
+
+    # Do some checks
+    if args.source_channel not in pub.list_channels():
+        parser.error("Invalid source channel: %s" % args.source_channel)
+
+    if args.destination_channel not in pub.list_channels():
+        parser.error("Invalid destination channel: %s" %
+                     args.destination_channel)
+
+    if args.device not in pub.list_channels()[args.source_channel]['devices']:
+        parser.error("Invalid device for source channel: %s" %
+                     args.device)
+
+    if args.device not in \
+            pub.list_channels()[args.destination_channel]['devices']:
+        parser.error("Invalid device for destination channel: %s" %
+                     args.device)
+
+    if "alias" in pub.list_channels()[args.source_channel]:
+        parser.error("Source channel is an alias.")
+
+    if "alias" in pub.list_channels()[args.destination_channel]:
+        parser.error("Destination channel is an alias.")
+
+    source_device = pub.get_device(args.source_channel, args.device)
+    destination_device = pub.get_device(args.destination_channel, args.device)
+
+    if args.keep_version:
+        images = [image for image in destination_device.list_images()
+                  if image['version'] == args.version]
+        if images:
+            parser.error("Version number is already used: %s" % args.version)
+
+    # Assign a new version number
+    new_version = args.version
+    if not args.keep_version:
+        # Find the next available version
+        new_version = 1
+        for image in destination_device.list_images():
+            if image['version'] > new_version:
+                new_version = image['version']
+
+    # Extract the build we want to copy
+    images = [image for image in source_device.list_images()
+              if image['type'] == "full" and image['version'] == args.version]
+    if not images:
+        parser.error("Can't find version: %s" % args.version)
+    source_image = images[0]
+
+    # Extract the list of existing full images
+    full_images = {image['version']: image
+                   for image in destination_device.list_images()
+                   if image['type'] == "full"}
+
+    # Check that the last full and the new image aren't one and the same
+    source_files = [entry['path'].split("/")[-1]
+                    for entry in source_image['files']
+                    if not entry['path'].split("/")[-1].startswith("version-")]
+    destination_files = []
+    if full_images:
+        latest_full = sorted(full_images.values(),
+                             key=lambda image: image['version'])[-1]
+        destination_files = [entry['path'].split("/")[-1]
+                             for entry in latest_full['files']
+                             if not entry['path'].split(
+                                 "/")[-1].startswith("version-")]
+    if source_files == destination_files:
+        parser.error("Source image is already latest full in "
+                     "destination channel.")
+
+    # Generate a list of required deltas
+    delta_base = []
+
+    if args.destination_channel in conf.channels:
+        for base_channel in conf.channels[args.destination_channel].deltabase:
+            # Skip missing channels
+            if base_channel not in pub.list_channels():
+                continue
+
+            # Skip missing devices
+            if args.device not in (pub.list_channels()
+                                   [base_channel]['devices']):
+                continue
+
+            # Extract the latest full image
+            base_device = pub.get_device(base_channel, args.device)
+            base_images = sorted([image
+                                  for image in base_device.list_images()
+                                  if image['type'] == "full"],
+                                 key=lambda image: image['version'])
+
+            # Check if the version is valid and add it
+            if base_images and base_images[-1]['version'] in full_images:
+                if (full_images[base_images[-1]['version']]
+                        not in delta_base):
+                    delta_base.append(full_images
+                                      [base_images[-1]['version']])
+
+    # Create new empty entries
+    new_images = {'full': {'files': []}}
+    for delta in delta_base:
+        new_images["delta_%s" % delta['version']] = {'files': []}
+
+    # Extract current version_detail and files
+    version_detail = ""
+    for entry in source_image['files']:
+        path = os.path.realpath("%s/%s" % (conf.publish_path, entry['path']))
+
+        filename = path.split("/")[-1]
+
+        # Look for version-X.tar.xz
+        if filename == "version-%s.tar.xz" % args.version:
+            # Extract the metadata
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+                    if "channel.ini" in metadata:
+                        version_detail = metadata['channel.ini'].get(
+                            "version_detail", None)
+        else:
+            new_images['full']['files'].append(path)
+
+    # Generate new version tarball
+    environment = {}
+    environment['channel_name'] = args.destination_channel
+    environment['device'] = destination_device
+    environment['device_name'] = args.device
+    environment['version'] = new_version
+    environment['version_detail'] = [entry
+                                     for entry in version_detail.split(",")
+                                     if not entry.startswith("version=")]
+    environment['new_files'] = new_images['full']['files']
+
+    version_path = generators.generate_file(conf, "version", [], environment)
+    if version_path:
+        new_images['full']['files'].append(version_path)
+
+    # Generate deltas
+    for abspath in new_images['full']['files']:
+        prefix = abspath.split("/")[-1].rsplit("-", 1)[0]
+        for delta in delta_base:
+            # Extract the source
+            src_path = None
+            for file_dict in delta['files']:
+                if (file_dict['path'].split("/")[-1]
+                        .startswith(prefix)):
+                    src_path = "%s/%s" % (conf.publish_path,
+                                          file_dict['path'])
+                    break
+
+            # Check that it's not the current file
+            if src_path:
+                src_path = os.path.realpath(src_path)
+                if src_path == abspath:
+                    continue
+
+                # Generators are allowed to return None when no delta
+                # exists at all.
+                delta_path = generators.generate_delta(conf, src_path,
+                                                       abspath)
+            else:
+                delta_path = abspath
+
+            if not delta_path:
+                continue
+
+            # Get the full and relative paths
+            delta_abspath, delta_relpath = tools.expand_path(
+                delta_path, conf.publish_path)
+
+            new_images['delta_%s' % delta['version']]['files'] \
+                .append(delta_abspath)
+
+    # Add full image
+    destination_device.create_image("full", new_version,
+                                    ",".join(environment['version_detail']),
+                                    new_images['full']['files'])
+
+    # Add delta images
+    for delta in delta_base:
+        destination_device.create_image(
+            "delta", new_version,
+            ",".join(environment['version_detail']),
+            new_images["delta_%s" % delta['version']]['files'],
+            base=delta['version'])
+
+    # Expire images
+    if args.destination_channel in conf.channels:
+        if conf.channels[args.destination_channel].fullcount > 0:
+            destination_device.expire_images(
+                conf.channels[args.destination_channel].fullcount)
+
+    # Sync all channel aliases
+    pub.sync_aliases(args.destination_channel)
+
+    # Remove any orphaned file
+    pub.cleanup_tree()
+
+    # Sync the mirrors
+    tools.sync_mirrors(conf)
+
+    # Remove lock file
+    os.remove(lock_file)
