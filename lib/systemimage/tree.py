@@ -398,6 +398,15 @@ class Tree:
         orphaned_files.update(all_files - referenced_files)
         orphaned_files.update(empty_dirs)
 
+        for entry in list(orphaned_files):
+            if entry.endswith(".json"):
+                if os.path.exists(entry.replace(".json", ".tar.xz")):
+                    orphaned_files.remove(entry)
+
+            if entry.endswith(".json.asc"):
+                if os.path.exists(entry.replace(".json.asc", ".tar.xz")):
+                    orphaned_files.remove(entry)
+
         return sorted(orphaned_files)
 
     def publish_keyring(self, keyring_name):

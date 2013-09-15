@@ -17,6 +17,7 @@
 
 from hashlib import sha256
 from systemimage import diff, gpg, tree, tools
+import json
 import os
 import shutil
 import subprocess
@@ -92,6 +93,25 @@ def generate_delta(conf, source_path, target_path):
 
     # Sign the result
     gpg.sign_file(conf, "image-signing", path)
+
+    # Generate the metadata file
+    metadata = {}
+    metadata['generator'] = "delta"
+    metadata['source'] = {}
+    metadata['target'] = {}
+
+    if os.path.exists(source_path.replace(".tar.xz", ".json")):
+        with open(source_path.replace(".tar.xz", ".json"), "r") as fd:
+            metadata['source'] = json.loads(fd.read())
+
+    if os.path.exists(target_path.replace(".tar.xz", ".json")):
+        with open(target_path.replace(".tar.xz", ".json"), "r") as fd:
+            metadata['target'] = json.loads(fd.read())
+
+    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                     indent=4, separators=(',', ': ')))
+    gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
     return path
 
@@ -255,6 +275,23 @@ def generate_file_cdimage_device(conf, arguments, environment):
         # Compress the target tarball and sign it
         tools.xz_compress(os.path.join(temp_dir, "target.tar"), path)
         gpg.sign_file(conf, "image-signing", path)
+
+        # Generate the metadata file
+        metadata = {}
+        metadata['generator'] = "cdimage-device"
+        metadata['version'] = version
+        metadata['version_detail'] = "device=%s" % version
+        metadata['boot_path'] = boot_path
+        metadata['boot_checksum'] = boot_hash
+        metadata['recovery_path'] = recovery_path
+        metadata['recovery_checksum'] = recovery_hash
+        metadata['system_path'] = system_path
+        metadata['system_checksum'] = system_hash
+
+        with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+            fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                         indent=4, separators=(',', ': ')))
+        gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
         # Cleanup
         shutil.rmtree(temp_dir)
@@ -438,6 +475,19 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         tools.xz_compress(os.path.join(temp_dir, "target.tar"), path)
         gpg.sign_file(conf, "image-signing", path)
 
+        # Generate the metadata file
+        metadata = {}
+        metadata['generator'] = "cdimage-ubuntu"
+        metadata['version'] = version
+        metadata['version_detail'] = "ubuntu=%s" % version
+        metadata['rootfs_path'] = rootfs_path
+        metadata['rootfs_checksum'] = rootfs_hash
+
+        with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+            fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                         indent=4, separators=(',', ': ')))
+        gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
+
         # Cleanup
         shutil.rmtree(temp_dir)
 
@@ -522,6 +572,19 @@ def generate_file_http(conf, arguments, environment):
     shutil.move(os.path.join(tempdir, "download"), path)
     gpg.sign_file(conf, "image-signing", path)
 
+    # Generate the metadata file
+    metadata = {}
+    metadata['generator'] = "http"
+    metadata['version'] = version
+    metadata['version_detail'] = "%s=%s" % (options.get("name", "http"),
+                                            version)
+    metadata['url'] = url
+
+    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                     indent=4, separators=(',', ': ')))
+    gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
+
     # Cleanup
     shutil.rmtree(tempdir)
 
@@ -567,7 +630,17 @@ def generate_file_system_image(conf, arguments, environment):
     for file_entry in full_images[-1]['files']:
         file_name = file_entry['path'].split("/")[-1]
         if file_name.startswith(prefix):
-            return "%s/%s" % (conf.publish_path, file_entry['path'])
+            path = "%s/%s" % (conf.publish_path, file_entry['path'])
+
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    environment['version_detail'].append(
+                        metadata['version_detail'])
+
+            return path
 
     return None
 
@@ -609,6 +682,17 @@ def generate_file_version(conf, arguments, environment):
     # Compress and sign it
     tools.xz_compress(os.path.join(tempdir, "version"), path)
     gpg.sign_file(conf, "image-signing", path)
+
+    # Generate the metadata file
+    metadata = {}
+    metadata['generator'] = "version"
+    metadata['version'] = environment['version']
+    metadata['version_detail'] = "version=%s" % environment['version']
+
+    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                     indent=4, separators=(',', ': ')))
+    gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
     # Cleanup
     shutil.rmtree(tempdir)

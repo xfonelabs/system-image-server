@@ -222,7 +222,7 @@ if __name__ == '__main__':
         tree.sync_aliases(channel_name)
 
     # Remove any orphaned file
-#    tree.cleanup_tree()
+    tree.cleanup_tree()
 
     # Sync the mirrors
     tools.sync_mirrors(conf)
