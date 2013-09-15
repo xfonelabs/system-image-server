@@ -400,11 +400,13 @@ class Tree:
 
         for entry in list(orphaned_files):
             if entry.endswith(".json"):
-                if os.path.exists(entry.replace(".json", ".tar.xz")):
+                tarname = entry.replace(".json", ".tar.xz")
+                if tarname in referenced_files:
                     orphaned_files.remove(entry)
 
             if entry.endswith(".json.asc"):
-                if os.path.exists(entry.replace(".json.asc", ".tar.xz")):
+                tarname = entry.replace(".json.asc", ".tar.xz")
+                if tarname in referenced_files:
                     orphaned_files.remove(entry)
 
         return sorted(orphaned_files)
