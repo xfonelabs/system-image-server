@@ -671,7 +671,8 @@ def generate_file_system_image(conf, arguments, environment):
     for file_entry in full_images[-1]['files']:
         file_name = file_entry['path'].split("/")[-1]
         if file_name.startswith(prefix):
-            path = "%s/%s" % (conf.publish_path, file_entry['path'])
+            path = os.path.realpath("%s/%s" % (conf.publish_path,
+                                               file_entry['path']))
 
             if os.path.exists(path.replace(".tar.xz", ".json")):
                 with open(path.replace(".tar.xz", ".json"), "r") as fd:
