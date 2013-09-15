@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import os
 import shutil
 import tempfile
@@ -274,6 +275,14 @@ public_https_port = 443
         os.remove(second.replace(".xz", ""))
         gpg.sign_file(self.config, "image-signing", second)
 
+        with open(second.replace(".tar.xz", ".json"), "w+") as fd:
+            metadata = {}
+            metadata['channel.ini'] = {}
+            metadata['channel.ini']['version_detail'] = "test"
+            fd.write(json.dumps(metadata))
+        gpg.sign_file(self.config, "image-signing",
+                      second.replace(".tar.xz", ".json"))
+
         ## Adding the entry
         device = test_tree.get_device("parent", "device")
         device.create_image("full", 1234, "abc",
@@ -438,11 +447,14 @@ public_https_port = 443
                                   "test", "test", "image.tar.xz")
         open(image_path, "w+").close()
         gpg.sign_file(self.config, "image-signing", image_path)
+        open(image_path.replace(".tar.xz", ".json"), "w+").close()
+        gpg.sign_file(self.config, "image-signing",
+                      image_path.replace(".tar.xz", ".json"))
         device = test_tree.get_device("test", "test")
         device.create_image("full", 12345, "test", [image_path])
         self.assertEquals(test_tree.list_orphaned_files(), [])
 
-    def test_cleanup(self):
+    def test_expiry(self):
         test_tree = tree.Tree(self.config)
         test_tree.create_channel("test")
         test_tree.create_device("test", "test")
