@@ -43,7 +43,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     # Load the tree
-    tree = tree.Tree(conf)
+    pub = tree.Tree(conf)
 
     # Iterate through the channels
     for channel_name, channel in conf.channels.items():
@@ -52,12 +52,12 @@ if __name__ == '__main__':
             continue
 
         # Check the channel exists
-        if channel_name not in tree.list_channels():
+        if channel_name not in pub.list_channels():
             raise KeyError("Invalid channel name: %s" % channel_name)
 
         # Iterate through the devices
-        for device_name in tree.list_channels()[channel_name]['devices']:
-            device = tree.get_device(channel_name, device_name)
+        for device_name in pub.list_channels()[channel_name]['devices']:
+            device = pub.get_device(channel_name, device_name)
 
             # Extract last full version
             full_images = {image['version']: image
@@ -71,23 +71,19 @@ if __name__ == '__main__':
 
             # Extract all delta base versions
             delta_base = []
-            if last_full:
-                if last_full not in delta_base:
-                    delta_base.append(last_full)
 
-            # Iterate through listed channels
             for base_channel in channel.deltabase:
                 # Skip missing channels
-                if base_channel not in tree.list_channels():
+                if base_channel not in pub.list_channels():
                     continue
 
                 # Skip missing devices
-                if device_name not in (tree.list_channels()
+                if device_name not in (pub.list_channels()
                                        [base_channel]['devices']):
                     continue
 
                 # Extract the latest full image
-                base_device = tree.get_device(base_channel, device_name)
+                base_device = pub.get_device(base_channel, device_name)
                 base_images = sorted([image
                                       for image in base_device.list_images()
                                       if image['type'] == "full"],
@@ -122,9 +118,6 @@ if __name__ == '__main__':
                 # Generate the environment
                 environment = {}
                 environment['channel_name'] = channel_name
-                if "alias" in tree.list_channels()[channel_name]:
-                    environment['channel_target'] = \
-                        tree.list_channels()[channel_name]['alias']
                 environment['device'] = device
                 environment['device_name'] = device_name
                 environment['version'] = new_version
@@ -161,10 +154,8 @@ if __name__ == '__main__':
                             new_file = False
                             break
 
-                if not new_file:
-                    continue
-
-                new_files.append(abspath)
+                if new_file:
+                    new_files.append(abspath)
 
                 # Generate deltas
                 for delta in delta_base:
@@ -219,10 +210,10 @@ if __name__ == '__main__':
                 device.expire_images(channel.fullcount)
 
         # Sync all channel aliases
-        tree.sync_aliases(channel_name)
+        pub.sync_aliases(channel_name)
 
     # Remove any orphaned file
-    tree.cleanup_tree()
+    pub.cleanup_tree()
 
     # Sync the mirrors
     tools.sync_mirrors(conf)
