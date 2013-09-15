@@ -52,6 +52,9 @@ class Config:
         if not path:
             path = "%s/etc/config" % os.environ.get("SYSTEM_IMAGE_ROOT",
                                                     os.getcwd())
+            if not os.path.exists(path):
+                path = os.path.realpath(os.path.join(os.path.dirname(__file__),
+                                                     "../../etc/config"))
 
         self.load_config(path)
 
