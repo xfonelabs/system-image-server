@@ -576,10 +576,27 @@ class Tree:
                         entry = copy.deepcopy(orig[0])
 
                         # Remove the current version tarball
+                        version_detail = None
                         version_index = len(entry['files'])
                         for fentry in entry['files']:
                             if fentry['path'].endswith("version-%s.tar.xz" %
                                                        entry['version']):
+
+                                version_path = "%s/%s" % (
+                                    self.config.publish_path, fentry['path'])
+
+                                if os.path.exists(
+                                        version_path.replace(".tar.xz",
+                                                             ".json")):
+                                    with open(
+                                            version_path.replace(
+                                                ".tar.xz", ".json")) as fd:
+                                        metadata = json.loads(fd.read())
+                                        if "channel.ini" in metadata:
+                                            version_detail = \
+                                                metadata['channel.ini'].get(
+                                                    "version_detail", None)
+
                                 version_index = fentry['order']
                                 entry['files'].remove(fentry)
                                 break
@@ -594,7 +611,8 @@ class Tree:
                             tools.generate_version_tarball(
                                 self.config, channel_name,
                                 str(entry['version']),
-                                abspath.replace(".xz", ""))
+                                abspath.replace(".xz", ""),
+                                version_detail=version_detail)
                             tools.xz_compress(abspath.replace(".xz", ""))
                             os.remove(abspath.replace(".xz", ""))
                             gpg.sign_file(self.config, "image-signing",
