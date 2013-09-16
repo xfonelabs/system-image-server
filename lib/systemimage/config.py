@@ -135,6 +135,9 @@ class Config:
                         "ssh_user", config['mirror_default']['ssh_user'])
                     mirror.ssh_key = config[dict_entry].get(
                         "ssh_key", config['mirror_default']['ssh_key'])
+                    if not mirror.ssh_key.startswith("/"):
+                        mirror.ssh_key = os.path.join(self.base_path,
+                                                      mirror.ssh_key)
                     mirror.ssh_port = int(config[dict_entry].get(
                         "ssh_port", config['mirror_default']['ssh_port']))
                     mirror.ssh_command = config[dict_entry].get(
