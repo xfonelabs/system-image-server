@@ -38,7 +38,9 @@ def long_version_number(image):
     details = []
 
     if "version=" in image['description']:
-        return image['description'].replace(",", ", ")
+        details = [entry for entry in image['description'].split(",")
+                   if not entry.startswith("version=")]
+        return "%s (%s)" % (image_version, ", ".join(details))
 
     for entry in image['files']:
         file_name = entry['path'].split("/")[-1]
