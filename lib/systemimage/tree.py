@@ -622,7 +622,8 @@ class Tree:
                                 self.config, channel_name,
                                 str(entry['version']),
                                 abspath.replace(".xz", ""),
-                                version_detail=version_detail)
+                                version_detail=version_detail,
+                                channel_target=target_name)
                             tools.xz_compress(abspath.replace(".xz", ""))
                             os.remove(abspath.replace(".xz", ""))
                             gpg.sign_file(self.config, "image-signing",
