@@ -41,6 +41,7 @@ class ConfigTests(unittest.TestCase):
     def test_config(self, mock_call):
         # Good complete config
         config_path = os.path.join(self.temp_directory, "config")
+        key_path = os.path.join(self.temp_directory, "key")
 
         with open(config_path, "w+") as fd:
             fd.write("""[global]
@@ -64,9 +65,9 @@ ssh_host = hostb
 
         # Test ssh sync
         tools.sync_mirrors(conf)
-        expected_calls = [((['ssh', '-i', 'key', '-l', 'user',
+        expected_calls = [((['ssh', '-i', key_path, '-l', 'user',
                              '-p', '22', 'hosta', 'command'],), {}),
-                          ((['ssh', '-i', 'key', '-l', 'user',
+                          ((['ssh', '-i', key_path, '-l', 'user',
                              '-p', '22', 'hostb', 'command'],), {})]
         self.assertEquals(mock_call.call_args_list, expected_calls)
 
