@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description="system-image index parser")
 
 parser.add_argument("--server", metavar="SERVER",
                     default="https://system-image.ubuntu.com")
-parser.add_argument("--channel", metavar="CHANNEL", default="daily-proposed")
+parser.add_argument("--channel", metavar="CHANNEL", default="devel-proposed")
 parser.add_argument("device", metavar="DEVICE")
 
 args = parser.parse_args()
@@ -36,6 +36,9 @@ args = parser.parse_args()
 def long_version_number(image):
     image_version = image['version']
     details = []
+
+    if "version=" in image['description']:
+        return image['description'].replace(",", ", ")
 
     for entry in image['files']:
         file_name = entry['path'].split("/")[-1]
