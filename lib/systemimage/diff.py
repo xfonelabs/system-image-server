@@ -130,7 +130,7 @@ class ImageDiff:
                 fstat_target = self.target_content[1][change[0]][1]
 
                 # Skip differences between directories and files
-                if not fstat_source or not fstat_target:
+                if not fstat_source or not fstat_target:  # pragma: no cover
                     continue
 
                 # Deal with switched hardlinks
