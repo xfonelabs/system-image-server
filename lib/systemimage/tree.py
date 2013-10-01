@@ -651,11 +651,12 @@ class Tree:
                         entry['files'].append(version)
                         index['images'].append(entry)
 
-                # Sync some attributes:
-                for image in target_images:
-                    percentage = target_device.get_phased_percentage(image[0])
-                    if percentage != 100:
-                        device.set_phased_percentage(image[0], percentage)
+                # Sync phased-percentage
+                versions = sorted({entry[0] for entry in target_images})
+                if versions:
+                    device.set_phased_percentage(
+                        versions[-1],
+                        target_device.get_phased_percentage(versions[-1]))
 
         return True
 
