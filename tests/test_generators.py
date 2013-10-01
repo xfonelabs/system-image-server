@@ -30,5 +30,8 @@ class GeneratorsTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
-    def test_something(self):
-        self.assertTrue(hasattr(generators, "generate_file"))
+    def test_unpack_arguments(self):
+        self.assertEquals(generators.unpack_arguments("a=1,b=2"),
+                          {'a': "1", 'b': "2"})
+        self.assertEquals(generators.unpack_arguments("a=1,b=2,c"),
+                          {'a': "1", 'b': "2"})
