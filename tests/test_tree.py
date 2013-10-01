@@ -288,6 +288,7 @@ public_https_port = 443
         device.create_image("full", 1234, "abc",
                             ["parent/device/full",
                              "parent/device/version-1234.tar.xz"])
+        device.set_phased_percentage(1234, 50)
 
         ## Adding a fake entry to the alias channel
         device = test_tree.get_device("alias", "device")
@@ -299,6 +300,10 @@ public_https_port = 443
         device3 = test_tree.get_device("alias", "device3")
         shutil.rmtree(device3.path)
         test_tree.sync_aliases("parent")
+
+        alias_device = test_tree.get_device("alias", "device")
+        self.assertEquals(alias_device.get_phased_percentage(1234),
+                          50)
 
         test_tree.create_channel("new_parent")
         test_tree.change_channel_alias("alias", "new_parent")
@@ -513,11 +518,14 @@ public_https_port = 443
         device.create_image("full", 1234, "abc",
                             ["test/test/full"])
         device.set_phased_percentage(1234, 20)
+        self.assertEquals(device.get_phased_percentage(1234), 20)
 
         ## Adding a second entry
         device = test_tree.get_device("test", "test")
         device.create_image("full", 1235, "abc",
                             ["test/test/full"])
+
+        self.assertEquals(device.get_phased_percentage(1235), 100)
         device.set_phased_percentage(1235, 0)
 
         device.set_phased_percentage(1235, 100)
@@ -536,3 +544,6 @@ public_https_port = 443
                           4242, 50)
         self.assertRaises(Exception, device.set_phased_percentage,
                           1234, 50)
+
+        self.assertRaises(IndexError, device.get_phased_percentage,
+                          4242)

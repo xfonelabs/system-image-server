@@ -651,6 +651,12 @@ class Tree:
                         entry['files'].append(version)
                         index['images'].append(entry)
 
+                # Sync some attributes:
+                for image in target_images:
+                    percentage = target_device.get_phased_percentage(image[0])
+                    if percentage != 100:
+                        device.set_phased_percentage(image[0], percentage)
+
         return True
 
     def sync_aliases(self, channel_name):
@@ -794,6 +800,20 @@ class Device:
                 raise IndexError("Couldn't find a match.")
 
             return match[0]
+
+    def get_phased_percentage(self, version):
+        """
+            Returns the phasing percentage for a given version.
+        """
+
+        for entry in self.list_images():
+            if entry['version'] == version:
+                if "phased-percentage" in entry:
+                    return entry['phased-percentage']
+                else:
+                    return 100
+        else:
+            raise IndexError("Invalid version number: %s" % version)
 
     def list_images(self):
         """

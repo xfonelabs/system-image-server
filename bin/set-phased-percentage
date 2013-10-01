@@ -50,8 +50,14 @@ if __name__ == '__main__':
     if args.percentage < 0 or args.percentage > 100:
         parser.error("Invalid value: %s" % args.percentage)
 
+    if "alias" in pub.list_channels()[args.channel]:
+        parser.error("Channel is an alias.")
+
     dev = pub.get_device(args.channel, args.device)
     dev.set_phased_percentage(args.version, args.percentage)
+
+    # Sync all channel aliases
+    pub.sync_aliases(args.channel)
 
     # Sync the mirrors
     tools.sync_mirrors(conf)
