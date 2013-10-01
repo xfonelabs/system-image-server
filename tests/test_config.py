@@ -83,6 +83,18 @@ ssh_host = hostb
             Exception, config.Config, os.path.join(self.temp_directory,
                                                    "invalid"))
 
+        # Test loading config from default location
+        config_file = os.path.join(os.path.dirname(config.__file__),
+                                   "../../etc/config")
+
+        old_pwd = os.getcwd()
+        os.chdir(self.temp_directory)
+        if not os.path.exists(config_file):
+            self.assertRaises(Exception, config.Config)
+        else:
+            self.assertTrue(config.Config())
+        os.chdir(old_pwd)
+
         # Empty config
         empty_config_path = os.path.join(self.temp_directory,
                                          "empty_config")
