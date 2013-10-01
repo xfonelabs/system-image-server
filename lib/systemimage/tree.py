@@ -156,10 +156,6 @@ class Tree:
             if dirpath == os.path.join(self.path, "gpg"):
                 continue
 
-            # FIXME: temporary workaround, remove on the 24th
-            if dirpath.split("/")[-1] in ("daily", "daily-proposed"):
-                continue
-
             if not filenames and not dirnames:
                 empty_dirs.add(dirpath)
 
@@ -179,10 +175,6 @@ class Tree:
         listed_files.add(os.path.join(self.path, "channels.json.asc"))
 
         for channel, metadata in self.list_channels().items():
-            # FIXME: temporary workaround, remove on the 24th
-            if channel in ("daily", "daily-proposed"):
-                continue
-
             devices = metadata['devices']
             for device in devices:
                 if 'keyring' in devices[device]:
