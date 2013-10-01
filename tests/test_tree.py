@@ -495,3 +495,44 @@ public_https_port = 443
 
         device.expire_images(0)
         self.assertEquals(len(device.list_images()), 0)
+
+    def test_phased_percentage(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create a channel, device and images
+        test_tree.create_channel("test")
+        test_tree.create_device("test", "test")
+
+        ## some file
+        first = os.path.join(self.config.publish_path, "test/test/full")
+        open(first, "w+").close()
+        gpg.sign_file(self.config, "image-signing", first)
+
+        ## Adding a first entry
+        device = test_tree.get_device("test", "test")
+        device.create_image("full", 1234, "abc",
+                            ["test/test/full"])
+        device.set_phased_percentage(1234, 20)
+
+        ## Adding a second entry
+        device = test_tree.get_device("test", "test")
+        device.create_image("full", 1235, "abc",
+                            ["test/test/full"])
+        device.set_phased_percentage(1235, 0)
+
+        device.set_phased_percentage(1235, 100)
+
+        # Test standard failure cases
+        self.assertRaises(TypeError, device.set_phased_percentage,
+                          1235, "invalid")
+        self.assertRaises(TypeError, device.set_phased_percentage,
+                          1235, 10.5)
+        self.assertRaises(ValueError, device.set_phased_percentage,
+                          1235, 101)
+        self.assertRaises(ValueError, device.set_phased_percentage,
+                          1235, -1)
+
+        self.assertRaises(IndexError, device.set_phased_percentage,
+                          4242, 50)
+        self.assertRaises(Exception, device.set_phased_percentage,
+                          1234, 50)

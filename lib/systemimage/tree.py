@@ -109,6 +109,19 @@ def index_json(config, path, commit=False):
     try:
         yield json_content
     finally:
+        # Remove any invalid attribute
+        versions = sorted({image['version']
+                           for image in json_content['images']})
+        if versions:
+            last_version = versions[-1]
+
+            # Remove phased-percentage from any old image
+            for image in json_content['images']:
+                if image['version'] != last_version and \
+                        "phased-percentage" in image:
+                    image.pop("phased-percentage")
+
+        # Save to disk
         if commit and (orig_json_content != json_content or
                        not os.path.exists(path)):
             json_content['global']['generated_at'] = time.strftime(
@@ -823,5 +836,39 @@ class Device:
                     entry['description_%s' % langid] = value
 
                 break
+
+        return True
+
+    def set_phased_percentage(self, version, percentage):
+        """
+            Set the phasing percentage on an image version.
+        """
+
+        if not isinstance(percentage, int):
+            raise TypeError("percentage must be an integer.")
+
+        if percentage < 0 or percentage > 100:
+            raise ValueError("percentage must be >= 0 and <= 100.")
+
+        with index_json(self.config, self.indexpath, True) as index:
+            versions = sorted({entry['version'] for entry in index['images']})
+
+            last_version = None
+            if versions:
+                last_version = versions[-1]
+
+            if version not in versions:
+                raise IndexError("Version doesn't exist: %s" % version)
+
+            if version != last_version:
+                raise Exception("Phased percentage can only be set on the "
+                                "latest image")
+
+            for entry in index['images']:
+                if entry['version'] == version:
+                    if percentage == 100 and "phased-percentage" in entry:
+                        entry.pop("phased-percentage")
+                    else:
+                        entry['phased-percentage'] = percentage
 
         return True
