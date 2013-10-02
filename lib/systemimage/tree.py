@@ -889,7 +889,7 @@ class Device:
                 if entry['version'] == version:
                     if percentage == 100 and "phased-percentage" in entry:
                         entry.pop("phased-percentage")
-                    else:
+                    elif percentage != 100:
                         entry['phased-percentage'] = percentage
 
         return True
