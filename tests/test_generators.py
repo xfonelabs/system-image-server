@@ -15,10 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from systemimage import config, generators, tree
+from systemimage import config, generators, tools, tree
 
+import json
 import os
 import shutil
+import tarfile
 import tempfile
 import unittest
 
@@ -54,6 +56,60 @@ public_https_port = 8443
                           {'a': "1", 'b': "2"})
         self.assertEquals(generators.unpack_arguments("a=1,b=2,c"),
                           {'a': "1", 'b': "2"})
+
+    def test_generate_delta(self):
+        # Source tarball
+        source_path = os.path.join(self.temp_directory, "source.tar")
+        source_path_xz = "%s.xz" % source_path
+        source_tar = tarfile.open(source_path, "w")
+        source_tar.close()
+        tools.xz_compress(source_path)
+        os.remove(source_path)
+
+        # Source json
+        with open(os.path.join(self.temp_directory, "source.json"),
+                  "w+") as fd:
+            source_json = {}
+            source_json['a'] = 1
+            fd.write(json.dumps(source_json))
+
+        # Destination tarball
+        destination_path = os.path.join(self.temp_directory, "destination.tar")
+        destination_path_xz = "%s.xz" % destination_path
+        destination_tar = tarfile.open(destination_path, "w")
+        destination_tar.close()
+        tools.xz_compress(destination_path)
+        os.remove(destination_path)
+
+        # Destination json
+        with open(os.path.join(self.temp_directory, "destination.json"),
+                  "w+") as fd:
+            source_json = {}
+            source_json['b'] = 2
+            fd.write(json.dumps(source_json))
+
+        # Check that version tarballs are just returned
+        open(os.path.join(self.temp_directory,
+                          "version-1.tar.xz"), "w+").close()
+        open(os.path.join(self.temp_directory,
+                          "version-2.tar.xz"), "w+").close()
+        self.assertEquals(
+            generators.generate_delta(
+                self.config,
+                os.path.join(self.temp_directory, "version-1.tar.xz"),
+                os.path.join(self.temp_directory, "version-2.tar.xz")),
+            os.path.join(self.temp_directory, "version-2.tar.xz"))
+
+        # Generate the diff
+        self.assertEquals(
+            generators.generate_delta(self.config, source_path_xz,
+                                      destination_path_xz),
+            os.path.join(self.config.publish_path, "pool",
+                         "destination.delta-source.tar.xz"))
+
+        # Check that we get cached entries
+        generators.generate_delta(self.config, source_path_xz,
+                                  destination_path_xz)
 
     def test_generate_file(self):
         self.assertRaises(Exception, generators.generate_file, self.config,
