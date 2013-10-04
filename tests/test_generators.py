@@ -237,8 +237,8 @@ public_https_port = 8443
             fd.write("HASH *series-preinstalled-system-armel+test.img\n")
 
         self.assertEquals(
-            generators.generate_file_cdimage_device(
-                self.config, [cdimage_tree, 'series'],
+            generators.generate_file(
+                self.config, "cdimage-device", [cdimage_tree, 'series'],
                 environment),
             os.path.join(self.config.publish_path, "pool",
                          "device-cbafd7270154b197d8a963751d653f968"
@@ -341,8 +341,8 @@ public_https_port = 8443
         tarball_obj.close()
 
         self.assertEquals(
-            generators.generate_file_cdimage_ubuntu(
-                self.config, [cdimage_tree, 'series'],
+            generators.generate_file(
+                self.config, "cdimage-ubuntu", [cdimage_tree, 'series'],
                 environment),
             os.path.join(self.config.publish_path, "pool",
                          "ubuntu-HASH.tar.xz"))
