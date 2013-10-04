@@ -673,11 +673,6 @@ def generate_file_system_image(conf, arguments, environment):
     channel_name = arguments[0]
     prefix = arguments[1]
 
-    # FIXME: temporary workaround, remove on the 24th
-    prefixes = [prefix]
-    if prefix == "device":
-        prefixes += ["mako", "grouper", "manta", "maguro"]
-
     # Run some checks
     pub = tree.Tree(conf)
     if not channel_name in pub.list_channels():
@@ -702,7 +697,7 @@ def generate_file_system_image(conf, arguments, environment):
     for file_entry in full_images[-1]['files']:
         file_name = file_entry['path'].split("/")[-1]
         file_prefix = file_name.rsplit("-", 1)[0]
-        if file_prefix in prefixes:
+        if file_prefix == prefix:
             path = os.path.realpath("%s/%s" % (conf.publish_path,
                                                file_entry['path']))
 
