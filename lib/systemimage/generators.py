@@ -576,9 +576,9 @@ def generate_file_http(conf, arguments, environment):
             socket.setdefaulttimeout(5)
             try:
                 version = urlopen(options['monitor']).read().strip()
-            except IOError:
-                return None
             except socket.timeout:
+                return None
+            except IOError:
                 return None
             socket.setdefaulttimeout(old_timeout)
 
@@ -613,9 +613,9 @@ def generate_file_http(conf, arguments, environment):
     socket.setdefaulttimeout(5)
     try:
         urlretrieve(url, os.path.join(tempdir, "download"))
-    except IOError:
-        return None
     except socket.timeout:
+        return None
+    except IOError:
         return None
     socket.setdefaulttimeout(old_timeout)
 

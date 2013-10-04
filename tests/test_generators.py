@@ -21,6 +21,7 @@ from systemimage import config, generators, gpg, tools, tree
 import json
 import os
 import shutil
+import socket
 import tarfile
 import tempfile
 import unittest
@@ -359,10 +360,22 @@ public_https_port = 8443
     @mock.patch("systemimage.generators.urlopen")
     def test_generate_file_http(self, mock_urlopen, mock_urlretrieve):
         def urlopen_side_effect(url):
+            if url.endswith("timeout"):
+                raise socket.timeout
+
+            if url.endswith("error"):
+                raise IOError()
+
             return StringIO(u"42")
         mock_urlopen.side_effect = urlopen_side_effect
 
         def urlretrieve_side_effect(url, location):
+            if url.endswith("timeout"):
+                raise socket.timeout
+
+            if url.endswith("error"):
+                raise IOError()
+
             with open(location, "w+") as fd:
                 fd.write(url)
         mock_urlretrieve.side_effect = urlretrieve_side_effect
@@ -378,6 +391,40 @@ public_https_port = 8443
         # Without arguments
         self.assertEquals(
             generators.generate_file_http(self.config, [], {}),
+            None)
+
+        # Timeout without monitor
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/timeout"],
+                                     environment),
+            None)
+
+        # Error without monitor
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/error"],
+                                     environment),
+            None)
+
+        # Timeout with monitor
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/timeout",
+                                      "monitor=http://1.2.3.4/timeout"],
+                                     environment),
+            None)
+
+        # Error with monitor
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/error",
+                                      "monitor=http://1.2.3.4/error"],
+                                     environment),
             None)
 
         # Normal run without monitor
