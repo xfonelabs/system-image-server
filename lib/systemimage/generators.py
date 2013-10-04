@@ -433,7 +433,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
             if entry.isfile():
                 try:
                     fileptr = source_tarball.extractfile(entry.name)
-                except KeyError:
+                except KeyError:  # pragma: no cover
                     pass
 
             # Update hardlinks to point to the right target

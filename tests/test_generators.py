@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from io import BytesIO
 from systemimage import config, generators, tools, tree
 
 import json
@@ -251,3 +252,105 @@ public_https_port = 8443
             os.path.join(self.config.publish_path, "pool",
                          "device-cbafd7270154b197d8a963751d653f968"
                          "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
+
+    def test_generate_file_cdimage_ubuntu(self):
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "test"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Check the path and series requirement
+        self.assertEquals(
+            generators.generate_file_cdimage_ubuntu(self.config, [],
+                                                    environment),
+            None)
+
+        # Check behaviour on invalid cdimage path
+        self.assertEquals(
+            generators.generate_file_cdimage_ubuntu(
+                self.config, ['invalid-path', 'invalid-series'],
+                environment),
+            None)
+
+        # Check behaviour on empty tree
+        cdimage_tree = os.path.join(self.temp_directory, "cdimage")
+        os.mkdir(cdimage_tree)
+        self.assertEquals(
+            generators.generate_file_cdimage_ubuntu(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing hash
+        version_path = os.path.join(cdimage_tree, "1234")
+        os.mkdir(version_path)
+        self.assertEquals(
+            generators.generate_file_cdimage_ubuntu(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing files
+        for filename in ("SHA256SUMS",
+                         "series-preinstalled-touch-armhf.tar.gz",
+                         ".marked_good"):
+            open(os.path.join(version_path, filename), "w+").close()
+            self.assertEquals(
+                generators.generate_file_cdimage_ubuntu(
+                    self.config, [cdimage_tree, 'series', 'import=good'],
+                    environment),
+                None)
+
+        # Working run
+        with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+            fd.write("HASH *series-preinstalled-touch-armhf.tar.gz\n")
+
+        tarball = os.path.join(version_path,
+                               "series-preinstalled-touch-armhf.tar.gz")
+        os.remove(tarball)
+        tarball_obj = tarfile.open(tarball, "w:gz")
+
+        ## SWAP.swap
+        swap = tarfile.TarInfo()
+        swap.name = "SWAP.swap"
+        swap.size = 4
+        tarball_obj.addfile(swap, BytesIO(b"test"))
+
+        ## /etc/mtab
+        mtab = tarfile.TarInfo()
+        mtab.name = "etc/mtab"
+        mtab.size = 4
+        tarball_obj.addfile(mtab, BytesIO(b"test"))
+
+        ## A hard link
+        hl = tarfile.TarInfo()
+        hl.name = "f"
+        hl.type = tarfile.LNKTYPE
+        hl.linkname = "a"
+        tarball_obj.addfile(hl)
+
+        ## A standard file
+        sf = tarfile.TarInfo()
+        sf.name = "f"
+        sf.size = 4
+        tarball_obj.addfile(sf, BytesIO(b"test"))
+
+        tarball_obj.close()
+
+        self.assertEquals(
+            generators.generate_file_cdimage_ubuntu(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "ubuntu-HASH.tar.xz"))
+
+        # Cached run
+        self.assertEquals(
+            generators.generate_file_cdimage_ubuntu(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "ubuntu-HASH.tar.xz"))
