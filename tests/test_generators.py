@@ -24,6 +24,11 @@ import tarfile
 import tempfile
 import unittest
 
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 
 class GeneratorsTests(unittest.TestCase):
     def setUp(self):
@@ -150,3 +155,99 @@ public_https_port = 8443
             generators.generate_file(self.config, "version", [], environment),
             os.path.realpath(os.path.join(self.device.path,
                              "version-%s.tar.xz" % environment['version'])))
+
+    @mock.patch("subprocess.call")
+    def test_generate_file_cdimage_device(self, mock_call):
+        def call_side_effect(cmd, stdout=None, stderr=None):
+            if cmd[0] == "simg2img":
+                shutil.copy(cmd[1], cmd[2])
+
+            return True
+
+        mock_call.side_effect = call_side_effect
+
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "test"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Check the path and series requirement
+        self.assertEquals(
+            generators.generate_file_cdimage_device(self.config, [],
+                                                    environment),
+            None)
+
+        # Check behaviour on invalid cdimage path
+        self.assertEquals(
+            generators.generate_file_cdimage_device(
+                self.config, ['invalid-path', 'invalid-series'],
+                environment),
+            None)
+
+        # Check behaviour on empty tree
+        cdimage_tree = os.path.join(self.temp_directory, "cdimage")
+        os.mkdir(cdimage_tree)
+        self.assertEquals(
+            generators.generate_file_cdimage_device(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing hash
+        version_path = os.path.join(cdimage_tree, "1234")
+        os.mkdir(version_path)
+        self.assertEquals(
+            generators.generate_file_cdimage_device(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing files
+        for filename in ("SHA256SUMS",
+                         "series-preinstalled-boot-armhf+test.img",
+                         "series-preinstalled-recovery-armel+test.img",
+                         "series-preinstalled-system-armel+test.img",
+                         ".marked_good"):
+            open(os.path.join(version_path, filename), "w+").close()
+            self.assertEquals(
+                generators.generate_file_cdimage_device(
+                    self.config, [cdimage_tree, 'series', 'import=good'],
+                    environment),
+                None)
+
+        # Check SHA256SUMS parsing
+        with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+            fd.write("HASH *series-preinstalled-boot-armhf+test.img\n")
+            fd.write("HASH *series-preinstalled-recovery-armel+test.img\n")
+
+        self.assertEquals(
+            generators.generate_file_cdimage_device(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Working run
+        with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+            fd.write("HASH *series-preinstalled-boot-armhf+test.img\n")
+            fd.write("HASH *series-preinstalled-recovery-armel+test.img\n")
+            fd.write("HASH *series-preinstalled-system-armel+test.img\n")
+
+        self.assertEquals(
+            generators.generate_file_cdimage_device(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "device-cbafd7270154b197d8a963751d653f968"
+                         "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
+
+        # Cached run
+        self.assertEquals(
+            generators.generate_file_cdimage_device(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "device-cbafd7270154b197d8a963751d653f968"
+                         "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
