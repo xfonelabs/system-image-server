@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from io import BytesIO
+from io import BytesIO, StringIO
 from systemimage import config, generators, gpg, tools, tree
 
 import json
@@ -354,6 +354,77 @@ public_https_port = 8443
                 environment),
             os.path.join(self.config.publish_path, "pool",
                          "ubuntu-HASH.tar.xz"))
+
+    @mock.patch("systemimage.generators.urlretrieve")
+    @mock.patch("systemimage.generators.urlopen")
+    def test_generate_file_http(self, mock_urlopen, mock_urlretrieve):
+        def urlopen_side_effect(url):
+            return StringIO(u"42")
+        mock_urlopen.side_effect = urlopen_side_effect
+
+        def urlretrieve_side_effect(url, location):
+            with open(location, "w+") as fd:
+                fd.write(url)
+        mock_urlretrieve.side_effect = urlretrieve_side_effect
+
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "test"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Without arguments
+        self.assertEquals(
+            generators.generate_file_http(self.config, [], {}),
+            None)
+
+        # Normal run without monitor
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/file"],
+                                     environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "http-33b3daaf6724164f00467103907a590ca"
+                         "2d4c6a0d1b63f93a3018cef1020df3b.tar.xz"))
+
+        # Cached run without monitor
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/file"],
+                                     environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "http-33b3daaf6724164f00467103907a590ca"
+                         "2d4c6a0d1b63f93a3018cef1020df3b.tar.xz"))
+
+        # Cached run without monitor (no path caching)
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/file"],
+                                     environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "http-33b3daaf6724164f00467103907a590ca"
+                         "2d4c6a0d1b63f93a3018cef1020df3b.tar.xz"))
+
+        # Normal run with monitor
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/file",
+                                      "monitor=http://1.2.3.4/buildid"],
+                                     environment),
+            os.path.join(self.config.publish_path, "pool", "http-42.tar.xz"))
+
+        # Cached run with monitor
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/file",
+                                      "monitor=http://1.2.3.4/buildid"],
+                                     environment),
+            os.path.join(self.config.publish_path, "pool", "http-42.tar.xz"))
 
     def test_generate_file_system_image(self):
         environment = {}
