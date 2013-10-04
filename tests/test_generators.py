@@ -414,7 +414,7 @@ public_https_port = 8443
 
         # Normal run
         self.assertEquals(
-            generators.generate_file_system_image(self.config,
+            generators.generate_file(self.config, "system-image",
                                                   ['test', 'file'],
                                                   environment),
             os.path.join(self.config.publish_path, "file-1.tar.xz"))
