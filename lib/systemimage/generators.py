@@ -236,8 +236,8 @@ def generate_file_cdimage_device(conf, arguments, environment):
         if not boot_hash or not recovery_hash or not system_hash:
             continue
 
-        global_hash = sha256("%s/%s/%s" % (boot_hash, recovery_hash,
-                                           system_hash)).hexdigest()
+        hash_string = "%s/%s/%s" % (boot_hash, recovery_hash, system_hash)
+        global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
 
         # Generate the path
         path = os.path.join(conf.publish_path, "pool",
