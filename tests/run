@@ -56,3 +56,5 @@ if coverage:
     cov.stop()
     cov.html_report(include=glob.glob("lib/systemimage/*.py"),
                     directory='tests/coverage')
+    print("")
+    cov.report(include=glob.glob("lib/systemimage/*.py"))
