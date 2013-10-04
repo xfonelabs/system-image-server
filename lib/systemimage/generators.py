@@ -170,8 +170,8 @@ def generate_file_cdimage_device(conf, arguments, environment):
     series = arguments[1]
 
     options = {}
-    if len(arguments) > 1:
-        options = unpack_arguments(arguments[1])
+    if len(arguments) > 2:
+        options = unpack_arguments(arguments[2])
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
@@ -182,6 +182,12 @@ def generate_file_cdimage_device(conf, arguments, environment):
                       reverse=True)
 
     for version in versions:
+        # Skip directory without checksums
+        if not os.path.exists(os.path.join(cdimage_path, version,
+                                           "SHA256SUMS")):
+            continue
+
+        # Check for all the needed files
         boot_path = os.path.join(cdimage_path, version,
                                  "%s-preinstalled-boot-armhf+%s.img" %
                                  (series, environment['device_name']))
@@ -341,8 +347,8 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     series = arguments[1]
 
     options = {}
-    if len(arguments) > 1:
-        options = unpack_arguments(arguments[1])
+    if len(arguments) > 2:
+        options = unpack_arguments(arguments[2])
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
@@ -353,6 +359,12 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
                       reverse=True)
 
     for version in versions:
+        # Skip directory without checksums
+        if not os.path.exists(os.path.join(cdimage_path, version,
+                                           "SHA256SUMS")):
+            continue
+
+        # Check for the rootfs
         rootfs_path = os.path.join(cdimage_path, version,
                                    "%s-preinstalled-touch-armhf.tar.gz" %
                                    series)
