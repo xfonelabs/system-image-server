@@ -571,7 +571,10 @@ def generate_file_http(conf, arguments, environment):
     if "monitor" in options or version:
         if not version:
             # Grab the current version number
-            version = urlopen(options['monitor']).read().strip()
+            try:
+                version = urlopen(options['monitor']).read().strip()
+            except IOError:
+                return None
 
             # Push the result in the cache
             CACHE['http_%s' % url] = version
@@ -600,7 +603,10 @@ def generate_file_http(conf, arguments, environment):
 
     # Grab the real thing
     tempdir = tempfile.mkdtemp()
-    urlretrieve(url, os.path.join(tempdir, "download"))
+    try:
+        urlretrieve(url, os.path.join(tempdir, "download"))
+    except IOError:
+        return None
 
     # Hash it if we don't have a version number
     if not version:
