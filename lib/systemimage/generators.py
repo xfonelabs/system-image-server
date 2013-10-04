@@ -19,6 +19,7 @@ from hashlib import sha256
 from systemimage import diff, gpg, tree, tools
 import json
 import os
+import socket
 import shutil
 import subprocess
 import tarfile
@@ -571,10 +572,15 @@ def generate_file_http(conf, arguments, environment):
     if "monitor" in options or version:
         if not version:
             # Grab the current version number
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(5)
             try:
                 version = urlopen(options['monitor']).read().strip()
             except IOError:
                 return None
+            except socket.timeout:
+                return None
+            socket.setdefaulttimeout(old_timeout)
 
             # Push the result in the cache
             CACHE['http_%s' % url] = version
@@ -603,10 +609,15 @@ def generate_file_http(conf, arguments, environment):
 
     # Grab the real thing
     tempdir = tempfile.mkdtemp()
+    old_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(5)
     try:
         urlretrieve(url, os.path.join(tempdir, "download"))
     except IOError:
         return None
+    except socket.timeout:
+        return None
+    socket.setdefaulttimeout(old_timeout)
 
     # Hash it if we don't have a version number
     if not version:
