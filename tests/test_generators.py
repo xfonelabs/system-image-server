@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from io import BytesIO
-from systemimage import config, generators, tools, tree
+from systemimage import config, generators, gpg, tools, tree
 
 import json
 import os
@@ -354,3 +354,67 @@ public_https_port = 8443
                 environment),
             os.path.join(self.config.publish_path, "pool",
                          "ubuntu-HASH.tar.xz"))
+
+    def test_generate_file_system_image(self):
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "test"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Check the arguments count
+        self.assertEquals(
+            generators.generate_file_system_image(self.config, [], {}),
+            None)
+
+        # Check for channel name
+        self.assertEquals(
+            generators.generate_file_system_image(self.config,
+                                                  ['invalid', 'file'],
+                                                  {}),
+            None)
+
+        # Check for device name
+        environment['device_name'] = "invalid"
+        self.assertEquals(
+            generators.generate_file_system_image(self.config,
+                                                  ['test', 'file'],
+                                                  environment),
+            None)
+
+        # Run against an empty channel
+        environment['device_name'] = "test"
+        self.assertEquals(
+            generators.generate_file_system_image(self.config,
+                                                  ['test', 'file'],
+                                                  environment),
+            None)
+
+        # Publish some random stuff
+        open(os.path.join(self.config.publish_path, "file-1.tar.xz"),
+             "w+").close()
+
+        with open(os.path.join(self.config.publish_path, "file-1.json"),
+                  "w+") as fd:
+            fd.write(json.dumps({'version_detail': "abcd"}))
+
+        gpg.sign_file(self.config, "image-signing",
+                      os.path.join(self.config.publish_path, "file-1.tar.xz"))
+        self.device.create_image("full", 1234, "abc", ["file-1.tar.xz"],
+                                 minversion=1233, bootme=True)
+
+        # Invalid filename
+        self.assertEquals(
+            generators.generate_file_system_image(self.config,
+                                                  ['test', 'invalid'],
+                                                  environment),
+            None)
+
+        # Normal run
+        self.assertEquals(
+            generators.generate_file_system_image(self.config,
+                                                  ['test', 'file'],
+                                                  environment),
+            os.path.join(self.config.publish_path, "file-1.tar.xz"))
