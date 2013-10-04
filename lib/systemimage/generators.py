@@ -606,7 +606,7 @@ def generate_file_http(conf, arguments, environment):
     if not version:
         # Hash the file
         with open(os.path.join(tempdir, "download"), "r") as fd:
-            version = sha256(fd.read()).hexdigest()
+            version = sha256(fd.read().encode('utf-8')).hexdigest()
 
         # Set version_detail
         version_detail = "%s=%s" % (options.get("name", "http"), version)
