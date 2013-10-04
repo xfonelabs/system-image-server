@@ -27,7 +27,7 @@ import time
 
 try:
     from urllib.request import urlopen, urlretrieve
-except ImportError:
+except ImportError:  # pragma: no cover
     from urllib import urlopen, urlretrieve
 
 # Global
