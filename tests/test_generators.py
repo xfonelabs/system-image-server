@@ -366,6 +366,9 @@ public_https_port = 8443
             if url.endswith("error"):
                 raise IOError()
 
+            if url.endswith("long"):
+                return StringIO(u"42\n42\n42")
+
             return StringIO(u"42")
         mock_urlopen.side_effect = urlopen_side_effect
 
@@ -424,6 +427,15 @@ public_https_port = 8443
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/error",
                                       "monitor=http://1.2.3.4/error"],
+                                     environment),
+            None)
+
+        # Invalid build number with monitor
+        generators.CACHE = {}
+        self.assertEquals(
+            generators.generate_file(self.config, "http",
+                                     ["http://1.2.3.4/file",
+                                      "monitor=http://1.2.3.4/long"],
                                      environment),
             None)
 

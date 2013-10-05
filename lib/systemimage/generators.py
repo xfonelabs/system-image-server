@@ -582,6 +582,10 @@ def generate_file_http(conf, arguments, environment):
                 return None
             socket.setdefaulttimeout(old_timeout)
 
+            # Validate the version number
+            if not version or len(version.split("\n")) > 1:
+                return None
+
             # Push the result in the cache
             CACHE['http_%s' % url] = version
 
