@@ -151,9 +151,6 @@ def generate_file(conf, generator, arguments, environment):
     else:
         raise Exception("Invalid generator: %s" % generator)
 
-    if not path:
-        return None
-
     return path
 
 

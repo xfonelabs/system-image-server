@@ -130,9 +130,10 @@ if __name__ == '__main__':
                                                 environment)
 
                 # Generators are allowed to return None when no build
-                # exists at all.
+                # exists at all. This cancels the whole image.
                 if not path:
-                    continue
+                    new_files = []
+                    break
 
                 # Get the full and relative paths
                 abspath, relpath = tools.expand_path(path, conf.publish_path)
