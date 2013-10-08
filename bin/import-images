@@ -24,10 +24,29 @@ from systemimage import config, generators, tools, tree
 
 import argparse
 import fcntl
+import logging
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="image importer")
+    parser.add_argument("--verbose", "-v", action="count", default=0)
     args = parser.parse_args()
+
+    # Setup logging
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(message)s")
+
+    levels = {1: logging.ERROR,
+              2: logging.WARNING,
+              3: logging.INFO,
+              4: logging.DEBUG}
+
+    if args.verbose > 0:
+        stdoutlogger = logging.StreamHandler(sys.stdout)
+        stdoutlogger.setFormatter(formatter)
+        logging.root.setLevel(levels[min(4, args.verbose)])
+        logging.root.addHandler(stdoutlogger)
+    else:
+        logging.root.addHandler(logging.NullHandler())
 
     # Load the configuration
     conf = config.Config()
@@ -39,6 +58,7 @@ if __name__ == '__main__':
     try:
         fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
+        logging.info("Something else holds the global lock. exiting.")
         sys.exit(0)
 
     # Load the tree
@@ -48,14 +68,20 @@ if __name__ == '__main__':
     for channel_name, channel in conf.channels.items():
         # We're only interested in automated channels
         if channel.type != "auto":
+            logging.debug("Skipping non-auto channel: %s" % channel_name)
             continue
+
+        logging.info("Processing channel: %s" % channel_name)
 
         # Check the channel exists
         if channel_name not in pub.list_channels():
-            raise KeyError("Invalid channel name: %s" % channel_name)
+            logging.error("Invalid channel name: %s" % channel_name)
+            continue
 
         # Iterate through the devices
         for device_name in pub.list_channels()[channel_name]['devices']:
+            logging.info("Processing device: %s" % device_name)
+
             device = pub.get_device(channel_name, device_name)
 
             # Extract last full version
@@ -67,6 +93,9 @@ if __name__ == '__main__':
             if full_images:
                 last_full = sorted(full_images.values(),
                                    key=lambda image: image['version'])[-1]
+                logging.debug("Last full image: %s" % last_full['version'])
+            else:
+                logging.debug("This is the first full image.")
 
             # Extract all delta base versions
             delta_base = []
@@ -74,11 +103,14 @@ if __name__ == '__main__':
             for base_channel in channel.deltabase:
                 # Skip missing channels
                 if base_channel not in pub.list_channels():
+                    logging.warn("Invalid base channel: %s" % base_channel)
                     continue
 
                 # Skip missing devices
                 if device_name not in (pub.list_channels()
                                        [base_channel]['devices']):
+                    logging.warn("Missing device in base channel: %s in %s" %
+                                 (device_name, base_channel))
                     continue
 
                 # Extract the latest full image
@@ -94,11 +126,14 @@ if __name__ == '__main__':
                             not in delta_base):
                         delta_base.append(full_images
                                           [base_images[-1]['version']])
+                        logging.debug("Source version for delta: %s" %
+                                      base_images[-1]['version'])
 
             # Allocate new version number
             new_version = channel.versionbase
             if last_full:
                 new_version = last_full['version'] + 1
+            logging.debug("Version for next image: %s" % new_version)
 
             # And the list used to generate version_detail
             version_detail = []
@@ -124,6 +159,8 @@ if __name__ == '__main__':
                 environment['new_files'] = new_files
 
                 # Call file generator
+                logging.info("Calling '%s' generator for a new file"
+                             % file_entry['generator'])
                 path = generators.generate_file(conf,
                                                 file_entry['generator'],
                                                 file_entry['arguments'],
@@ -133,6 +170,9 @@ if __name__ == '__main__':
                 # exists at all. This cancels the whole image.
                 if not path:
                     new_files = []
+                    logging.info("No image will be produced because the "
+                                 "'%s' generator returned None" %
+                                 file_entry['generator'])
                     break
 
                 # Get the full and relative paths
@@ -155,7 +195,12 @@ if __name__ == '__main__':
                             break
 
                 if new_file:
+                    logging.info("New file from '%s': %s" %
+                                 (file_entry['generator'], relpath))
                     new_files.append(abspath)
+                else:
+                    logging.info("File from '%s' is already current" %
+                                 (file_entry['generator']))
 
                 # Generate deltas
                 for delta in delta_base:
@@ -176,6 +221,9 @@ if __name__ == '__main__':
 
                         # Generators are allowed to return None when no delta
                         # exists at all.
+                        logging.info("Generating delta from '%s' for '%s'" %
+                                     (delta['version'],
+                                      file_entry['generator']))
                         delta_path = generators.generate_delta(conf, src_path,
                                                                abspath)
                     else:
@@ -194,28 +242,43 @@ if __name__ == '__main__':
             # Check if we've got a new image
             if len(new_files):
                 # Publish full image
+                logging.info("Publishing new image '%s' (%s) with %s files."
+                             % (new_version,
+                                ",".join(environment['version_detail']),
+                                len(new_images['full']['files'])))
                 device.create_image("full", new_version,
                                     ",".join(environment['version_detail']),
                                     new_images['full']['files'])
                 # Publish deltas
                 for delta in delta_base:
+                    files = new_images["delta_%s" % delta['version']]['files']
+                    logging.info("Publishing new delta from '%s' (%s)"
+                                 " to '%s' (%s) with %s files" %
+                                 (delta['version'],
+                                  delta.get("description", ""),
+                                  new_version,
+                                  ",".join(environment['version_detail']),
+                                  len(files)))
                     device.create_image(
                         "delta", new_version,
-                        ",".join(environment['version_detail']),
-                        new_images["delta_%s" % delta['version']]['files'],
+                        ",".join(environment['version_detail']), files,
                         base=delta['version'])
 
             # Expire images
             if channel.fullcount > 0:
+                logging.info("Expiring old images")
                 device.expire_images(channel.fullcount)
 
         # Sync all channel aliases
+        logging.info("Syncing any existing alias")
         pub.sync_aliases(channel_name)
 
     # Remove any orphaned file
+    logging.info("Removing orphaned files from the pool")
     pub.cleanup_tree()
 
     # Sync the mirrors
+    logging.info("Triggering a mirror sync")
     tools.sync_mirrors(conf)
 
     # Remove lock file

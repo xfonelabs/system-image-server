@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 from systemimage import config, tools, tree
 
 import argparse
+import logging
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="set phased percentage")
@@ -30,8 +31,26 @@ if __name__ == '__main__':
     parser.add_argument("device", metavar="DEVICE")
     parser.add_argument("version", metavar="VERSION", type=int)
     parser.add_argument("percentage", metavar="PERCENTAGE", type=int)
+    parser.add_argument("--verbose", "-v", action="count")
 
     args = parser.parse_args()
+
+    # Setup logging
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(message)s")
+
+    levels = {1: logging.ERROR,
+              2: logging.WARNING,
+              3: logging.INFO,
+              4: logging.DEBUG}
+
+    if args.verbose > 0:
+        stdoutlogger = logging.StreamHandler(sys.stdout)
+        stdoutlogger.setFormatter(formatter)
+        logging.root.setLevel(levels[min(4, args.verbose)])
+        logging.root.addHandler(stdoutlogger)
+    else:
+        logging.root.addHandler(logging.NullHandler())
 
     # Load the configuration
     conf = config.Config()
@@ -54,10 +73,14 @@ if __name__ == '__main__':
         parser.error("Channel is an alias.")
 
     dev = pub.get_device(args.channel, args.device)
+    logging.info("Setting phased-percentage of '%s' to %s%%" %
+                 (args.version, args.percentage))
     dev.set_phased_percentage(args.version, args.percentage)
 
     # Sync all channel aliases
+    logging.info("Syncing any existing alias")
     pub.sync_aliases(args.channel)
 
     # Sync the mirrors
+    logging.info("Triggering a mirror sync")
     tools.sync_mirrors(conf)

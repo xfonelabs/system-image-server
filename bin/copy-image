@@ -25,6 +25,7 @@ from systemimage import config, generators, tools, tree
 
 import argparse
 import fcntl
+import logging
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="image copier")
@@ -34,8 +35,26 @@ if __name__ == '__main__':
     parser.add_argument("version", metavar="VERSION", type=int)
     parser.add_argument("-k", "--keep-version", action="store_true",
                         help="Keep the original verison number")
+    parser.add_argument("--verbose", "-v", action="count", default=0)
 
     args = parser.parse_args()
+
+    # Setup logging
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(message)s")
+
+    levels = {1: logging.ERROR,
+              2: logging.WARNING,
+              3: logging.INFO,
+              4: logging.DEBUG}
+
+    if args.verbose > 0:
+        stdoutlogger = logging.StreamHandler(sys.stdout)
+        stdoutlogger.setFormatter(formatter)
+        logging.root.setLevel(levels[min(4, args.verbose)])
+        logging.root.addHandler(stdoutlogger)
+    else:
+        logging.root.addHandler(logging.NullHandler())
 
     # Load the configuration
     conf = config.Config()
@@ -93,6 +112,7 @@ if __name__ == '__main__':
         for image in destination_device.list_images():
             if image['version'] > new_version:
                 new_version = image['version']
+    logging.debug("Version for next image: %s" % new_version)
 
     # Extract the build we want to copy
     images = [image for image in source_device.list_images()
@@ -149,6 +169,9 @@ if __name__ == '__main__':
                         not in delta_base):
                     delta_base.append(full_images
                                       [base_images[-1]['version']])
+                    logging.debug("Source version for delta: %s" %
+                                  base_images[-1]['version'])
+
 
     # Create new empty entries
     new_images = {'full': {'files': []}}
@@ -173,6 +196,7 @@ if __name__ == '__main__':
                             "version_detail", None)
         else:
             new_images['full']['files'].append(path)
+    logging.debug("Source version_detail is: %s" % version_detail)
 
     # Generate new version tarball
     environment = {}
@@ -185,6 +209,8 @@ if __name__ == '__main__':
                                      if not entry.startswith("version=")]
     environment['new_files'] = new_images['full']['files']
 
+    logging.info("Generating new version tarball for '%s' (%s)"
+                 % (new_version, "," % environment['version_detail']))
     version_path = generators.generate_file(conf, "version", [], environment)
     if version_path:
         new_images['full']['files'].append(version_path)
@@ -210,6 +236,9 @@ if __name__ == '__main__':
 
                 # Generators are allowed to return None when no delta
                 # exists at all.
+                logging.info("Generating delta from '%s' for '%s'" %
+                             (delta['version'],
+                              prefix))
                 delta_path = generators.generate_delta(conf, src_path,
                                                        abspath)
             else:
@@ -226,31 +255,45 @@ if __name__ == '__main__':
                 .append(delta_abspath)
 
     # Add full image
+    logging.info("Publishing new image '%s' (%s) with %s files."
+                 % (new_version, ",".join(environment['version_detail']),
+                    len(new_images['full']['files'])))
     destination_device.create_image("full", new_version,
                                     ",".join(environment['version_detail']),
                                     new_images['full']['files'])
 
     # Add delta images
     for delta in delta_base:
+        files = new_images["delta_%s" % delta['version']]['files']
+        logging.info("Publishing new delta from '%s' (%s)"
+                     " to '%s' (%s) with %s files" %
+                     (delta['version'], delta.get("description", ""),
+                      new_version, ",".join(environment['version_detail']),
+                      len(files)))
+
         destination_device.create_image(
             "delta", new_version,
             ",".join(environment['version_detail']),
-            new_images["delta_%s" % delta['version']]['files'],
+            files,
             base=delta['version'])
 
     # Expire images
     if args.destination_channel in conf.channels:
         if conf.channels[args.destination_channel].fullcount > 0:
+            logging.info("Expiring old images")
             destination_device.expire_images(
                 conf.channels[args.destination_channel].fullcount)
 
     # Sync all channel aliases
+    logging.info("Syncing any existing alias")
     pub.sync_aliases(args.destination_channel)
 
     # Remove any orphaned file
+    logging.info("Removing orphaned files from the pool")
     pub.cleanup_tree()
 
     # Sync the mirrors
+    logging.info("Triggering a mirror sync")
     tools.sync_mirrors(conf)
 
     # Remove lock file
