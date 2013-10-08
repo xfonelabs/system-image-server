@@ -172,7 +172,6 @@ if __name__ == '__main__':
                     logging.debug("Source version for delta: %s" %
                                   base_images[-1]['version'])
 
-
     # Create new empty entries
     new_images = {'full': {'files': []}}
     for delta in delta_base:
