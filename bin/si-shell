@@ -1,0 +1,79 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Author: Stéphane Graber <stgraber@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import code
+import logging
+import os
+import sys
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import config, tree
+
+import argparse
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="system-image shell")
+    parser.add_argument("--verbose", "-v", action="count", default=0)
+
+    args = parser.parse_args()
+
+    # Setup logging
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(message)s")
+
+    levels = {1: logging.ERROR,
+              2: logging.WARNING,
+              3: logging.INFO,
+              4: logging.DEBUG}
+
+    if args.verbose > 0:
+        stdoutlogger = logging.StreamHandler(sys.stdout)
+        stdoutlogger.setFormatter(formatter)
+        stdoutlogger.setLevel(levels[min(4, args.verbose)])
+        logging.root.addHandler(stdoutlogger)
+    else:
+        logging.root.addHandler(logging.NullHandler())
+
+    # Load the configuration
+    conf = config.Config()
+
+    # Load the tree
+    pub = tree.Tree(conf)
+
+    # Start the shell
+    banner = """Welcome to the system-image shell.
+The configuration is available as: conf
+The system-image tree is availabe as: pub
+"""
+
+    class CompleterConsole(code.InteractiveConsole):
+        def __init__(self):
+            local = {'conf': conf,
+                     'pub': pub}
+            code.InteractiveConsole.__init__(self, locals=local)
+            try:
+                import readline
+            except ImportError:
+                print('I: readline module not available.')
+            else:
+                import rlcompleter
+                rlcompleter  # Silence pyflakes
+                readline.parse_and_bind("tab: complete")
+
+    console = CompleterConsole()
+    console.interact(banner)
