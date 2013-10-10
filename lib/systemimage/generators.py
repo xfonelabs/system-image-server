@@ -615,8 +615,10 @@ def generate_file_http(conf, arguments, environment):
     try:
         urlretrieve(url, os.path.join(tempdir, "download"))
     except socket.timeout:
+        shutil.rmtree(tempdir)
         return None
     except IOError:
+        shutil.rmtree(tempdir)
         return None
     socket.setdefaulttimeout(old_timeout)
 
