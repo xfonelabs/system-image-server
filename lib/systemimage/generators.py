@@ -35,6 +35,14 @@ except ImportError:  # pragma: no cover
 CACHE = {}
 
 
+def root_ownership(tarinfo):
+    tarinfo.mode = 0o644
+    tarinfo.mtime = int(time.strftime("%s", time.localtime()))
+    tarinfo.uname = "root"
+    tarinfo.gname = "root"
+    return tarinfo
+
+
 def unpack_arguments(arguments):
     """
         Takes a string representing comma separate key=value options and
@@ -259,13 +267,6 @@ def generate_file_cdimage_device(conf, arguments, environment):
         # Generate a new tarball
         target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"),
                                       "w:")
-
-        def root_ownership(tarinfo):
-            tarinfo.mode = 0o644
-            tarinfo.mtime = int(time.strftime("%s", time.localtime()))
-            tarinfo.uname = "root"
-            tarinfo.gname = "root"
-            return tarinfo
 
         # system image
         ## convert to raw image
