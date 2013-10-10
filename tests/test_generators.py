@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from hashlib import sha256
 from io import BytesIO, StringIO
 from systemimage import config, generators, gpg, tools, tree
 
@@ -22,6 +23,7 @@ import json
 import os
 import shutil
 import socket
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -484,6 +486,59 @@ public_https_port = 8443
                                       "monitor=http://1.2.3.4/buildid"],
                                      environment),
             os.path.join(self.config.publish_path, "pool", "http-42.tar.xz"))
+
+    def test_generate_file_keyring(self):
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "test"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Generate the keyring tarballs
+        os.environ['SYSTEM_IMAGE_ROOT'] = self.temp_directory
+        subprocess.call(['bin/generate-keyrings'])
+
+        # Check the arguments count
+        self.assertEquals(
+            generators.generate_file_keyring(self.config, [], {}),
+            None)
+
+        # Check for invalid keyring name
+        self.assertEquals(
+            generators.generate_file_keyring(self.config,
+                                             ['invalid'],
+                                             {}),
+            None)
+
+        keyring_path = os.path.join(self.config.gpg_keyring_path,
+                                    "archive-master")
+
+        with open("%s.tar.xz" % keyring_path, "rb") as fd:
+            hash_tarball = sha256(fd.read()).hexdigest()
+
+        with open("%s.tar.xz.asc" % keyring_path, "rb") as fd:
+            hash_signature = sha256(fd.read()).hexdigest()
+
+        hash_string = "%s/%s" % (hash_tarball, hash_signature)
+        global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
+
+        # Normal run
+        self.assertEquals(
+            generators.generate_file(self.config, "keyring",
+                                                  ['archive-master'],
+                                                  environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "keyring-%s.tar.xz" % global_hash))
+
+        # Cached run
+        self.assertEquals(
+            generators.generate_file(self.config, "keyring",
+                                                  ['archive-master'],
+                                                  environment),
+            os.path.join(self.config.publish_path, "pool",
+                         "keyring-%s.tar.xz" % global_hash))
 
     def test_generate_file_system_image(self):
         environment = {}

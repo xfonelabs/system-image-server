@@ -154,6 +154,8 @@ def generate_file(conf, generator, arguments, environment):
         path = generate_file_cdimage_ubuntu(conf, arguments, environment)
     elif generator == "http":
         path = generate_file_http(conf, arguments, environment)
+    elif generator == "keyring":
+        path = generate_file_keyring(conf, arguments, environment)
     elif generator == "system-image":
         path = generate_file_system_image(conf, arguments, environment)
     else:
@@ -626,8 +628,8 @@ def generate_file_http(conf, arguments, environment):
     # Hash it if we don't have a version number
     if not version:
         # Hash the file
-        with open(os.path.join(tempdir, "download"), "r") as fd:
-            version = sha256(fd.read().encode('utf-8')).hexdigest()
+        with open(os.path.join(tempdir, "download"), "rb") as fd:
+            version = sha256(fd.read()).hexdigest()
 
         # Set version_detail
         version_detail = "%s=%s" % (options.get("name", "http"), version)
@@ -678,6 +680,84 @@ def generate_file_http(conf, arguments, environment):
     shutil.rmtree(tempdir)
 
     environment['version_detail'].append(version_detail)
+    return path
+
+
+def generate_file_keyring(conf, arguments, environment):
+    """
+        Generate a keyring tarball or return a pre-existing one.
+    """
+
+    # We need a keyring name
+    if len(arguments) == 0:
+        return None
+
+    # Read the arguments
+    keyring_name = arguments[0]
+    keyring_path = os.path.join(conf.gpg_keyring_path, keyring_name)
+
+    # Fail on missing keyring
+    if not os.path.exists("%s.tar.xz" % keyring_path) or \
+            not os.path.exists("%s.tar.xz.asc" % keyring_path):
+        return None
+
+    with open("%s.tar.xz" % keyring_path, "rb") as fd:
+        hash_tarball = sha256(fd.read()).hexdigest()
+
+    with open("%s.tar.xz.asc" % keyring_path, "rb") as fd:
+        hash_signature = sha256(fd.read()).hexdigest()
+
+    hash_string = "%s/%s" % (hash_tarball, hash_signature)
+    global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
+
+    # Build the path
+    path = os.path.realpath(os.path.join(conf.publish_path, "pool",
+                                         "keyring-%s.tar.xz" %
+                                         global_hash))
+
+    # Set the version_detail string
+    environment['version_detail'].append("keyring=%s" % keyring_name)
+
+    # Don't bother re-generating a file if it already exists
+    if os.path.exists(path):
+        return path
+
+    # Create temporary directory
+    tempdir = tempfile.mkdtemp()
+
+    # Generate the tarball
+    tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:")
+    tarball.add("%s.tar.xz" % keyring_path,
+                arcname="/etc/system-image/archive-master.tar.xz",
+                filter=root_ownership)
+    tarball.add("%s.tar.xz.asc" % keyring_path,
+                arcname="/etc/system-image/archive-master.tar.xz.asc",
+                filter=root_ownership)
+    tarball.close()
+
+    # Create the pool if it doesn't exist
+    if not os.path.exists(os.path.join(conf.publish_path, "pool")):
+        os.makedirs(os.path.join(conf.publish_path, "pool"))
+
+    # Compress and sign it
+    tools.xz_compress(os.path.join(tempdir, "output.tar"), path)
+    gpg.sign_file(conf, "image-signing", path)
+
+    # Generate the metadata file
+    metadata = {}
+    metadata['generator'] = "keyring"
+    metadata['version'] = global_hash
+    metadata['version_detail'] = "keyring=%s" % keyring_name
+    metadata['path'] = keyring_path
+
+    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                     indent=4, separators=(',', ': ')))
+    gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
+
+    # Cleanup
+    shutil.rmtree(tempdir)
+
     return path
 
 
