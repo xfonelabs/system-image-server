@@ -152,6 +152,17 @@ class DiffTests(unittest.TestCase):
         n_target.name = "n"
         n_target.size = 4
 
+        # Hard link
+        o_source = tarfile.TarInfo()
+        o_source.name = "system/o.1"
+        o_source.type = tarfile.LNKTYPE
+        o_source.linkname = "system/o"
+
+        # Standard file
+        o_target = tarfile.TarInfo()
+        o_target.name = "system/o"
+        o_target.size = 4
+
         source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(a, BytesIO(b"test"))
@@ -177,6 +188,8 @@ class DiffTests(unittest.TestCase):
         target_tarball.addfile(l)
         target_tarball.addfile(n_target, BytesIO(b"test"))
         target_tarball.addfile(m_target)
+        target_tarball.addfile(o_source)
+        target_tarball.addfile(o_target)
 
         source_tarball.close()
         target_tarball.close()
@@ -198,7 +211,8 @@ class DiffTests(unittest.TestCase):
         content_set, content_dict = self.imagediff.scan_content("target")
         self.assertEquals(sorted(content_dict.keys()),
                           ['a', 'c', 'c/a_i', 'c/c', 'c/d', 'c/g', 'c/h',
-                           'c/j', 'dir', 'e', 'f', 'm', 'n'])
+                           'c/j', 'dir', 'e', 'f', 'm', 'n', 'system/o',
+                           'system/o.1'])
 
     def test_content_invalid_image(self):
         self.assertRaises(KeyError, self.imagediff.scan_content, "invalid")
@@ -235,6 +249,8 @@ class DiffTests(unittest.TestCase):
  - dir (mod)
  - e (add)
  - f (add)
+ - system/o (add)
+ - system/o.1 (add)
 """)
 
     def test_generate_tarball(self):
@@ -245,4 +261,5 @@ class DiffTests(unittest.TestCase):
 
         files_list = [entry.name for entry in tarball]
         self.assertEquals(files_list, ['removed', 'c/c', 'c/a_i', 'c/d', 'c/j',
-                                       'dir', 'e', 'f'])
+                                       'dir', 'e', 'f', 'system/o',
+                                       'system/o.1'])

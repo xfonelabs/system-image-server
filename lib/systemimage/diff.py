@@ -218,8 +218,11 @@ class ImageDiff:
 
             newfile = self.target_file.getmember(name)
             if newfile.islnk():
-                targetfile_path = os.path.normpath(os.path.join(
-                    os.path.dirname(newfile.name), newfile.linkname))
+                if newfile.linkname.startswith("system/"):
+                    targetfile_path = newfile.linkname
+                else:
+                    targetfile_path = os.path.normpath(os.path.join(
+                        os.path.dirname(newfile.name), newfile.linkname))
 
                 targetfile = self.target_file.getmember(targetfile_path)
 
