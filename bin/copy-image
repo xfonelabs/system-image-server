@@ -110,8 +110,8 @@ if __name__ == '__main__':
         # Find the next available version
         new_version = 1
         for image in destination_device.list_images():
-            if image['version'] > new_version:
-                new_version = image['version']
+            if image['version'] >= new_version:
+                new_version = image['version'] + 1
     logging.debug("Version for next image: %s" % new_version)
 
     # Extract the build we want to copy
