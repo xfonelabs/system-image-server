@@ -1,0 +1,11 @@
+Runtime dependencies:
+ - pxz | xz-utils
+ - python3, python3-gpgme | python, python-gpgme
+ - e2fsprogs
+ - android-tools-fsutils
+
+Test dependencies:
+ - python-mock, python3-mock
+ - python-coverage, python3-coverage
+ - pep8
+ - pyflakes3, pyflakes
