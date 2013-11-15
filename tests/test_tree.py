@@ -409,6 +409,8 @@ public_https_port = 443
 
         self.assertRaises(TypeError, device.list_images)
 
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
     def test_file_lists(self):
         test_tree = tree.Tree(self.config)
         test_tree.create_channel("test")
@@ -459,6 +461,8 @@ public_https_port = 443
         device.create_image("full", 12345, "test", [image_path])
         self.assertEquals(test_tree.list_orphaned_files(), [])
 
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
     def test_expiry(self):
         test_tree = tree.Tree(self.config)
         test_tree.create_channel("test")
@@ -501,6 +505,8 @@ public_https_port = 443
         device.expire_images(0)
         self.assertEquals(len(device.list_images()), 0)
 
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
     def test_phased_percentage(self):
         test_tree = tree.Tree(self.config)
 
