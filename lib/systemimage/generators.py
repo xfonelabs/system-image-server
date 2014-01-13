@@ -728,10 +728,10 @@ def generate_file_keyring(conf, arguments, environment):
     # Generate the tarball
     tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:")
     tarball.add("%s.tar.xz" % keyring_path,
-                arcname="/etc/system-image/archive-master.tar.xz",
+                arcname="/system/etc/system-image/archive-master.tar.xz",
                 filter=root_ownership)
     tarball.add("%s.tar.xz.asc" % keyring_path,
-                arcname="/etc/system-image/archive-master.tar.xz.asc",
+                arcname="/system/etc/system-image/archive-master.tar.xz.asc",
                 filter=root_ownership)
     tarball.close()
 
