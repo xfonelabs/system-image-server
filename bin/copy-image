@@ -230,7 +230,9 @@ if __name__ == '__main__':
             # Check that it's not the current file
             if src_path:
                 src_path = os.path.realpath(src_path)
-                if src_path == abspath:
+
+                #FIXME: the keyring- is a big hack...
+                if src_path == abspath and not "keyring-" in src_path:
                     continue
 
                 # Generators are allowed to return None when no delta
