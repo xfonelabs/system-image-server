@@ -113,6 +113,16 @@ public_https_port = 8443
                 os.path.join(self.temp_directory, "version-2.tar.xz")),
             os.path.join(self.temp_directory, "version-2.tar.xz"))
 
+        # Check that keyring tarballs are just returned
+        open(os.path.join(self.temp_directory,
+                          "keyring-1.tar.xz"), "w+").close()
+        self.assertEquals(
+            generators.generate_delta(
+                self.config,
+                os.path.join(self.temp_directory, "keyring-1.tar.xz"),
+                os.path.join(self.temp_directory, "keyring-1.tar.xz")),
+            os.path.join(self.temp_directory, "keyring-1.tar.xz"))
+
         # Generate the diff
         self.assertEquals(
             generators.generate_delta(self.config, source_path_xz,
@@ -491,7 +501,8 @@ public_https_port = 8443
                                      ["http://1.2.3.4/file",
                                       "monitor=http://1.2.3.4/buildid"],
                                      environment),
-            os.path.join(self.config.publish_path, "pool", "http-42.tar.xz"))
+            os.path.join(self.config.publish_path, "pool",
+                         "http-42.tar.xz"))
 
         # Cached run with monitor
         self.assertEquals(
@@ -499,7 +510,8 @@ public_https_port = 8443
                                      ["http://1.2.3.4/file",
                                       "monitor=http://1.2.3.4/buildid"],
                                      environment),
-            os.path.join(self.config.publish_path, "pool", "http-42.tar.xz"))
+            os.path.join(self.config.publish_path, "pool",
+                         "http-42.tar.xz"))
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
@@ -508,7 +520,6 @@ public_https_port = 8443
         environment['channel_name'] = "test"
         environment['device'] = self.device
         environment['device_name'] = "test"
-        environment['new_files'] = []
         environment['version'] = 1234
         environment['version_detail'] = []
 
@@ -516,16 +527,24 @@ public_https_port = 8443
         os.environ['SYSTEM_IMAGE_ROOT'] = self.temp_directory
         subprocess.call(['bin/generate-keyrings'])
 
+        # Ensure we don't generate a new tarball when there are no changes
+        environment['new_files'] = []
+        self.assertEquals(
+            generators.generate_file(self.config, "keyring",
+                                     ['archive-master'], environment),
+            None)
+        environment['new_files'] = ['abc']
+
         # Check the arguments count
         self.assertEquals(
-            generators.generate_file_keyring(self.config, [], {}),
+            generators.generate_file_keyring(self.config, [], environment),
             None)
 
         # Check for invalid keyring name
         self.assertEquals(
             generators.generate_file_keyring(self.config,
                                              ['invalid'],
-                                             {}),
+                                             environment),
             None)
 
         keyring_path = os.path.join(self.config.gpg_keyring_path,
@@ -621,3 +640,240 @@ public_https_port = 8443
                                                   ['test', 'file'],
                                                   environment),
             os.path.join(self.config.publish_path, "file-1.tar.xz"))
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
+    @mock.patch("systemimage.tools.repack_recovery_keyring")
+    @mock.patch("systemimage.generators.urlretrieve")
+    @mock.patch("systemimage.generators.urlopen")
+    def test_generate_file_remote_system_image(self, mock_urlopen,
+                                               mock_urlretrieve,
+                                               mock_repack_recovery_keyring):
+        def urlopen_side_effect(url):
+            if url.startswith("http://timeout"):
+                raise socket.timeout
+
+            if url.startswith("http://error"):
+                raise IOError()
+
+            if url.startswith("http://index-timeout") and \
+               url.endswith("index.json"):
+                raise socket.timeout
+
+            if url.startswith("http://index-error") and \
+               url.endswith("index.json"):
+                raise IOError()
+
+            if url.startswith("http://partial-json/") and \
+               url.endswith("channels.json"):
+                return BytesIO(json.dumps({"chan": {}}).encode())
+
+            if url.startswith("http://partial-json1/") and \
+               url.endswith("channels.json"):
+                return BytesIO(json.dumps(
+                    {"chan": {"devices": {"test": {}}}})
+                    .encode())
+
+            if url.startswith("http://empty-json/") and \
+               url.endswith("index.json"):
+                return BytesIO(json.dumps({"images": []}).encode())
+
+            if url.endswith("channels.json"):
+                return BytesIO(json.dumps(
+                    {"chan": {"devices": {"test": {"index": "/index.json"}}}})
+                    .encode())
+
+            if url.startswith("http://no-match/") and \
+               url.endswith("index.json"):
+                return BytesIO(json.dumps(
+                    {"images": [{"description": "test",
+                                 "type": "full",
+                                 "version": 123,
+                                 "files": [{'path': '/pool/c-c.tar.xz'},
+                                           {'path': '/pool/d-d.tar.xz'}]}]})
+                    .encode())
+
+            if url.endswith("index.json"):
+                return BytesIO(json.dumps(
+                    {"images": [{"description": "test",
+                                 "type": "full",
+                                 "version": 123,
+                                 "files": [{'path': '/pool/a-a.tar.xz'},
+                                           {'path': '/pool/b-b.tar.xz'}]}]})
+                    .encode())
+
+            return StringIO(url)
+        mock_urlopen.side_effect = urlopen_side_effect
+
+        def urlretrieve_side_effect(url, location):
+            if url.startswith("http://timeout"):
+                raise socket.timeout
+
+            if url.startswith("http://error"):
+                raise IOError()
+
+            if url.startswith("http://meta-timeout") and \
+               "/pool/" in url and url.endswith(".json"):
+                open(location, "w+").close()
+                raise socket.timeout
+
+            if url.startswith("http://meta-error") and \
+               "/pool/" in url and url.endswith(".json"):
+                open(location, "w+").close()
+                raise IOError()
+
+            if url.startswith("http://file-timeout") and \
+               "/pool/" in url:
+                open(location, "w+").close()
+                raise socket.timeout
+
+            if url.startswith("http://file-error") and \
+               "/pool/" in url:
+                open(location, "w+").close()
+                raise IOError()
+
+            if "/pool/" in url and url.endswith(".json"):
+                with open(location, "w+") as fd:
+                    fd.write(json.dumps({'version_detail': 'abc'}))
+                    return
+
+            with open(location, "w+") as fd:
+                fd.write(url)
+        mock_urlretrieve.side_effect = urlretrieve_side_effect
+
+        def repack_recovery_keyring_effect(conf, path, keyring):
+            if keyring == "fail":
+                return False
+
+            return True
+
+        mock_repack_recovery_keyring.side_effect = \
+            repack_recovery_keyring_effect
+
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "test"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Without arguments
+        self.assertEquals(
+            generators.generate_file_remote_system_image(self.config, [], {}),
+            None)
+
+        # Invalid server
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://error', 'chan', 'prefix'],
+                environment), None)
+
+        # Server timeout
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://timeout', 'chan', 'prefix'],
+                environment), None)
+
+        # Invalid channel
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://valid', 'invalid', 'prefix'],
+                environment), None)
+
+        # Missing devices dict
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://partial-json', 'chan', 'prefix'],
+                environment), None)
+
+        # Invalid device
+        environment['device_name'] = "invalid"
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://channels.json', 'chan', 'prefix'],
+                environment), None)
+        environment['device_name'] = "test"
+
+        # Missing index
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://partial-json1', 'chan', 'prefix'],
+                environment), None)
+
+        # index.json timeout
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://index-timeout', 'chan', 'prefix'],
+                environment), None)
+
+        # index.json error
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://index-error', 'chan', 'prefix'],
+                environment), None)
+
+        # empty index.json
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://empty-json', 'chan', 'prefix'],
+                environment), None)
+
+        # valid index.json timeout
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://file-timeout', 'chan', 'a',
+                              'keyring=fail'],
+                environment), None)
+
+        # valid index.json error
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://file-error', 'chan', 'a',
+                              'keyring=fail'],
+                environment), None)
+
+        # valid index.json, fail at repacking
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://valid-json', 'chan', 'a',
+                              'keyring=fail'],
+                environment), None)
+
+        # valid index.json, metadata timeout
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://meta-timeout', 'chan', 'a',
+                              'keyring=archive-master'],
+                environment), "%s/www/pool/a-a.tar.xz" % self.temp_directory)
+
+        # valid index.json, metadata error
+        shutil.rmtree("%s/www/pool/" % self.temp_directory)
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://meta-error', 'chan', 'a',
+                              'keyring=archive-master'],
+                environment), "%s/www/pool/a-a.tar.xz" % self.temp_directory)
+
+        # valid index.json
+        shutil.rmtree("%s/www/pool/" % self.temp_directory)
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://valid-json', 'chan', 'a',
+                              'keyring=archive-master'],
+                environment), "%s/www/pool/a-a.tar.xz" % self.temp_directory)
+
+        # from cache
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://valid-json', 'chan', 'a',
+                              'keyring=archive-master'],
+                environment), "%s/www/pool/a-a.tar.xz" % self.temp_directory)
+
+        # no match
+        shutil.rmtree("%s/www/pool/" % self.temp_directory)
+        self.assertEquals(
+            generators.generate_file(self.config, "remote-system-image",
+                                     ['http://no-match', 'chan', 'a',
+                                      'keyring=archive-master'],
+                                     environment), None)

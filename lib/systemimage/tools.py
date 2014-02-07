@@ -16,11 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from io import BytesIO
+
 import gzip
 import os
 import re
+import shutil
 import subprocess
 import tarfile
+import tempfile
 import time
 
 
@@ -225,3 +228,130 @@ def sync_mirrors(config):
                          key=lambda mirror: mirror.ssh_host):
         trigger_mirror(mirror.ssh_host, mirror.ssh_port, mirror.ssh_user,
                        mirror.ssh_key, mirror.ssh_command)
+
+
+def repack_recovery_keyring(conf, path, keyring_name):
+    tempdir = tempfile.mkdtemp()
+
+    xz_uncompress(path, os.path.join(tempdir, "input.tar"))
+
+    input_tarball = tarfile.open(os.path.join(tempdir, "input.tar"), "r:")
+
+    # Make sure the partition is in there
+    if not "partitions/recovery.img" in input_tarball.getnames():
+        shutil.rmtree(tempdir)
+        return False
+
+    input_tarball.extract("partitions/recovery.img", tempdir)
+
+    # Extract the content of the .img
+    os.mkdir(os.path.join(tempdir, "img"))
+    old_pwd = os.getcwd()
+    os.chdir(os.path.join(tempdir, "img"))
+    cmd = ["abootimg",
+           "-x", os.path.join(tempdir, "partitions", "recovery.img")]
+
+    with open(os.path.devnull, "w") as devnull:
+        subprocess.call(cmd, stdout=devnull, stderr=devnull)
+
+    os.chdir(old_pwd)
+
+    # Extract the content of the initrd
+    os.mkdir(os.path.join(tempdir, "initrd"))
+    state_path = os.path.join(tempdir, "fakeroot_state")
+    old_pwd = os.getcwd()
+    os.chdir(os.path.join(tempdir, "initrd"))
+
+    gzip_uncompress(os.path.join(tempdir, "img", "initrd.img"),
+                    os.path.join(tempdir, "img", "initrd"))
+
+    with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
+        with open(os.path.devnull, "w") as devnull:
+            subprocess.call(['fakeroot', '-s', state_path, 'cpio', '-i'],
+                            stdin=fd, stdout=devnull, stderr=devnull)
+
+    os.chdir(old_pwd)
+
+    # Swap the files
+    keyring_path = os.path.join(conf.gpg_keyring_path, "archive-master")
+
+    shutil.copy("%s.tar.xz" % keyring_path,
+                os.path.join(tempdir, "initrd", "etc", "system-image",
+                             "archive-master.tar.xz"))
+
+    shutil.copy("%s.tar.xz.asc" % keyring_path,
+                os.path.join(tempdir, "initrd", "etc", "system-image",
+                             "archive-master.tar.xz.asc"))
+
+    # Re-generate the initrd
+    old_pwd = os.getcwd()
+    os.chdir(os.path.join(tempdir, "initrd"))
+
+    find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
+    with open(os.path.join(tempdir, "img", "initrd"), "w+") as fd:
+        with open(os.path.devnull, "w") as devnull:
+            subprocess.call(['fakeroot', '-i', state_path, 'cpio',
+                             '-o', '--format=newc'],
+                            stdin=find.stdout,
+                            stdout=fd,
+                            stderr=devnull)
+
+    os.chdir(old_pwd)
+
+    os.rename(os.path.join(tempdir, "img", "initrd.img"),
+              os.path.join(tempdir, "img", "initrd.img.bak"))
+    gzip_compress(os.path.join(tempdir, "img", "initrd"),
+                  os.path.join(tempdir, "img", "initrd.img"))
+
+    # Rewrite bootimg.cfg
+    content = ""
+    with open(os.path.join(tempdir, "img", "bootimg.cfg"), "r") as source:
+        for line in source:
+            if line.startswith("bootsize"):
+                line = "bootsize=0x900000\n"
+            content += line
+
+    with open(os.path.join(tempdir, "img", "bootimg.cfg"), "w+") as dest:
+        dest.write(content)
+
+    # Update the partition image
+    with open(os.path.devnull, "w") as devnull:
+        subprocess.call(['abootimg', '-u',
+                         os.path.join(tempdir, "partitions", "recovery.img"),
+                         "-f", os.path.join(tempdir, "img", "bootimg.cfg")],
+                        stdout=devnull, stderr=devnull)
+
+    # Update the partition image
+    with open(os.path.devnull, "w") as devnull:
+        subprocess.call(['abootimg', '-u',
+                         os.path.join(tempdir, "partitions", "recovery.img"),
+                         "-r", os.path.join(tempdir, "img", "initrd.img")],
+                        stdout=devnull, stderr=devnull)
+
+    # Generate a new tarball
+    output_tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:")
+    for entry in input_tarball:
+        fileptr = None
+        if entry.isfile():
+            try:
+                if entry.name == "partitions/recovery.img":
+                    with open(os.path.join(tempdir, "partitions",
+                                           "recovery.img"), "rb") as fd:
+                        fileptr = BytesIO(fd.read())
+                        entry.size = os.stat(
+                            os.path.join(tempdir, "partitions",
+                                         "recovery.img")).st_size
+                else:
+                    fileptr = input_tarball.extractfile(entry.name)
+            except KeyError:  # pragma: no cover
+                pass
+
+        output_tarball.addfile(entry, fileobj=fileptr)
+    output_tarball.close()
+
+    os.remove(path)
+    xz_compress(os.path.join(tempdir, "output.tar"), path)
+
+    shutil.rmtree(tempdir)
+
+    return True

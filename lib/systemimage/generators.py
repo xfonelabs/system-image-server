@@ -75,6 +75,10 @@ def generate_delta(conf, source_path, target_path):
             and target_filename.startswith("version-")):
         return target_path
 
+    if (source_filename.startswith("keyring-")
+            and target_filename.startswith("keyring-")):
+        return target_path
+
     # Now for everything else
     path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                          "%s.delta-%s.tar.xz" %
@@ -158,6 +162,8 @@ def generate_file(conf, generator, arguments, environment):
         path = generate_file_keyring(conf, arguments, environment)
     elif generator == "system-image":
         path = generate_file_system_image(conf, arguments, environment)
+    elif generator == "remote-system-image":
+        path = generate_file_remote_system_image(conf, arguments, environment)
     else:
         raise Exception("Invalid generator: %s" % generator)
 
@@ -688,6 +694,10 @@ def generate_file_keyring(conf, arguments, environment):
         Generate a keyring tarball or return a pre-existing one.
     """
 
+    # Don't generate keyring tarballs when nothing changed
+    if len(environment['new_files']) == 0:
+        return None
+
     # We need a keyring name
     if len(arguments) == 0:
         return None
@@ -759,6 +769,138 @@ def generate_file_keyring(conf, arguments, environment):
     shutil.rmtree(tempdir)
 
     return path
+
+
+def generate_file_remote_system_image(conf, arguments, environment):
+    """
+        Import files from a remote system-image server
+    """
+
+    # We need at least a channel name and a file prefix
+    if len(arguments) < 3:
+        return None
+
+    # Read the arguments
+    base_url = arguments[0]
+    channel_name = arguments[1]
+    prefix = arguments[2]
+
+    options = {}
+    if len(arguments) > 3:
+        options = unpack_arguments(arguments[3])
+
+    # Fetch and validate the remote channels.json
+    old_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(5)
+    try:
+        channel_json = json.loads(urlopen("%s/channels.json" %
+                                          base_url).read().decode().strip())
+    except socket.timeout:
+        return None
+    except IOError:
+        return None
+    socket.setdefaulttimeout(old_timeout)
+
+    if not channel_name in channel_json:
+        return None
+
+    if not "devices" in channel_json[channel_name]:
+        return None
+
+    if not environment['device_name'] in channel_json[channel_name]['devices']:
+        return None
+
+    if "index" not in (channel_json[channel_name]['devices']
+                       [environment['device_name']]):
+        return None
+
+    index_url = "%s/%s" % (base_url, channel_json[channel_name]['devices']
+                           [environment['device_name']]['index'])
+
+    # Fetch and validate the remote index.json
+    old_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(5)
+    try:
+        index_json = json.loads(urlopen(index_url).read())
+    except socket.timeout:
+        return None
+    except IOError:
+        return None
+    socket.setdefaulttimeout(old_timeout)
+
+    # Grab the list of full images
+    full_images = sorted([image for image in index_json['images']
+                          if image['type'] == "full"],
+                         key=lambda image: image['version'])
+
+    # No images
+    if not full_images:
+        return None
+
+    # Found an image, so let's try to find a match
+    for file_entry in full_images[-1]['files']:
+        file_name = file_entry['path'].split("/")[-1]
+        file_prefix = file_name.rsplit("-", 1)[0]
+        if file_prefix == prefix:
+            path = os.path.realpath("%s/%s" % (conf.publish_path,
+                                               file_entry['path']))
+            if os.path.exists(path):
+                return path
+
+            # Create the target if needed
+            if not os.path.exists(os.path.dirname(path)):
+                os.makedirs(os.path.dirname(path))
+
+            # Grab the file
+            file_url = "%s/%s" % (base_url, file_entry['path'])
+            socket.setdefaulttimeout(5)
+            try:
+                urlretrieve(file_url, path)
+            except socket.timeout:
+                if os.path.exists(path):
+                    os.remove(path)
+                return None
+            except IOError:
+                if os.path.exists(path):
+                    os.remove(path)
+                return None
+            socket.setdefaulttimeout(old_timeout)
+
+            if "keyring" in options:
+                if not tools.repack_recovery_keyring(conf, path,
+                                                     options['keyring']):
+                    if os.path.exists(path):
+                        os.remove(path)
+                    return None
+
+            gpg.sign_file(conf, "image-signing", path)
+
+            # Attempt to grab an associated json
+            socket.setdefaulttimeout(5)
+            json_path = path.replace(".tar.xz", ".json")
+            json_url = file_url.replace(".tar.xz", ".json")
+            try:
+                urlretrieve(json_url, json_path),
+            except socket.timeout:
+                if os.path.exists(json_path):
+                    os.remove(json_path)
+            except IOError:
+                if os.path.exists(json_path):
+                    os.remove(json_path)
+            socket.setdefaulttimeout(old_timeout)
+
+            if os.path.exists(json_path):
+                gpg.sign_file(conf, "image-signing", json_path)
+                with open(json_path, "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    environment['version_detail'].append(
+                        metadata['version_detail'])
+
+            return path
+
+    return None
 
 
 def generate_file_system_image(conf, arguments, environment):

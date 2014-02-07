@@ -17,6 +17,7 @@
 
 import os
 import shutil
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -39,7 +40,7 @@ gpg_key_path = %s
 public_fqdn = system-image.example.net
 public_http_port = 880
 public_https_port = 8443
-""" % (self.temp_directory, os.path.join("tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
         self.config = config.Config(config_path)
 
     def tearDown(self):
@@ -190,3 +191,73 @@ version_detail: abcdef
         open(program, "w+").close()
         os.environ["PATH"] = bin_dir
         self.assertFalse(tools.find_on_path("program"))
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
+    def test_repack_recovery_keyring(self):
+        # Generate the keyring tarballs
+        environ = dict(os.environ)
+        environ['SYSTEM_IMAGE_ROOT'] = self.temp_directory
+        subprocess.call(['bin/generate-keyrings'], env=environ)
+
+        # Generate a fake recovery partition
+        os.makedirs("%s/initrd/etc/system-image/" % self.temp_directory)
+        open("%s/initrd/etc/system-image/archive-master.tar.xz" %
+             self.temp_directory, "w+").close()
+        open("%s/initrd/etc/system-image/archive-master.tar.xz.asc" %
+             self.temp_directory, "w+").close()
+
+        old_pwd = os.getcwd()
+        os.chdir(os.path.join(self.temp_directory, "initrd"))
+
+        find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
+        with open("../initrd.img", "w+") as fd:
+            with open(os.path.devnull, "w") as devnull:
+                subprocess.call(['fakeroot', 'cpio',
+                                 '-o', '--format=newc'],
+                                stdin=find.stdout,
+                                stdout=fd,
+                                stderr=devnull)
+        os.chdir(old_pwd)
+
+        tools.gzip_compress(os.path.join(self.temp_directory, "initrd.img"),
+                            os.path.join(self.temp_directory, "initrd.gz"))
+
+        with open("%s/kernel" % self.temp_directory, "w+") as fd:
+            fd.write("test")
+
+        with open("%s/bootimg.cfg" % self.temp_directory, "w+") as fd:
+            fd.write("""bootsize=0x12345
+""")
+
+        os.makedirs("%s/partitions/" % self.temp_directory)
+        open("%s/partitions/boot.img" % self.temp_directory, "w+").close()
+
+        with open(os.devnull, "w") as devnull:
+            subprocess.call(["abootimg", "--create",
+                             "%s/partitions/recovery.img" %
+                             self.temp_directory,
+                             "-k", "%s/kernel" % self.temp_directory,
+                             "-r", "%s/initrd.gz" % self.temp_directory,
+                             "-f", "%s/bootimg.cfg" % self.temp_directory],
+                            stderr=devnull, stdout=devnull)
+
+            subprocess.call(["tar", "Jcf",
+                             "%s/recovery.tar.xz" % self.temp_directory,
+                             "-C", self.temp_directory,
+                             "partitions/"], stderr=devnull, stdout=devnull)
+
+            subprocess.call(["tar", "Jcf",
+                             "%s/empty.tar.xz" % self.temp_directory,
+                             "-C", self.temp_directory,
+                             "initrd/"], stderr=devnull, stdout=devnull)
+
+        # Try an empty tarball
+        self.assertEquals(tools.repack_recovery_keyring(
+            self.config, "%s/empty.tar.xz" % self.temp_directory,
+            "archive-master"), False)
+
+        # Try a repack
+        tools.repack_recovery_keyring(self.config, "%s/recovery.tar.xz" %
+                                                   self.temp_directory,
+                                      "archive-master")
