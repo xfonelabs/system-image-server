@@ -296,6 +296,3 @@ if __name__ == '__main__':
     # Sync the mirrors
     logging.info("Triggering a mirror sync")
     tools.sync_mirrors(conf)
-
-    # Remove lock file
-    os.remove(lock_file)
