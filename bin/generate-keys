@@ -16,14 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import datetime
 import argparse
 import os
 import sys
-sys.path.insert(0, 'lib')
 
+sys.path.insert(0, 'lib')
 from systemimage import config
 from systemimage.gpg import generate_signing_key
+
 
 KEYS = {
     "archive-master": ("{0} Archive Master key", 0),
