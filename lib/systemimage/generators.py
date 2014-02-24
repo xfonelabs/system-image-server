@@ -821,7 +821,7 @@ def generate_file_remote_system_image(conf, arguments, environment):
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(5)
     try:
-        index_json = json.loads(urlopen(index_url).read())
+        index_json = json.loads(urlopen(index_url).read().decode())
     except socket.timeout:
         return None
     except IOError:
