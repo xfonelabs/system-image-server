@@ -442,6 +442,13 @@ public_https_port = 443
         test_tree.cleanup_tree()
         self.assertEquals(test_tree.list_orphaned_files(), [])
 
+        # Confirm that symlinks are ignored in cleanup
+        os.symlink("test/abc", os.path.join(test_tree.path, "link"))
+        self.assertEquals(test_tree.list_orphaned_files(), [])
+        test_tree.cleanup_tree()
+        self.assertTrue(os.path.islink(os.path.join(test_tree.path, "link")))
+        os.remove(os.path.join(test_tree.path, "link"))
+
         # Test that keyrings aren't considered as orphaned files
         keyring_path = os.path.join(test_tree.path, "gpg", "device.tar.xz")
         open(keyring_path, "w+").close()

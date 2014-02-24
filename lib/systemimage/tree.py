@@ -173,6 +173,11 @@ class Tree:
                 empty_dirs.add(dirpath)
 
             for entry in filenames:
+                # Ignore symlinks as those are usually there for
+                # compatibility reason.
+                if os.path.islink(os.path.join(dirpath, entry)):
+                    continue
+
                 existing_files.add(os.path.join(dirpath, entry))
 
         return (existing_files, empty_dirs)
