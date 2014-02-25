@@ -795,6 +795,13 @@ public_https_port = 8443
                 environment), None)
         environment['device_name'] = "test"
 
+        # Invalid device override
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://channels.json', 'chan', 'prefix',
+                              'device=invalid'],
+                environment), None)
+
         # Missing index
         self.assertEquals(
             generators.generate_file_remote_system_image(
@@ -854,6 +861,16 @@ public_https_port = 8443
                 self.config, ['http://meta-error', 'chan', 'a',
                               'keyring=archive-master'],
                 environment), "%s/www/pool/a-a.tar.xz" % self.temp_directory)
+
+        # valid device override
+        shutil.rmtree("%s/www/pool/" % self.temp_directory)
+        environment['device_name'] = "invalid"
+        self.assertEquals(
+            generators.generate_file_remote_system_image(
+                self.config, ['http://valid-json', 'chan', 'a',
+                              'keyring=archive-master,device=test'],
+                environment), "%s/www/pool/a-a.tar.xz" % self.temp_directory)
+        environment['device_name'] = "test"
 
         # valid index.json
         shutil.rmtree("%s/www/pool/" % self.temp_directory)
