@@ -72,6 +72,34 @@ build_number: 1.2.3.4
 """)
         os.remove(version_tarball)
 
+        # Run without version_detail or channel_target but custom ports
+        self.config.public_http_port = 0
+        self.config.public_https_port = 0
+
+        version_tarball = "%s/version.tar" % self.temp_directory
+        tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
+                                       version_tarball, "a/b/version",
+                                       "a/b/channel")
+
+        version_tarfile = tarfile.open(version_tarball, "r:")
+
+        version_file = version_tarfile.extractfile("a/b/version")
+        self.assertTrue(version_file)
+        self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4\n")
+
+        channel_file = version_tarfile.extractfile("a/b/channel")
+        self.assertTrue(channel_file)
+        self.assertEquals(channel_file.read().decode('utf-8'), """[service]
+base: system-image.example.net
+http_port: disabled
+https_port: disabled
+channel: testing
+build_number: 1.2.3.4
+""")
+        os.remove(version_tarball)
+        self.config.public_http_port = 880
+        self.config.public_https_port = 8443
+
         # Run with version_detail and channel_target
         version_tarball = "%s/version.tar" % self.temp_directory
         tools.generate_version_tarball(self.config, "testing", "1.2.3.4",

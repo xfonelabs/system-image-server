@@ -87,13 +87,22 @@ def generate_version_tarball(config, channel, version, path,
 
     tarball.addfile(version_file, BytesIO(version.encode('utf-8')))
 
+    http_port = config.public_http_port
+    https_port = config.public_https_port
+
+    if http_port == 0:
+        http_port = "disabled"
+
+    if https_port == 0:
+        https_port = "disabled"
+
     channel = """[service]
 base: %s
 http_port: %s
 https_port: %s
 channel: %s
 build_number: %s
-""" % (config.public_fqdn, config.public_http_port, config.public_https_port,
+""" % (config.public_fqdn, http_port, https_port,
        channel, version.strip())
 
     if channel_target:
