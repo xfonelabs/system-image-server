@@ -1,6 +1,6 @@
 [global]
 base_path = /some/fs/path
-channels = saucy, saucy-proposed, saucy-customized
+channels = trusty, trusty-proposed, trusty-customized
 gpg_key_path = secret/gpg/keys/
 gpg_keyring_path = secret/gpg/keyrings/
 publish_path = www/
@@ -10,28 +10,28 @@ public_fqdn = system-image.example.net
 public_http_port = 80
 public_https_port = 443
 
-[channel_saucy]
+[channel_trusty]
 type = manual
 versionbase = 1
 fullcount = 10
 
-[channel_saucy-proposed]
+[channel_trusty-proposed]
 type = auto
 versionbase = 1
 fullcount = 20
-deltabase = saucy, saucy-proposed
+deltabase = trusty, trusty-proposed
 files = ubuntu, device, version
-file_ubuntu = cdimage-ubuntu;daily-preinstalled;series=saucy,import=any
-file_device = cdimage-device;daily-preinstalled;series=saucy,import=any
+file_ubuntu = cdimage-ubuntu;daily-preinstalled;trusty,import=any
+file_device = cdimage-device;daily-preinstalled;trusty,import=any
 file_version = version
 
-[channel_saucy-customized]
+[channel_trusty-customized]
 type = auto
 versionbase = 1
 fullcount = 15
 files = ubuntu, device, custom, version
-file_ubuntu = system-image;saucy;file=ubuntu
-file_device = system-image;saucy;file=device
+file_ubuntu = system-image;trusty;file=ubuntu
+file_device = system-image;trusty;file=device
 file_custom = http;http://www.example.net/custom/custom.tar.xz;name=custom,monitor=http://www.example.net/custom/build_number
 file_version = version
 
