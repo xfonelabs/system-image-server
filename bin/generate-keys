@@ -1,0 +1,61 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2014 Canonical Ltd.
+# Author: Timothy Chavez <timothy.chavez@canonical.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, 'lib')
+from systemimage import config
+from systemimage.gpg import generate_signing_key
+
+
+KEYS = {
+    "archive-master": ("{0} Archive Master key", 0),
+    "image-master": ("{0} Image Master key", 0),
+    "device-signing": ("{0} Device Signing key", "2y"),
+    "image-signing": ("{0} Image Signing key", "2y")
+}
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Generate signing keya.')
+    parser.add_argument("--email", dest="email", required=True,
+                        help="An email address to associate with the keys")
+    parser.add_argument("--prefix", dest="prefix", required=True,
+                        help="A prefix to include in the key name")
+    args = parser.parse_args()
+
+    conf = config.Config()
+
+    print("I: Generating signing keys...")
+
+    for key_id, (key_name, key_expiry) in KEYS.iteritems():
+        key_path = os.path.join(conf.gpg_key_path, key_id)
+        if os.path.exists(key_path):
+            print("W: The key \"{0}\" already exists".format(key_id))
+            continue
+        os.makedirs(key_path)
+        generate_signing_key(
+            key_path, key_name.format(args.prefix), args.email, key_expiry)
+
+    print("I: Done")
+
+
+if __name__ == "__main__":
+    main()
