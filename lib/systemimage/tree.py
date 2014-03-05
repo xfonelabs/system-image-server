@@ -536,7 +536,8 @@ class Tree:
 
                 if not os.path.exists(os.path.dirname(new_channel_path)):
                     os.makedirs(os.path.dirname(new_channel_path))
-                os.rename(old_channel_path, new_channel_path)
+                if os.path.exists(old_channel_path):
+                    os.rename(old_channel_path, new_channel_path)
 
             channels[new_name] = dict(channels[old_name])
             if "redirect" not in channels[new_name]:
