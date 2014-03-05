@@ -383,7 +383,7 @@ public_https_port = 443
 
         # Test standard failure cases
         self.assertRaises(KeyError, test_tree.rename_channel,
-                          "old1", "new")
+                          "old1", "test/new")
         self.assertRaises(KeyError, test_tree.rename_channel,
                           "old", "existing")
 
@@ -421,15 +421,17 @@ public_https_port = 443
         device.set_phased_percentage(1234, 50)
 
         # Rename
-        os.makedirs(os.path.join(self.config.publish_path, "new"))
-        self.assertRaises(Exception, test_tree.rename_channel, "old", "new")
-        os.rmdir(os.path.join(self.config.publish_path, "new"))
+        os.makedirs(os.path.join(self.config.publish_path, "test/new"))
+        self.assertRaises(Exception, test_tree.rename_channel, "old",
+                          "test/new")
+        os.rmdir(os.path.join(self.config.publish_path, "test/new"))
+        os.rmdir(os.path.join(self.config.publish_path, "test"))
 
-        self.assertTrue(test_tree.rename_channel("old", "new"))
+        self.assertTrue(test_tree.rename_channel("old", "test/new"))
 
         self.assertEquals(
-            test_tree.list_channels()['new'],
-            {'devices': {'device': {'index': '/new/device/index.json'}}})
+            test_tree.list_channels()['test/new'],
+            {'devices': {'device': {'index': '/test/new/device/index.json'}}})
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
