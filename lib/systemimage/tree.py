@@ -274,6 +274,26 @@ class Tree:
 
         return self.sync_alias(channel_name)
 
+    def create_channel_redirect(self, channel_name, target_name):
+        """
+            Creates a new channel redirect.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            if channel_name in channels:
+                raise KeyError("Channel already exists: %s" % channel_name)
+
+            if target_name not in channels:
+                raise KeyError("Couldn't find target channel: %s" %
+                               target_name)
+
+            channels[channel_name] = dict(channels[target_name])
+            channels[channel_name]['redirect'] = target_name
+
+        self.hide_channel(channel_name)
+
+        return True
+
     def create_device(self, channel_name, device_name, keyring_path=None):
         """
             Creates a new device entry in the tree.
@@ -303,6 +323,9 @@ class Tree:
 
         if keyring_path:
             self.set_device_keyring(channel_name, device_name, keyring_path)
+
+        self.sync_aliases(channel_name)
+        self.sync_redirects(channel_name)
 
         return True
 
@@ -360,8 +383,11 @@ class Tree:
             if device_name not in channels[channel_name]['devices']:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
-            return Device(self.config, os.path.join(self.path, channel_name,
-                          device_name))
+            device_path = os.path.dirname(channels[channel_name]['devices']
+                                          [device_name]['index'])
+
+            return Device(self.config, os.path.normpath("%s/%s" % (self.path,
+                          device_path)))
 
     def hide_channel(self, channel_name):
         """
@@ -458,7 +484,9 @@ class Tree:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
             channel_path = os.path.join(self.path, channel_name)
-            if os.path.exists(channel_path):
+            if os.path.exists(channel_path) and \
+               "alias" not in channels[channel_name] and \
+               "redirect" not in channels[channel_name]:
                 shutil.rmtree(channel_path)
             channels.pop(channel_name)
 
@@ -480,6 +508,40 @@ class Tree:
             if os.path.exists(device_path):
                 shutil.rmtree(device_path)
             channels[channel_name]['devices'].pop(device_name)
+
+        self.sync_aliases(channel_name)
+        self.sync_redirects(channel_name)
+
+        return True
+
+    def rename_channel(self, old_name, new_name):
+        """
+            Rename a channel.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            if old_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % old_name)
+
+            if new_name in channels:
+                raise KeyError("Channel already exists: %s" % new_name)
+
+            if "alias" not in channels[old_name] \
+               and "redirect" not in channels[old_name]:
+                old_channel_path = os.path.join(self.path, old_name)
+                new_channel_path = os.path.join(self.path, new_name)
+                if os.path.exists(new_channel_path):
+                    raise Exception("Channel path already exists: %s" %
+                                    new_channel_path)
+
+                os.rename(old_channel_path, new_channel_path)
+
+            channels[new_name] = dict(channels[old_name])
+            if "redirect" not in channels[new_name]:
+                for device_name in channels[new_name]['devices']:
+                    channels[new_name]['devices'][device_name]['index'] = \
+                        "/%s/%s/index.json" % (new_name, device_name)
+            channels.pop(old_name)
 
         return True
 
@@ -676,6 +738,26 @@ class Tree:
 
         for alias_name in alias_channels:
             self.sync_alias(alias_name)
+
+        return True
+
+    def sync_redirects(self, channel_name):
+        """
+            Update any channel that's a direct of the current one.
+        """
+
+        with channels_json(self.config, self.indexpath) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+        redirect_channels = [name
+                             for name, channel
+                             in self.list_channels().items()
+                             if channel.get("redirect", None) == channel_name]
+
+        for redirect_name in redirect_channels:
+            self.remove_channel(redirect_name)
+            self.create_channel_redirect(redirect_name, channel_name)
 
         return True
 

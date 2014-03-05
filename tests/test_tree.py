@@ -256,9 +256,7 @@ public_https_port = 443
         test_tree.create_device("parent", "device")
         test_tree.create_device("parent", "device2")
         test_tree.create_device("parent", "device3")
-        test_tree.create_device("alias", "device")
         test_tree.create_device("alias", "device1")
-        test_tree.create_device("alias", "device3")
 
         ## First file
         first = os.path.join(self.config.publish_path, "parent/device/full")
@@ -311,6 +309,127 @@ public_https_port = 443
         test_tree.remove_channel("alias")
         test_tree.remove_channel("new_parent")
         test_tree.remove_channel("parent")
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
+    def test_redirect(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels and aliases
+        test_tree.create_channel("parent")
+        test_tree.create_channel_redirect("redirect", "parent")
+
+        # Test standard failure cases
+        self.assertRaises(KeyError, test_tree.create_channel_redirect,
+                          "redirect", "parent")
+        self.assertRaises(KeyError, test_tree.create_channel_redirect,
+                          "redirect1", "parent1")
+        self.assertRaises(KeyError, test_tree.sync_redirects, "parent1")
+
+        # Publish a basic image
+        test_tree.create_device("parent", "device")
+
+        ## First file
+        first = os.path.join(self.config.publish_path, "parent/device/full")
+        open(first, "w+").close()
+        gpg.sign_file(self.config, "image-signing", first)
+
+        ## Second file
+        second = os.path.join(self.config.publish_path,
+                              "parent/device/version-1234.tar.xz")
+
+        tools.generate_version_tarball(self.config, "parent", "1234",
+                                       second.replace(".xz", ""))
+        tools.xz_compress(second.replace(".xz", ""))
+        os.remove(second.replace(".xz", ""))
+        gpg.sign_file(self.config, "image-signing", second)
+
+        with open(second.replace(".tar.xz", ".json"), "w+") as fd:
+            metadata = {}
+            metadata['channel.ini'] = {}
+            metadata['channel.ini']['version_detail'] = "test"
+            fd.write(json.dumps(metadata))
+        gpg.sign_file(self.config, "image-signing",
+                      second.replace(".tar.xz", ".json"))
+
+        ## Adding the entry
+        device = test_tree.get_device("parent", "device")
+        device.create_image("full", 1234, "abc",
+                            ["parent/device/full",
+                             "parent/device/version-1234.tar.xz"])
+        device.set_phased_percentage(1234, 50)
+
+        ## Sync the redirects
+        test_tree.sync_redirects("parent")
+
+        ## Get the target
+        target = test_tree.get_device("redirect", "device")
+
+        # Confirm the fs layout
+        self.assertTrue(not os.path.exists(os.path.join(
+            self.config.publish_path, "redirect")))
+        self.assertTrue(os.path.exists(os.path.join(
+            self.config.publish_path, "parent", "device")))
+        self.assertEquals(device.list_images(), target.list_images())
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
+    def test_rename(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels and aliases
+        test_tree.create_channel("old")
+        test_tree.create_channel("existing")
+
+        # Test standard failure cases
+        self.assertRaises(KeyError, test_tree.rename_channel,
+                          "old1", "new")
+        self.assertRaises(KeyError, test_tree.rename_channel,
+                          "old", "existing")
+
+        # Publish a basic image
+        test_tree.create_device("old", "device")
+
+        ## First file
+        first = os.path.join(self.config.publish_path, "old/device/full")
+        open(first, "w+").close()
+        gpg.sign_file(self.config, "image-signing", first)
+
+        ## Second file
+        second = os.path.join(self.config.publish_path,
+                              "old/device/version-1234.tar.xz")
+
+        tools.generate_version_tarball(self.config, "old", "1234",
+                                       second.replace(".xz", ""))
+        tools.xz_compress(second.replace(".xz", ""))
+        os.remove(second.replace(".xz", ""))
+        gpg.sign_file(self.config, "image-signing", second)
+
+        with open(second.replace(".tar.xz", ".json"), "w+") as fd:
+            metadata = {}
+            metadata['channel.ini'] = {}
+            metadata['channel.ini']['version_detail'] = "test"
+            fd.write(json.dumps(metadata))
+        gpg.sign_file(self.config, "image-signing",
+                      second.replace(".tar.xz", ".json"))
+
+        ## Adding the entry
+        device = test_tree.get_device("old", "device")
+        device.create_image("full", 1234, "abc",
+                            ["old/device/full",
+                             "old/device/version-1234.tar.xz"])
+        device.set_phased_percentage(1234, 50)
+
+        # Rename
+        os.makedirs(os.path.join(self.config.publish_path, "new"))
+        self.assertRaises(Exception, test_tree.rename_channel, "old", "new")
+        os.rmdir(os.path.join(self.config.publish_path, "new"))
+
+        self.assertTrue(test_tree.rename_channel("old", "new"))
+
+        self.assertEquals(
+            test_tree.list_channels()['new'],
+            {'devices': {'device': {'index': '/new/device/index.json'}}})
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
