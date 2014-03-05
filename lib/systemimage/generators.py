@@ -789,6 +789,10 @@ def generate_file_remote_system_image(conf, arguments, environment):
     if len(arguments) > 3:
         options = unpack_arguments(arguments[3])
 
+    device_name = environment['device_name']
+    if 'device' in options:
+        device_name = options['device']
+
     # Fetch and validate the remote channels.json
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(5)
@@ -807,15 +811,15 @@ def generate_file_remote_system_image(conf, arguments, environment):
     if not "devices" in channel_json[channel_name]:
         return None
 
-    if not environment['device_name'] in channel_json[channel_name]['devices']:
+    if not device_name in channel_json[channel_name]['devices']:
         return None
 
     if "index" not in (channel_json[channel_name]['devices']
-                       [environment['device_name']]):
+                       [device_name]):
         return None
 
     index_url = "%s/%s" % (base_url, channel_json[channel_name]['devices']
-                           [environment['device_name']]['index'])
+                           [device_name]['index'])
 
     # Fetch and validate the remote index.json
     old_timeout = socket.getdefaulttimeout()
