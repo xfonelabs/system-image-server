@@ -526,10 +526,9 @@ class Tree:
             if new_name in channels:
                 raise KeyError("Channel already exists: %s" % new_name)
 
-            if "alias" not in channels[old_name] \
-               and "redirect" not in channels[old_name]:
-                old_channel_path = os.path.join(self.path, old_name)
-                new_channel_path = os.path.join(self.path, new_name)
+            old_channel_path = os.path.join(self.path, old_name)
+            new_channel_path = os.path.join(self.path, new_name)
+            if "redirect" not in channels[old_name]:
                 if os.path.exists(new_channel_path):
                     raise Exception("Channel path already exists: %s" %
                                     new_channel_path)
@@ -540,10 +539,24 @@ class Tree:
                     os.rename(old_channel_path, new_channel_path)
 
             channels[new_name] = dict(channels[old_name])
+
             if "redirect" not in channels[new_name]:
                 for device_name in channels[new_name]['devices']:
+                    index_path = "/%s/%s/index.json" % (new_name, device_name)
                     channels[new_name]['devices'][device_name]['index'] = \
-                        "/%s/%s/index.json" % (new_name, device_name)
+                        index_path
+
+                    with index_json(self.config, "%s/%s" %
+                                    (self.path, index_path), True) as index:
+                        for image in index['images']:
+                            for entry in image['files']:
+                                entry['path'] = entry['path'] \
+                                    .replace("/%s/" % old_name,
+                                             "/%s/" % new_name)
+                                entry['signature'] = entry['signature'] \
+                                    .replace("/%s/" % old_name,
+                                             "/%s/" % new_name)
+
             channels.pop(old_name)
 
         return True
