@@ -95,6 +95,12 @@ if __name__ == '__main__':
     if "alias" in pub.list_channels()[args.destination_channel]:
         parser.error("Destination channel is an alias.")
 
+    if "redirect" in pub.list_channels()[args.source_channel]:
+        parser.error("Source channel is a redirect.")
+
+    if "redirect" in pub.list_channels()[args.destination_channel]:
+        parser.error("Destination channel is a redirect.")
+
     source_device = pub.get_device(args.source_channel, args.device)
     destination_device = pub.get_device(args.destination_channel, args.device)
 

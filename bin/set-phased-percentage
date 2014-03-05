@@ -72,6 +72,9 @@ if __name__ == '__main__':
     if "alias" in pub.list_channels()[args.channel]:
         parser.error("Channel is an alias.")
 
+    if "redirect" in pub.list_channels()[args.channel]:
+        parser.error("Channel is a redirect.")
+
     dev = pub.get_device(args.channel, args.device)
     logging.info("Setting phased-percentage of '%s' to %s%%" %
                  (args.version, args.percentage))
