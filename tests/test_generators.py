@@ -193,7 +193,7 @@ public_https_port = 8443
         environment = {}
         environment['channel_name'] = "test"
         environment['device'] = self.device
-        environment['device_name'] = "test"
+        environment['device_name'] = "generic_x86"
         environment['new_files'] = []
         environment['version'] = 1234
         environment['version_detail'] = []
@@ -231,9 +231,9 @@ public_https_port = 8443
 
         # Check behaviour on missing files
         for filename in ("SHA256SUMS",
-                         "series-preinstalled-boot-armhf+test.img",
-                         "series-preinstalled-recovery-armel+test.img",
-                         "series-preinstalled-system-armel+test.img",
+                         "series-preinstalled-boot-i386+generic_x86.img",
+                         "series-preinstalled-recovery-i386+generic_x86.img",
+                         "series-preinstalled-system-i386+generic_x86.img",
                          ".marked_good"):
             open(os.path.join(version_path, filename), "w+").close()
             self.assertEquals(
@@ -244,8 +244,9 @@ public_https_port = 8443
 
         # Check SHA256SUMS parsing
         with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
-            fd.write("HASH *series-preinstalled-boot-armhf+test.img\n")
-            fd.write("HASH *series-preinstalled-recovery-armel+test.img\n")
+            fd.write("HASH *series-preinstalled-boot-i386+generic_x86.img\n")
+            fd.write("HASH *series-preinstalled-recovery-i386+"
+                     "generic_x86.img\n")
 
         self.assertEquals(
             generators.generate_file_cdimage_device(
@@ -255,9 +256,10 @@ public_https_port = 8443
 
         # Working run
         with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
-            fd.write("HASH *series-preinstalled-boot-armhf+test.img\n")
-            fd.write("HASH *series-preinstalled-recovery-armel+test.img\n")
-            fd.write("HASH *series-preinstalled-system-armel+test.img\n")
+            fd.write("HASH *series-preinstalled-boot-i386+generic_x86.img\n")
+            fd.write("HASH *series-preinstalled-recovery-i386+"
+                     "generic_x86.img\n")
+            fd.write("HASH *series-preinstalled-system-i386+generic_x86.img\n")
 
         self.assertEquals(
             generators.generate_file(
@@ -282,7 +284,7 @@ public_https_port = 8443
         environment = {}
         environment['channel_name'] = "test"
         environment['device'] = self.device
-        environment['device_name'] = "test"
+        environment['device_name'] = "generic_x86"
         environment['new_files'] = []
         environment['version'] = 1234
         environment['version_detail'] = []
@@ -320,7 +322,7 @@ public_https_port = 8443
 
         # Check behaviour on missing files
         for filename in ("SHA256SUMS",
-                         "series-preinstalled-touch-armhf.tar.gz",
+                         "series-preinstalled-touch-i386.tar.gz",
                          ".marked_good"):
             open(os.path.join(version_path, filename), "w+").close()
             self.assertEquals(
@@ -331,10 +333,10 @@ public_https_port = 8443
 
         # Working run
         with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
-            fd.write("HASH *series-preinstalled-touch-armhf.tar.gz\n")
+            fd.write("HASH *series-preinstalled-touch-i386.tar.gz\n")
 
         tarball = os.path.join(version_path,
-                               "series-preinstalled-touch-armhf.tar.gz")
+                               "series-preinstalled-touch-i386.tar.gz")
         os.remove(tarball)
         tarball_obj = tarfile.open(tarball, "w:gz")
 

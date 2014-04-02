@@ -187,6 +187,14 @@ def generate_file_cdimage_device(conf, arguments, environment):
     if len(arguments) > 2:
         options = unpack_arguments(arguments[2])
 
+    boot_arch = "armhf"
+    recovery_arch = "armel"
+    system_arch = "armel"
+    if environment['device_name'] in ("generic_x86"):
+        boot_arch = "i386"
+        recovery_arch = "i386"
+        system_arch = "i386"
+
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
         return None
@@ -203,20 +211,23 @@ def generate_file_cdimage_device(conf, arguments, environment):
 
         # Check for all the needed files
         boot_path = os.path.join(cdimage_path, version,
-                                 "%s-preinstalled-boot-armhf+%s.img" %
-                                 (series, environment['device_name']))
+                                 "%s-preinstalled-boot-%s+%s.img" %
+                                 (series, boot_arch,
+                                  environment['device_name']))
         if not os.path.exists(boot_path):
             continue
 
         recovery_path = os.path.join(cdimage_path, version,
-                                     "%s-preinstalled-recovery-armel+%s.img" %
-                                     (series, environment['device_name']))
+                                     "%s-preinstalled-recovery-%s+%s.img" %
+                                     (series, recovery_arch,
+                                      environment['device_name']))
         if not os.path.exists(recovery_path):
             continue
 
         system_path = os.path.join(cdimage_path, version,
-                                   "%s-preinstalled-system-armel+%s.img" %
-                                   (series, environment['device_name']))
+                                   "%s-preinstalled-system-%s+%s.img" %
+                                   (series, system_arch,
+                                    environment['device_name']))
         if not os.path.exists(system_path):
             continue
 
@@ -357,6 +368,10 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     if len(arguments) > 2:
         options = unpack_arguments(arguments[2])
 
+    arch = "armhf"
+    if environment['device_name'] in ("generic_x86"):
+        arch = "i386"
+
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
         return None
@@ -373,8 +388,8 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
         # Check for the rootfs
         rootfs_path = os.path.join(cdimage_path, version,
-                                   "%s-preinstalled-touch-armhf.tar.gz" %
-                                   series)
+                                   "%s-preinstalled-touch-%s.tar.gz" %
+                                   (series, arch))
         if not os.path.exists(rootfs_path):
             continue
 
