@@ -244,6 +244,9 @@ public_https_port = 443
         self.assertRaises(KeyError, test_tree.change_channel_alias,
                           "alias", "parent1")
 
+        self.assertRaises(KeyError, test_tree.change_channel_alias,
+                          "parent", "parent")
+
         self.assertRaises(KeyError, test_tree.sync_aliases, "missing")
         self.assertRaises(KeyError, test_tree.sync_alias, "missing")
         self.assertRaises(TypeError, test_tree.sync_alias, "parent")

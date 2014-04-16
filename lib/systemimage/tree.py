@@ -221,6 +221,10 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
+            if "alias" not in channels[channel_name] or \
+                    channels[channel_name]['alias'] == channel_name:
+                raise KeyError("Channel isn't an alias: %s" % channel_name)
+
             if target_name not in channels:
                 raise KeyError("Couldn't find target channel: %s" %
                                target_name)
@@ -615,7 +619,8 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
-            if "alias" not in channels[channel_name]:
+            if "alias" not in channels[channel_name] or \
+                    channels[channel_name]['alias'] == channel_name:
                 raise TypeError("Not a channel alias")
 
             target_name = channels[channel_name]['alias']
@@ -750,7 +755,8 @@ class Tree:
         alias_channels = [name
                           for name, channel
                           in self.list_channels().items()
-                          if channel.get("alias", None) == channel_name]
+                          if channel.get("alias", None) == channel_name
+                          and name != channel_name]
 
         for alias_name in alias_channels:
             self.sync_alias(alias_name)
