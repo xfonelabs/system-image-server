@@ -94,7 +94,8 @@ if __name__ == '__main__':
         parser.error("Source channel is an alias.")
 
     if "alias" in pub.list_channels()[args.destination_channel] and \
-            pub.list_channels()[args.source_channel] != args.source_channel:
+            pub.list_channels()[args.destination_channel] \
+            != args.destination_channel:
         parser.error("Destination channel is an alias.")
 
     if "redirect" in pub.list_channels()[args.source_channel]:
