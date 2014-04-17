@@ -70,7 +70,7 @@ if __name__ == '__main__':
         parser.error("Invalid value: %s" % args.percentage)
 
     if "alias" in pub.list_channels()[args.channel] and \
-            pub.list_channels()[args.channel] != args.channel:
+            pub.list_channels()[args.channel]['alias'] != args.channel:
         parser.error("Channel is an alias.")
 
     if "redirect" in pub.list_channels()[args.channel]:

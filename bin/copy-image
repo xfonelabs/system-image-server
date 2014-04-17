@@ -90,11 +90,12 @@ if __name__ == '__main__':
                      args.device)
 
     if "alias" in pub.list_channels()[args.source_channel] and \
-            pub.list_channels()[args.source_channel] != args.source_channel:
+            pub.list_channels()[args.source_channel]['alias'] \
+            != args.source_channel:
         parser.error("Source channel is an alias.")
 
     if "alias" in pub.list_channels()[args.destination_channel] and \
-            pub.list_channels()[args.destination_channel] \
+            pub.list_channels()[args.destination_channel]['alias'] \
             != args.destination_channel:
         parser.error("Destination channel is an alias.")
 
