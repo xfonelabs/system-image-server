@@ -29,32 +29,37 @@ conf = config.Config()
 expiry = int(time.strftime("%s", time.localtime())) + 31536000
 
 # archive-master keyring
-archive_master = gpg.Keyring(conf, "archive-master")
-archive_master.set_metadata("archive-master")
-archive_master.import_keys(os.path.join(conf.gpg_key_path, "archive-master"))
-path = archive_master.generate_tarball()
-tools.xz_compress(path)
-os.remove(path)
-gpg.sign_file(conf, "archive-master", "%s.xz" % path)
+if os.path.exists(os.path.join(conf.gpg_key_path, "archive-master")):
+    archive_master = gpg.Keyring(conf, "archive-master")
+    archive_master.set_metadata("archive-master")
+    archive_master.import_keys(os.path.join(conf.gpg_key_path,
+                                            "archive-master"))
+    path = archive_master.generate_tarball()
+    tools.xz_compress(path)
+    os.remove(path)
+    gpg.sign_file(conf, "archive-master", "%s.xz" % path)
 
 # image-master keyring
-image_master = gpg.Keyring(conf, "image-master")
-image_master.set_metadata("image-master")
-image_master.import_keys(os.path.join(conf.gpg_key_path, "image-master"))
-path = image_master.generate_tarball()
-tools.xz_compress(path)
-os.remove(path)
-gpg.sign_file(conf, "archive-master", "%s.xz" % path)
+if os.path.exists(os.path.join(conf.gpg_key_path, "image-master")):
+    image_master = gpg.Keyring(conf, "image-master")
+    image_master.set_metadata("image-master")
+    image_master.import_keys(os.path.join(conf.gpg_key_path, "image-master"))
+    path = image_master.generate_tarball()
+    tools.xz_compress(path)
+    os.remove(path)
+    gpg.sign_file(conf, "archive-master", "%s.xz" % path)
 
 # image-signing keyring
-image_signing = gpg.Keyring(conf, "image-signing")
-image_signing.set_metadata("image-signing", int(time.strftime("%s",
-                                                time.localtime())) + 31536000)
-image_signing.import_keys(os.path.join(conf.gpg_key_path, "image-signing"))
-path = image_signing.generate_tarball()
-tools.xz_compress(path)
-os.remove(path)
-gpg.sign_file(conf, "image-master", "%s.xz" % path)
+if os.path.exists(os.path.join(conf.gpg_key_path, "image-signing")):
+    image_signing = gpg.Keyring(conf, "image-signing")
+    image_signing.set_metadata("image-signing",
+                               int(time.strftime("%s",
+                                                 time.localtime())) + 31536000)
+    image_signing.import_keys(os.path.join(conf.gpg_key_path, "image-signing"))
+    path = image_signing.generate_tarball()
+    tools.xz_compress(path)
+    os.remove(path)
+    gpg.sign_file(conf, "image-master", "%s.xz" % path)
 
 # device-signing keyring
 if os.path.exists(os.path.join(conf.gpg_key_path, "device-signing")):
@@ -70,9 +75,10 @@ if os.path.exists(os.path.join(conf.gpg_key_path, "device-signing")):
     gpg.sign_file(conf, "image-signing", "%s.xz" % path)
 
 # blacklist keyring
-blacklist = gpg.Keyring(conf, "blacklist")
-blacklist.set_metadata("blacklist")
-path = blacklist.generate_tarball()
-tools.xz_compress(path)
-os.remove(path)
-gpg.sign_file(conf, "image-master", "%s.xz" % path)
+if os.path.exists(os.path.join(conf.gpg_key_path, "blacklist")):
+    blacklist = gpg.Keyring(conf, "blacklist")
+    blacklist.set_metadata("blacklist")
+    path = blacklist.generate_tarball()
+    tools.xz_compress(path)
+    os.remove(path)
+    gpg.sign_file(conf, "image-master", "%s.xz" % path)
