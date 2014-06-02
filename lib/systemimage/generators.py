@@ -88,20 +88,6 @@ def generate_delta(conf, source_path, target_path):
     if os.path.exists(path):
         return path
 
-    # FIXME: The code was wrong for a while, so look for the wrong names too
-    #        This code will be deprecated once the last affected image gets
-    #        expired on the production server
-    legacy = True
-    if legacy:  # pragma: no cover
-        wrong_path = os.path.realpath(os.path.join(conf.publish_path, "pool",
-                                                   "%s.delta-%s.tar.xz" %
-                                                   (source_filename,
-                                                    target_filename)))
-
-        # Return pre-existing entries
-        if os.path.exists(wrong_path):
-            return wrong_path
-
     # Create the pool if it doesn't exist
     if not os.path.exists(os.path.join(conf.publish_path, "pool")):
         os.makedirs(os.path.join(conf.publish_path, "pool"))
