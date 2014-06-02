@@ -26,7 +26,6 @@ from systemimage import gpg
 from systemimage import tools
 
 conf = config.Config()
-expiry = int(time.strftime("%s", time.localtime())) + 31536000
 
 # archive-master keyring
 if os.path.exists(os.path.join(conf.gpg_key_path, "archive-master")):
@@ -56,7 +55,7 @@ if os.path.exists(os.path.join(conf.gpg_key_path, "image-signing")) and \
     image_signing = gpg.Keyring(conf, "image-signing")
     image_signing.set_metadata("image-signing",
                                int(time.strftime("%s",
-                                                 time.localtime())) + 31536000)
+                                                 time.localtime())) + 63072000)
     image_signing.import_keys(os.path.join(conf.gpg_key_path, "image-signing"))
     path = image_signing.generate_tarball()
     tools.xz_compress(path)
