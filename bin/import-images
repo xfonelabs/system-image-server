@@ -53,10 +53,10 @@ if __name__ == '__main__':
 
     # Try to acquire a global lock
     lock_file = os.path.join(conf.state_path, "global.lock")
-    fd = open(lock_file, 'w')
+    lock_fd = open(lock_file, 'w')
 
     try:
-        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.lockf(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
         logging.info("Something else holds the global lock. exiting.")
         sys.exit(0)
