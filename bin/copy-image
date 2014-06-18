@@ -66,8 +66,8 @@ if __name__ == '__main__':
     try:
         fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
-        print("Waiting for other process to release the global lock")
-        fcntl.lockf(fd, fcntl.LOCK_EX)
+        print("Something else holds the global lock. exiting.")
+        sys.exit(0)
 
     # Load the tree
     pub = tree.Tree(conf)
