@@ -380,8 +380,9 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
         # Check for the rootfs
         rootfs_path = os.path.join(cdimage_path, version,
-                                   "%s-preinstalled-touch-%s.tar.gz" %
-                                   (series, arch))
+                                   "%s-preinstalled-%s-%s.tar.gz" %
+                                   (series, options.get("product", "touch"),
+                                    arch))
         if not os.path.exists(rootfs_path):
             continue
 
