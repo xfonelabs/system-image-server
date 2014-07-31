@@ -459,17 +459,42 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
             target_tarball.addfile(entry, fileobj=fileptr)
             added.append(entry.name)
 
-        # FIXME: Will need to be done on the real rootfs
-        # Add some symlinks and directories
-        ## /android
-        new_file = tarfile.TarInfo()
-        new_file.type = tarfile.DIRTYPE
-        new_file.name = "system/android"
-        new_file.mode = 0o755
-        new_file.mtime = int(time.strftime("%s", time.localtime()))
-        new_file.uname = "root"
-        new_file.gname = "root"
-        target_tarball.addfile(new_file)
+        if options.get("product", "touch") == "touch":
+            # FIXME: Will need to be done on the real rootfs
+            # Add some symlinks and directories
+            ## /android
+            new_file = tarfile.TarInfo()
+            new_file.type = tarfile.DIRTYPE
+            new_file.name = "system/android"
+            new_file.mode = 0o755
+            new_file.mtime = int(time.strftime("%s", time.localtime()))
+            new_file.uname = "root"
+            new_file.gname = "root"
+            target_tarball.addfile(new_file)
+
+            ## Android partitions
+            for android_path in ("cache", "data", "factory", "firmware",
+                                 "persist", "system"):
+                new_file = tarfile.TarInfo()
+                new_file.type = tarfile.SYMTYPE
+                new_file.name = "system/%s" % android_path
+                new_file.linkname = "/android/%s" % android_path
+                new_file.mode = 0o755
+                new_file.mtime = int(time.strftime("%s", time.localtime()))
+                new_file.uname = "root"
+                new_file.gname = "root"
+                target_tarball.addfile(new_file)
+
+            ## /vendor
+            new_file = tarfile.TarInfo()
+            new_file.type = tarfile.SYMTYPE
+            new_file.name = "system/vendor"
+            new_file.linkname = "/android/system/vendor"
+            new_file.mode = 0o755
+            new_file.mtime = int(time.strftime("%s", time.localtime()))
+            new_file.uname = "root"
+            new_file.gname = "root"
+            target_tarball.addfile(new_file)
 
         ## /userdata
         new_file = tarfile.TarInfo()
@@ -487,30 +512,6 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         new_file.name = "system/etc/mtab"
         new_file.linkname = "/proc/mounts"
         new_file.mode = 0o444
-        new_file.mtime = int(time.strftime("%s", time.localtime()))
-        new_file.uname = "root"
-        new_file.gname = "root"
-        target_tarball.addfile(new_file)
-
-        ## Android partitions
-        for android_path in ("cache", "data", "factory", "firmware", "persist",
-                             "system"):
-            new_file = tarfile.TarInfo()
-            new_file.type = tarfile.SYMTYPE
-            new_file.name = "system/%s" % android_path
-            new_file.linkname = "/android/%s" % android_path
-            new_file.mode = 0o755
-            new_file.mtime = int(time.strftime("%s", time.localtime()))
-            new_file.uname = "root"
-            new_file.gname = "root"
-            target_tarball.addfile(new_file)
-
-        ## /vendor
-        new_file = tarfile.TarInfo()
-        new_file.type = tarfile.SYMTYPE
-        new_file.name = "system/vendor"
-        new_file.linkname = "/android/system/vendor"
-        new_file.mode = 0o755
         new_file.mtime = int(time.strftime("%s", time.localtime()))
         new_file.uname = "root"
         new_file.gname = "root"
