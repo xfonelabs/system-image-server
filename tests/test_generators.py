@@ -254,29 +254,47 @@ public_https_port = 8443
                 environment),
             None)
 
-        # Working run
-        with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
-            fd.write("HASH *series-preinstalled-boot-i386+generic_x86.img\n")
-            fd.write("HASH *series-preinstalled-recovery-i386+"
-                     "generic_x86.img\n")
-            fd.write("HASH *series-preinstalled-system-i386+generic_x86.img\n")
+        for device_arch, cdimage_arch in (
+                ("generic_x86", "i386"),
+                ("generic_i386", "i386"),
+                ("generic_amd64", "amd64")):
+            environment['device_name'] = device_arch
 
-        self.assertEquals(
-            generators.generate_file(
-                self.config, "cdimage-device", [cdimage_tree, 'series'],
-                environment),
-            os.path.join(self.config.publish_path, "pool",
-                         "device-cbafd7270154b197d8a963751d653f968"
-                         "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
+            for filename in ("SHA256SUMS",
+                             "series-preinstalled-boot-%s+%s.img" %
+                             (cdimage_arch, device_arch),
+                             "series-preinstalled-recovery-%s+%s.img" %
+                             (cdimage_arch, device_arch),
+                             "series-preinstalled-system-%s+%s.img" %
+                             (cdimage_arch, device_arch),
+                             ".marked_good"):
+                open(os.path.join(version_path, filename), "w+").close()
 
-        # Cached run
-        self.assertEquals(
-            generators.generate_file_cdimage_device(
-                self.config, [cdimage_tree, 'series'],
-                environment),
-            os.path.join(self.config.publish_path, "pool",
-                         "device-cbafd7270154b197d8a963751d653f968"
-                         "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
+            # Working run
+            with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+                fd.write("HASH *series-preinstalled-boot-%s+%s.img\n" %
+                         (cdimage_arch, device_arch))
+                fd.write("HASH *series-preinstalled-recovery-%s+"
+                         "%s.img\n" % (cdimage_arch, device_arch))
+                fd.write("HASH *series-preinstalled-system-%s+%s.img\n" %
+                         (cdimage_arch, device_arch))
+
+            self.assertEquals(
+                generators.generate_file(
+                    self.config, "cdimage-device", [cdimage_tree, 'series'],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "device-cbafd7270154b197d8a963751d653f968"
+                             "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
+
+            # Cached run
+            self.assertEquals(
+                generators.generate_file_cdimage_device(
+                    self.config, [cdimage_tree, 'series'],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "device-cbafd7270154b197d8a963751d653f968"
+                             "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
@@ -332,55 +350,69 @@ public_https_port = 8443
                 None)
 
         # Working run
-        with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
-            fd.write("HASH *series-preinstalled-touch-i386.tar.gz\n")
+        for device_arch, cdimage_arch in (
+                ("generic_x86", "i386"),
+                ("generic_i386", "i386"),
+                ("generic_amd64", "amd64")):
+            environment['device_name'] = device_arch
 
-        tarball = os.path.join(version_path,
-                               "series-preinstalled-touch-i386.tar.gz")
-        os.remove(tarball)
-        tarball_obj = tarfile.open(tarball, "w:gz")
+            for filename in ("SHA256SUMS",
+                             "series-preinstalled-touch-%s.tar.gz" %
+                             cdimage_arch,
+                             ".marked_good"):
+                open(os.path.join(version_path, filename), "w+").close()
 
-        ## SWAP.swap
-        swap = tarfile.TarInfo()
-        swap.name = "SWAP.swap"
-        swap.size = 4
-        tarball_obj.addfile(swap, BytesIO(b"test"))
+            with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+                fd.write("HASH *series-preinstalled-touch-%s.tar.gz\n" %
+                         cdimage_arch)
 
-        ## /etc/mtab
-        mtab = tarfile.TarInfo()
-        mtab.name = "etc/mtab"
-        mtab.size = 4
-        tarball_obj.addfile(mtab, BytesIO(b"test"))
+            tarball = os.path.join(version_path,
+                                   "series-preinstalled-touch-%s.tar.gz" %
+                                   cdimage_arch)
+            os.remove(tarball)
+            tarball_obj = tarfile.open(tarball, "w:gz")
 
-        ## A hard link
-        hl = tarfile.TarInfo()
-        hl.name = "f"
-        hl.type = tarfile.LNKTYPE
-        hl.linkname = "a"
-        tarball_obj.addfile(hl)
+            ## SWAP.swap
+            swap = tarfile.TarInfo()
+            swap.name = "SWAP.swap"
+            swap.size = 4
+            tarball_obj.addfile(swap, BytesIO(b"test"))
 
-        ## A standard file
-        sf = tarfile.TarInfo()
-        sf.name = "f"
-        sf.size = 4
-        tarball_obj.addfile(sf, BytesIO(b"test"))
+            ## /etc/mtab
+            mtab = tarfile.TarInfo()
+            mtab.name = "etc/mtab"
+            mtab.size = 4
+            tarball_obj.addfile(mtab, BytesIO(b"test"))
 
-        tarball_obj.close()
+            ## A hard link
+            hl = tarfile.TarInfo()
+            hl.name = "f"
+            hl.type = tarfile.LNKTYPE
+            hl.linkname = "a"
+            tarball_obj.addfile(hl)
 
-        self.assertEquals(
-            generators.generate_file(
-                self.config, "cdimage-ubuntu", [cdimage_tree, 'series'],
-                environment),
-            os.path.join(self.config.publish_path, "pool",
-                         "ubuntu-HASH.tar.xz"))
+            ## A standard file
+            sf = tarfile.TarInfo()
+            sf.name = "f"
+            sf.size = 4
+            tarball_obj.addfile(sf, BytesIO(b"test"))
 
-        # Cached run
-        self.assertEquals(
-            generators.generate_file_cdimage_ubuntu(
-                self.config, [cdimage_tree, 'series'],
-                environment),
-            os.path.join(self.config.publish_path, "pool",
-                         "ubuntu-HASH.tar.xz"))
+            tarball_obj.close()
+
+            self.assertEquals(
+                generators.generate_file(
+                    self.config, "cdimage-ubuntu", [cdimage_tree, 'series'],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "ubuntu-HASH.tar.xz"))
+
+            # Cached run
+            self.assertEquals(
+                generators.generate_file_cdimage_ubuntu(
+                    self.config, [cdimage_tree, 'series'],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "ubuntu-HASH.tar.xz"))
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")

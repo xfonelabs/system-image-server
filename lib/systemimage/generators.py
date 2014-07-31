@@ -176,10 +176,14 @@ def generate_file_cdimage_device(conf, arguments, environment):
     boot_arch = "armhf"
     recovery_arch = "armel"
     system_arch = "armel"
-    if environment['device_name'] in ("generic_x86",):
+    if environment['device_name'] in ("generic_x86", "generic_i386"):
         boot_arch = "i386"
         recovery_arch = "i386"
         system_arch = "i386"
+    elif environment['device_name'] in ("generic_amd64",):
+        boot_arch = "amd64"
+        recovery_arch = "amd64"
+        system_arch = "amd64"
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
@@ -355,8 +359,10 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         options = unpack_arguments(arguments[2])
 
     arch = "armhf"
-    if environment['device_name'] in ("generic_x86",):
+    if environment['device_name'] in ("generic_x86", "generic_i386"):
         arch = "i386"
+    elif environment['device_name'] in ("generic_amd64",):
+        arch = "amd64"
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
