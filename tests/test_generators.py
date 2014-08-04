@@ -350,25 +350,25 @@ public_https_port = 8443
                 None)
 
         # Working run
-        for device_arch, cdimage_arch in (
-                ("generic_x86", "i386"),
-                ("generic_i386", "i386"),
-                ("generic_amd64", "amd64")):
+        for device_arch, cdimage_arch, cdimage_product in (
+                ("generic_x86", "i386", "touch"),
+                ("generic_i386", "i386", "core"),
+                ("generic_amd64", "amd64", "core")):
             environment['device_name'] = device_arch
 
             for filename in ("SHA256SUMS",
-                             "series-preinstalled-touch-%s.tar.gz" %
-                             cdimage_arch,
+                             "series-preinstalled-%s-%s.tar.gz" %
+                             (cdimage_product, cdimage_arch),
                              ".marked_good"):
                 open(os.path.join(version_path, filename), "w+").close()
 
             with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
-                fd.write("HASH *series-preinstalled-touch-%s.tar.gz\n" %
-                         cdimage_arch)
+                fd.write("HASH *series-preinstalled-%s-%s.tar.gz\n" %
+                         (cdimage_product, cdimage_arch))
 
             tarball = os.path.join(version_path,
-                                   "series-preinstalled-touch-%s.tar.gz" %
-                                   cdimage_arch)
+                                   "series-preinstalled-%s-%s.tar.gz" %
+                                   (cdimage_product, cdimage_arch))
             os.remove(tarball)
             tarball_obj = tarfile.open(tarball, "w:gz")
 
@@ -401,7 +401,8 @@ public_https_port = 8443
 
             self.assertEquals(
                 generators.generate_file(
-                    self.config, "cdimage-ubuntu", [cdimage_tree, 'series'],
+                    self.config, "cdimage-ubuntu",
+                    [cdimage_tree, 'series', 'product=%s' % cdimage_product],
                     environment),
                 os.path.join(self.config.publish_path, "pool",
                              "ubuntu-HASH.tar.xz"))
@@ -409,10 +410,16 @@ public_https_port = 8443
             # Cached run
             self.assertEquals(
                 generators.generate_file_cdimage_ubuntu(
-                    self.config, [cdimage_tree, 'series'],
+                    self.config, [cdimage_tree, 'series',
+                                  'product=%s' % cdimage_product],
                     environment),
                 os.path.join(self.config.publish_path, "pool",
                              "ubuntu-HASH.tar.xz"))
+
+            for entry in ("ubuntu-HASH.tar.xz", "ubuntu-HASH.tar.xz.asc",
+                          "ubuntu-HASH.json", "ubuntu-HASH.json.asc"):
+                os.remove(os.path.join(self.config.publish_path,
+                                       "pool", entry))
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
