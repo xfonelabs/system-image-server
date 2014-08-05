@@ -499,7 +499,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         elif options.get("product", "touch") == "core":
             new_file = tarfile.TarInfo()
             new_file.type = tarfile.DIRTYPE
-            new_file.name = "system/cache/recovery"
+            new_file.name = "system/android/cache/recovery"
             new_file.mode = 0o755
             new_file.mtime = int(time.strftime("%s", time.localtime()))
             new_file.uname = "root"
