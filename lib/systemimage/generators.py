@@ -1007,7 +1007,8 @@ def generate_file_version(conf, arguments, environment):
 
     # Generate the tarball
     tools.generate_version_tarball(
-        conf, environment['channel_name'], str(environment['version']),
+        conf, environment['channel_name'], environment['device_name'],
+        str(environment['version']),
         os.path.join(tempdir, "version"), version_detail=version_detail)
 
     # Create the pool if it doesn't exist
@@ -1025,6 +1026,7 @@ def generate_file_version(conf, arguments, environment):
     metadata['version_detail'] = "version=%s" % environment['version']
     metadata['channel.ini'] = {}
     metadata['channel.ini']['channel'] = environment['channel_name']
+    metadata['channel.ini']['device'] = environment['device_name']
     metadata['channel.ini']['version'] = str(environment['version'])
     metadata['channel.ini']['version_detail'] = version_detail
 

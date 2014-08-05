@@ -62,7 +62,7 @@ def find_on_path(command):
     return False
 
 
-def generate_version_tarball(config, channel, version, path,
+def generate_version_tarball(config, channel, device, version, path,
                              build_path="system/etc/ubuntu-build",
                              channel_path="system/etc/system-image/"
                                           "channel.ini",
@@ -101,9 +101,10 @@ base: %s
 http_port: %s
 https_port: %s
 channel: %s
+device: %s
 build_number: %s
 """ % (config.public_fqdn, http_port, https_port,
-       channel, version.strip())
+       channel, device, version.strip())
 
     if channel_target:
         channel += "channel_target: %s\n" % channel_target

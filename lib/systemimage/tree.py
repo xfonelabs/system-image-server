@@ -707,7 +707,7 @@ class Tree:
                                                              device.pub_path)
                         if not os.path.exists(abspath):
                             tools.generate_version_tarball(
-                                self.config, channel_name,
+                                self.config, channel_name, device_name,
                                 str(entry['version']),
                                 abspath.replace(".xz", ""),
                                 version_detail=version_detail,

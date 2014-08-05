@@ -270,7 +270,7 @@ public_https_port = 443
         second = os.path.join(self.config.publish_path,
                               "parent/device/version-1234.tar.xz")
 
-        tools.generate_version_tarball(self.config, "parent", "1234",
+        tools.generate_version_tarball(self.config, "parent", "test", "1234",
                                        second.replace(".xz", ""))
         tools.xz_compress(second.replace(".xz", ""))
         os.remove(second.replace(".xz", ""))
@@ -341,7 +341,7 @@ public_https_port = 443
         second = os.path.join(self.config.publish_path,
                               "parent/device/version-1234.tar.xz")
 
-        tools.generate_version_tarball(self.config, "parent", "1234",
+        tools.generate_version_tarball(self.config, "parent", "test", "1234",
                                        second.replace(".xz", ""))
         tools.xz_compress(second.replace(".xz", ""))
         os.remove(second.replace(".xz", ""))
@@ -402,7 +402,7 @@ public_https_port = 443
         second = os.path.join(self.config.publish_path,
                               "old/device/version-1234.tar.xz")
 
-        tools.generate_version_tarball(self.config, "old", "1234",
+        tools.generate_version_tarball(self.config, "old", "test", "1234",
                                        second.replace(".xz", ""))
         tools.xz_compress(second.replace(".xz", ""))
         os.remove(second.replace(".xz", ""))

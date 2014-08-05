@@ -146,6 +146,7 @@ public_https_port = 8443
         environment = {}
         environment['channel_name'] = "test"
         environment['device'] = self.device
+        environment['device_name'] = "test"
         environment['new_files'] = []
         environment['version'] = 1234
         environment['version_detail'] = []

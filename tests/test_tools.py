@@ -51,7 +51,8 @@ public_https_port = 8443
     def test_generate_version_tarball(self):
         # Run without version_detail or channel_target
         version_tarball = "%s/version.tar" % self.temp_directory
-        tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
+        tools.generate_version_tarball(self.config, "testing", "test",
+                                       "1.2.3.4",
                                        version_tarball, "a/b/version",
                                        "a/b/channel")
 
@@ -68,6 +69,7 @@ base: system-image.example.net
 http_port: 880
 https_port: 8443
 channel: testing
+device: test
 build_number: 1.2.3.4
 """)
         os.remove(version_tarball)
@@ -77,7 +79,8 @@ build_number: 1.2.3.4
         self.config.public_https_port = 0
 
         version_tarball = "%s/version.tar" % self.temp_directory
-        tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
+        tools.generate_version_tarball(self.config, "testing", "test",
+                                       "1.2.3.4",
                                        version_tarball, "a/b/version",
                                        "a/b/channel")
 
@@ -94,6 +97,7 @@ base: system-image.example.net
 http_port: disabled
 https_port: disabled
 channel: testing
+device: test
 build_number: 1.2.3.4
 """)
         os.remove(version_tarball)
@@ -102,7 +106,8 @@ build_number: 1.2.3.4
 
         # Run with version_detail and channel_target
         version_tarball = "%s/version.tar" % self.temp_directory
-        tools.generate_version_tarball(self.config, "testing", "1.2.3.4",
+        tools.generate_version_tarball(self.config, "testing", "test",
+                                       "1.2.3.4",
                                        version_tarball, "a/b/version",
                                        "a/b/channel", "abcdef", "origin")
 
@@ -119,6 +124,7 @@ base: system-image.example.net
 http_port: 880
 https_port: 8443
 channel: testing
+device: test
 build_number: 1.2.3.4
 channel_target: origin
 version_detail: abcdef
