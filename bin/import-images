@@ -153,8 +153,8 @@ if __name__ == '__main__':
             # Iterate through the files
             for file_entry in channel.files:
                 # Deal with device specific overrides
-                if ":" in file_entry['name']:
-                    filename, device = file_entry['name'].split(':', 1)
+                if "," in file_entry['name']:
+                    filename, device = file_entry['name'].split(',', 1)
                     if device != device_name:
                         logging.debug("Skipping '%s' because the device name"
                                       "doesn't match" % file_entry['name'])
