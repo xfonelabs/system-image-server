@@ -154,21 +154,21 @@ if __name__ == '__main__':
             for file_entry in channel.files:
                 # Deal with device specific overrides
                 if "," in file_entry['name']:
-                    filename, device = file_entry['name'].split(',', 1)
-                    if device != device_name:
+                    file_name, file_device = file_entry['name'].split(',', 1)
+                    if file_device != device_name:
                         logging.debug("Skipping '%s' because the device name"
                                       "doesn't match" % file_entry['name'])
                         continue
                 else:
-                    filename = file_entry['name']
+                    file_name = file_entry['name']
 
-                if filename in processed_files:
+                if file_name in processed_files:
                     logging.debug("Skipping '%s' because a more specific"
                                   "generator was already called."
                                   % file_entry['name'])
                     continue
 
-                processed_files.append(filename)
+                processed_files.append(file_name)
 
                 # Generate the environment
                 environment = {}
