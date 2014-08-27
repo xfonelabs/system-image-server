@@ -141,6 +141,9 @@ if __name__ == '__main__':
             # And a list of new files
             new_files = []
 
+            # Keep track of what files we've processed
+            processed_files = []
+
             # Create new empty entries
             new_images = {}
             new_images['full'] = {'files': []}
@@ -149,6 +152,24 @@ if __name__ == '__main__':
 
             # Iterate through the files
             for file_entry in channel.files:
+                # Deal with device specific overrides
+                if ":" in file_entry['name']:
+                    filename, device = file_entry['name'].split(':', 1)
+                    if device != device_name:
+                        logging.debug("Skipping '%s' because the device name"
+                                      "doesn't match" % file_entry['name'])
+                        continue
+                else:
+                    filename = file_entry['name']
+
+                if filename in processed_files:
+                    logging.debug("Skipping '%s' because a more specific"
+                                  "generator was already called."
+                                  % file_entry['name'])
+                    continue
+
+                processed_files.append(filename)
+
                 # Generate the environment
                 environment = {}
                 environment['channel_name'] = channel_name
