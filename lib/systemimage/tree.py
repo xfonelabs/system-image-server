@@ -633,11 +633,11 @@ class Tree:
             devices = set(channels[channel_name]['devices'].keys())
             target_devices = set(channels[target_name]['devices'].keys())
 
-            ## Remove any removed device
+            # # Remove any removed device
             for device in devices - target_devices:
                 self.remove_device(channel_name, device)
 
-            ## Add any missing device
+            # # Add any missing device
             for device in target_devices - devices:
                 self.create_device(channel_name, device)
 

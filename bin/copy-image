@@ -241,8 +241,8 @@ if __name__ == '__main__':
             if src_path:
                 src_path = os.path.realpath(src_path)
 
-                #FIXME: the keyring- is a big hack...
-                if src_path == abspath and not "keyring-" in src_path:
+                # FIXME: the keyring- is a big hack...
+                if src_path == abspath and "keyring-" not in src_path:
                     continue
 
                 # Generators are allowed to return None when no delta

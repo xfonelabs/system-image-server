@@ -200,7 +200,7 @@ ssh_user = other-user
         self.assertEquals(test_config.base_path, "a/b/c")
 
         # Test the channels config
-        ## Multiple channels
+        # # Multiple channels
         channel_config_path = os.path.join(self.temp_directory,
                                            "channel_config")
         with open(channel_config_path, "w+") as fd:
@@ -236,7 +236,7 @@ file_b = test;arg3;arg4
         self.assertEquals(conf.channels['b'].versionbase, 5)
         self.assertEquals(conf.channels['b'].deltabase, ["a", "b"])
 
-        ## Single channel
+        # # Single channel
         single_channel_config_path = os.path.join(self.temp_directory,
                                                   "single_channel_config")
         with open(single_channel_config_path, "w+") as fd:
@@ -256,7 +256,7 @@ file_a = test;arg1;arg2
             [{'name': 'a', 'generator': 'test',
               'arguments': ['arg1', 'arg2']}])
 
-        ## Invalid channel
+        # # Invalid channel
         invalid_channel_config_path = os.path.join(self.temp_directory,
                                                    "invalid_channel_config")
         with open(invalid_channel_config_path, "w+") as fd:
@@ -266,7 +266,7 @@ channels = a
 
         self.assertRaises(KeyError, config.Config, invalid_channel_config_path)
 
-        ## Invalid file
+        # # Invalid file
         invalid_file_channel_config_path = os.path.join(
             self.temp_directory, "invalid_file_channel_config")
         with open(invalid_file_channel_config_path, "w+") as fd:

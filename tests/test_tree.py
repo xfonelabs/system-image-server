@@ -106,18 +106,18 @@ public_https_port = 443
         test_tree.create_channel("testing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices': {}}})
+                                        {'devices': {}}})
 
         test_tree.hide_channel("testing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices': {},
-                                        'hidden': True}})
+                                        {'devices': {},
+                                         'hidden': True}})
 
         test_tree.show_channel("testing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices': {}}})
+                                        {'devices': {}}})
 
         self.assertRaises(KeyError, test_tree.hide_channel, "invalid")
         self.assertRaises(KeyError, test_tree.show_channel, "invalid")
@@ -133,10 +133,10 @@ public_https_port = 443
 
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices':
-                                        {'test': {
-                                         'index': '/testing/test/'
-                                                  'index.json'}}}})
+                                        {'devices':
+                                         {'test':
+                                          {'index': '/testing/test/'
+                                                    'index.json'}}}})
 
         self.assertRaises(KeyError, test_tree.create_device, "invalid", "test")
         self.assertRaises(KeyError, test_tree.create_device, "testing", "test")
@@ -147,10 +147,10 @@ public_https_port = 443
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices':
-                                        {'test': {
-                                         'index': '/testing/test/'
-                                                  'index.json'}}}})
+                                        {'devices':
+                                         {'test':
+                                          {'index': '/testing/test/'
+                                                    'index.json'}}}})
 
         device_keyring = os.path.join(self.config.publish_path, "testing",
                                       "test", "device.tar.xz")
@@ -159,24 +159,24 @@ public_https_port = 443
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices':
-                                        {'test': {
-                                         'index': '/testing/test/'
-                                                  'index.json'}}}})
+                                        {'devices':
+                                         {'test':
+                                          {'index': '/testing/test/'
+                                                    'index.json'}}}})
 
         gpg.sign_file(self.config, "image-signing", device_keyring)
         test_tree.generate_index("I know what I'm doing")
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices':
-                                        {'test': {
-                                         'index': '/testing/test/index.json',
-                                         'keyring': {
-                                             'path': '/testing/test/'
-                                                     'device.tar.xz',
-                                             'signature': '/testing/test/'
-                                                          'device.tar'
-                                                          '.xz.asc'}}}}})
+                                        {'devices':
+                                         {'test':
+                                          {'index': '/testing/test/index.json',
+                                           'keyring':
+                                           {'path': '/testing/test/'
+                                                    'device.tar.xz',
+                                            'signature': '/testing/test/'
+                                                         'device.tar'
+                                                         '.xz.asc'}}}}})
 
         # Test grabbing a device entry
         self.assertRaises(KeyError, test_tree.get_device, "invalid", "test")
@@ -199,14 +199,14 @@ public_https_port = 443
 
         self.assertEquals(
             test_tree.list_channels(), {'testing':
-                                       {'devices':
-                                        {'test': {
-                                         'index': '/testing/test/index.json',
-                                         'keyring': {
-                                             'path': '/testing/test/device'
-                                                     '.tar.xz',
-                                             'signature': '/testing/test/devi'
-                                                          'ce.tar.xz.asc'}}}}})
+                                        {'devices':
+                                         {'test':
+                                          {'index': '/testing/test/index.json',
+                                           'keyring':
+                                           {'path': '/testing/test/device'
+                                                    '.tar.xz',
+                                            'signature': '/testing/test/devi'
+                                                         'ce.tar.xz.asc'}}}}})
 
         # Test setting the device keyring
         self.assertRaises(KeyError, test_tree.set_device_keyring, "invalid",
@@ -261,12 +261,12 @@ public_https_port = 443
         test_tree.create_device("parent", "device3")
         test_tree.create_device("alias", "device1")
 
-        ## First file
+        # # First file
         first = os.path.join(self.config.publish_path, "parent/device/full")
         open(first, "w+").close()
         gpg.sign_file(self.config, "image-signing", first)
 
-        ## Second file
+        # # Second file
         second = os.path.join(self.config.publish_path,
                               "parent/device/version-1234.tar.xz")
 
@@ -284,14 +284,14 @@ public_https_port = 443
         gpg.sign_file(self.config, "image-signing",
                       second.replace(".tar.xz", ".json"))
 
-        ## Adding the entry
+        # # Adding the entry
         device = test_tree.get_device("parent", "device")
         device.create_image("full", 1234, "abc",
                             ["parent/device/full",
                              "parent/device/version-1234.tar.xz"])
         device.set_phased_percentage(1234, 50)
 
-        ## Adding a fake entry to the alias channel
+        # # Adding a fake entry to the alias channel
         device = test_tree.get_device("alias", "device")
         device.create_image("full", 1235, "abc",
                             ["parent/device/full",
@@ -332,12 +332,12 @@ public_https_port = 443
         # Publish a basic image
         test_tree.create_device("parent", "device")
 
-        ## First file
+        # # First file
         first = os.path.join(self.config.publish_path, "parent/device/full")
         open(first, "w+").close()
         gpg.sign_file(self.config, "image-signing", first)
 
-        ## Second file
+        # # Second file
         second = os.path.join(self.config.publish_path,
                               "parent/device/version-1234.tar.xz")
 
@@ -355,17 +355,17 @@ public_https_port = 443
         gpg.sign_file(self.config, "image-signing",
                       second.replace(".tar.xz", ".json"))
 
-        ## Adding the entry
+        # # Adding the entry
         device = test_tree.get_device("parent", "device")
         device.create_image("full", 1234, "abc",
                             ["parent/device/full",
                              "parent/device/version-1234.tar.xz"])
         device.set_phased_percentage(1234, 50)
 
-        ## Sync the redirects
+        # # Sync the redirects
         test_tree.sync_redirects("parent")
 
-        ## Get the target
+        # # Get the target
         target = test_tree.get_device("redirect", "device")
 
         # Confirm the fs layout
@@ -393,12 +393,12 @@ public_https_port = 443
         # Publish a basic image
         test_tree.create_device("old", "device")
 
-        ## First file
+        # # First file
         first = os.path.join(self.config.publish_path, "old/device/full")
         open(first, "w+").close()
         gpg.sign_file(self.config, "image-signing", first)
 
-        ## Second file
+        # # Second file
         second = os.path.join(self.config.publish_path,
                               "old/device/version-1234.tar.xz")
 
@@ -416,7 +416,7 @@ public_https_port = 443
         gpg.sign_file(self.config, "image-signing",
                       second.replace(".tar.xz", ".json"))
 
-        ## Adding the entry
+        # # Adding the entry
         device = test_tree.get_device("old", "device")
         device.create_image("full", 1234, "abc",
                             ["old/device/full",
@@ -638,19 +638,19 @@ public_https_port = 443
         test_tree.create_channel("test")
         test_tree.create_device("test", "test")
 
-        ## some file
+        # # some file
         first = os.path.join(self.config.publish_path, "test/test/full")
         open(first, "w+").close()
         gpg.sign_file(self.config, "image-signing", first)
 
-        ## Adding a first entry
+        # # Adding a first entry
         device = test_tree.get_device("test", "test")
         device.create_image("full", 1234, "abc",
                             ["test/test/full"])
         device.set_phased_percentage(1234, 20)
         self.assertEquals(device.get_phased_percentage(1234), 20)
 
-        ## Adding a second entry
+        # # Adding a second entry
         device = test_tree.get_device("test", "test")
         device.create_image("full", 1235, "abc",
                             ["test/test/full"])

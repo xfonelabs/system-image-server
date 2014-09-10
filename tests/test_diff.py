@@ -229,7 +229,7 @@ class DiffTests(unittest.TestCase):
         # Redirect stdout
         old_stdout = sys.stdout
 
-        #FIXME: Would be best to have something that works with both version
+        # FIXME: Would be best to have something that works with both version
         if sys.version[0] == "3":
             sys.stdout = StringIO()
         else:

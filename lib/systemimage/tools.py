@@ -248,7 +248,7 @@ def repack_recovery_keyring(conf, path, keyring_name):
     input_tarball = tarfile.open(os.path.join(tempdir, "input.tar"), "r:")
 
     # Make sure the partition is in there
-    if not "partitions/recovery.img" in input_tarball.getnames():
+    if "partitions/recovery.img" not in input_tarball.getnames():
         shutil.rmtree(tempdir)
         return False
 

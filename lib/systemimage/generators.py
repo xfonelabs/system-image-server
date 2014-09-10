@@ -278,18 +278,18 @@ def generate_file_cdimage_device(conf, arguments, environment):
                                       "w:")
 
         # system image
-        ## convert to raw image
+        # # convert to raw image
         system_img = os.path.join(temp_dir, "system.img")
         with open(os.path.devnull, "w") as devnull:
             subprocess.call(["simg2img", system_path, system_img],
                             stdout=devnull)
 
-        ## shrink to minimal size
+        # # shrink to minimal size
         with open(os.path.devnull, "w") as devnull:
             subprocess.call(["resize2fs", "-M", system_img],
                             stdout=devnull, stderr=devnull)
 
-        ## include in tarball
+        # # include in tarball
         target_tarball.add(system_img,
                            arcname="system/var/lib/lxc/android/system.img",
                            filter=root_ownership)
@@ -462,7 +462,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         if options.get("product", "touch") == "touch":
             # FIXME: Will need to be done on the real rootfs
             # Add some symlinks and directories
-            ## /android
+            # # /android
             new_file = tarfile.TarInfo()
             new_file.type = tarfile.DIRTYPE
             new_file.name = "system/android"
@@ -472,7 +472,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
             new_file.gname = "root"
             target_tarball.addfile(new_file)
 
-            ## Android partitions
+            # # Android partitions
             for android_path in ("cache", "data", "factory", "firmware",
                                  "persist", "system"):
                 new_file = tarfile.TarInfo()
@@ -485,7 +485,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
                 new_file.gname = "root"
                 target_tarball.addfile(new_file)
 
-            ## /vendor
+            # # /vendor
             new_file = tarfile.TarInfo()
             new_file.type = tarfile.SYMTYPE
             new_file.name = "system/vendor"
@@ -506,7 +506,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
             new_file.gname = "root"
             target_tarball.addfile(new_file)
 
-        ## /userdata
+        # # /userdata
         new_file = tarfile.TarInfo()
         new_file.type = tarfile.DIRTYPE
         new_file.name = "system/userdata"
@@ -516,7 +516,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         new_file.gname = "root"
         target_tarball.addfile(new_file)
 
-        ## /etc/mtab
+        # # /etc/mtab
         new_file = tarfile.TarInfo()
         new_file.type = tarfile.SYMTYPE
         new_file.name = "system/etc/mtab"
@@ -527,7 +527,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         new_file.gname = "root"
         target_tarball.addfile(new_file)
 
-        ## /lib/modules
+        # # /lib/modules
         new_file = tarfile.TarInfo()
         new_file.type = tarfile.DIRTYPE
         new_file.name = "system/lib/modules"
@@ -617,11 +617,30 @@ def generate_file_http(conf, arguments, environment):
         # Set version_detail
         version_detail = "%s=%s" % (options.get("name", "http"), version)
 
-        # Build the path
+        # FIXME: can be dropped once all the non-hased tarballs are gone
+        old_path = os.path.realpath(os.path.join(conf.publish_path, "pool",
+                                                 "%s-%s.tar.xz" %
+                                                 (options.get("name", "http"),
+                                                  version)))
+        if os.path.exists(old_path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(old_path.replace(".tar.xz", ".json")):
+                with open(old_path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
+            return old_path
+
+        # Build the path, hasing together the URL and version
+        hash_string = "%s:%s" % (url, version)
+        global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
         path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                              "%s-%s.tar.xz" %
                                              (options.get("name", "http"),
-                                              version)))
+                                              global_hash)))
 
         # Return pre-existing entries
         if os.path.exists(path):
@@ -824,13 +843,13 @@ def generate_file_remote_system_image(conf, arguments, environment):
         return None
     socket.setdefaulttimeout(old_timeout)
 
-    if not channel_name in channel_json:
+    if channel_name not in channel_json:
         return None
 
-    if not "devices" in channel_json[channel_name]:
+    if "devices" not in channel_json[channel_name]:
         return None
 
-    if not device_name in channel_json[channel_name]['devices']:
+    if device_name not in channel_json[channel_name]['devices']:
         return None
 
     if "index" not in (channel_json[channel_name]['devices']
@@ -941,7 +960,7 @@ def generate_file_system_image(conf, arguments, environment):
 
     # Run some checks
     pub = tree.Tree(conf)
-    if not channel_name in pub.list_channels():
+    if channel_name not in pub.list_channels():
         return None
 
     if (not environment['device_name'] in

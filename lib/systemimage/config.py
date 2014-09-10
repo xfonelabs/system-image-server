@@ -65,7 +65,7 @@ class Config:
         # Read the config
         config = parse_config(path)
 
-        if not 'global' in config:
+        if 'global' not in config:
             config['global'] = {}
 
         # Set defaults

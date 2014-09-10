@@ -373,26 +373,26 @@ public_https_port = 8443
             os.remove(tarball)
             tarball_obj = tarfile.open(tarball, "w:gz")
 
-            ## SWAP.swap
+            # # SWAP.swap
             swap = tarfile.TarInfo()
             swap.name = "SWAP.swap"
             swap.size = 4
             tarball_obj.addfile(swap, BytesIO(b"test"))
 
-            ## /etc/mtab
+            # # /etc/mtab
             mtab = tarfile.TarInfo()
             mtab.name = "etc/mtab"
             mtab.size = 4
             tarball_obj.addfile(mtab, BytesIO(b"test"))
 
-            ## A hard link
+            # # A hard link
             hl = tarfile.TarInfo()
             hl.name = "f"
             hl.type = tarfile.LNKTYPE
             hl.linkname = "a"
             tarball_obj.addfile(hl)
 
-            ## A standard file
+            # # A standard file
             sf = tarfile.TarInfo()
             sf.name = "f"
             sf.size = 4
@@ -544,7 +544,8 @@ public_https_port = 8443
                                       "monitor=http://1.2.3.4/buildid"],
                                      environment),
             os.path.join(self.config.publish_path, "pool",
-                         "http-42.tar.xz"))
+                         "http-f09815f899863cb369f2a12fa6b29ce8bca0d4a"
+                         "5cef1809ce82af09d41e2f5af.tar.xz"))
 
         # Cached run with monitor
         self.assertEquals(
@@ -553,7 +554,8 @@ public_https_port = 8443
                                       "monitor=http://1.2.3.4/buildid"],
                                      environment),
             os.path.join(self.config.publish_path, "pool",
-                         "http-42.tar.xz"))
+                         "http-f09815f899863cb369f2a12fa6b29ce8bca0d4a"
+                         "5cef1809ce82af09d41e2f5af.tar.xz"))
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
