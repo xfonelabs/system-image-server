@@ -142,6 +142,8 @@ def generate_file(conf, generator, arguments, environment):
         path = generate_file_cdimage_device(conf, arguments, environment)
     elif generator == "cdimage-ubuntu":
         path = generate_file_cdimage_ubuntu(conf, arguments, environment)
+    elif generator == "cdimage-custom":
+        path = generate_file_cdimage_custom(conf, arguments, environment)
     elif generator == "http":
         path = generate_file_http(conf, arguments, environment)
     elif generator == "keyring":
@@ -546,6 +548,127 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         metadata['series'] = series
         metadata['rootfs_path'] = rootfs_path
         metadata['rootfs_checksum'] = rootfs_hash
+
+        with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+            fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                         indent=4, separators=(',', ': ')))
+        gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
+
+        # Cleanup
+        shutil.rmtree(temp_dir)
+
+        environment['version_detail'].append(version_detail)
+        return path
+
+    return None
+
+
+def generate_file_cdimage_custom(conf, arguments, environment):
+    """
+        Scan a cdimage tree for new custom files.
+    """
+
+    # We need at least a path and a series
+    if len(arguments) < 2:
+        return None
+
+    # Read the arguments
+    cdimage_path = arguments[0]
+    series = arguments[1]
+
+    options = {}
+    if len(arguments) > 2:
+        options = unpack_arguments(arguments[2])
+
+    arch = "armhf"
+    if environment['device_name'] in ("generic_x86", "generic_i386"):
+        arch = "i386"
+    elif environment['device_name'] in ("generic_amd64",):
+        arch = "amd64"
+
+    # Check that the directory exists
+    if not os.path.exists(cdimage_path):
+        return None
+
+    versions = sorted([version for version in os.listdir(cdimage_path)
+                       if version not in ("pending", "current")],
+                      reverse=True)
+
+    for version in versions:
+        # Skip directory without checksums
+        if not os.path.exists(os.path.join(cdimage_path, version,
+                                           "SHA256SUMS")):
+            continue
+
+        # Check for the custom tarball
+        custom_path = os.path.join(cdimage_path, version,
+                                   "%s-preinstalled-%s-%s.custom.tar.gz" %
+                                   (series, options.get("product", "touch"),
+                                    arch))
+        if not os.path.exists(custom_path):
+            continue
+
+        # Check if we should only import tested images
+        if options.get("import", "any") == "good":
+            if not os.path.exists(os.path.join(cdimage_path, version,
+                                               ".marked_good")):
+                continue
+
+        # Set the version_detail string
+        version_detail = "custom=%s" % version
+
+        # Extract the hash
+        custom_hash = None
+        with open(os.path.join(cdimage_path, version,
+                               "SHA256SUMS"), "r") as fd:
+            for line in fd:
+                line = line.strip()
+                if line.endswith(custom_path.split("/")[-1]):
+                    custom_hash = line.split()[0]
+                    break
+
+        if not custom_hash:
+            continue
+
+        # Generate the path
+        path = os.path.join(conf.publish_path, "pool",
+                            "custom-%s.tar.xz" % custom_hash)
+
+        # Return pre-existing entries
+        if os.path.exists(path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
+            return path
+
+        temp_dir = tempfile.mkdtemp()
+
+        # Unpack the source tarball
+        tools.gzip_uncompress(custom_path, os.path.join(temp_dir,
+                                                        "source.tar"))
+
+        # Create the pool if it doesn't exist
+        if not os.path.exists(os.path.join(conf.publish_path, "pool")):
+            os.makedirs(os.path.join(conf.publish_path, "pool"))
+
+        # Compress the target tarball and sign it
+        tools.xz_compress(os.path.join(temp_dir, "source.tar"), path)
+        gpg.sign_file(conf, "image-signing", path)
+
+        # Generate the metadata file
+        metadata = {}
+        metadata['generator'] = "cdimage-custom"
+        metadata['version'] = version
+        metadata['version_detail'] = version_detail
+        metadata['series'] = series
+        metadata['custom_path'] = custom_path
+        metadata['custom_checksum'] = custom_hash
 
         with open(path.replace(".tar.xz", ".json"), "w+") as fd:
             fd.write("%s\n" % json.dumps(metadata, sort_keys=True,

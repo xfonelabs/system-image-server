@@ -424,6 +424,105 @@ public_https_port = 8443
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
+    def test_generate_file_cdimage_custom(self):
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "generic_x86"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Check the path and series requirement
+        self.assertEquals(
+            generators.generate_file_cdimage_custom(self.config, [],
+                                                    environment),
+            None)
+
+        # Check behaviour on invalid cdimage path
+        self.assertEquals(
+            generators.generate_file_cdimage_custom(
+                self.config, ['invalid-path', 'invalid-series'],
+                environment),
+            None)
+
+        # Check behaviour on empty tree
+        cdimage_tree = os.path.join(self.temp_directory, "cdimage")
+        os.mkdir(cdimage_tree)
+        self.assertEquals(
+            generators.generate_file_cdimage_custom(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing hash
+        version_path = os.path.join(cdimage_tree, "1234")
+        os.mkdir(version_path)
+        self.assertEquals(
+            generators.generate_file_cdimage_custom(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing files
+        for filename in ("SHA256SUMS",
+                         "series-preinstalled-touch-i386.custom.tar.gz",
+                         ".marked_good"):
+            open(os.path.join(version_path, filename), "w+").close()
+            self.assertEquals(
+                generators.generate_file_cdimage_custom(
+                    self.config, [cdimage_tree, 'series', 'import=good'],
+                    environment),
+                None)
+
+        # Working run
+        for device_arch, cdimage_arch, cdimage_product in (
+                ("generic_x86", "i386", "touch"),
+                ("generic_i386", "i386", "core"),
+                ("generic_amd64", "amd64", "core")):
+            environment['device_name'] = device_arch
+
+            for filename in ("SHA256SUMS",
+                             "series-preinstalled-%s-%s.custom.tar.gz" %
+                             (cdimage_product, cdimage_arch),
+                             ".marked_good"):
+                open(os.path.join(version_path, filename), "w+").close()
+
+            with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+                fd.write("HASH *series-preinstalled-%s-%s.custom.tar.gz\n" %
+                         (cdimage_product, cdimage_arch))
+
+            tarball = os.path.join(version_path,
+                                   "series-preinstalled-%s-%s.custom.tar.gz" %
+                                   (cdimage_product, cdimage_arch))
+            os.remove(tarball)
+            tarball_obj = tarfile.open(tarball, "w:gz")
+            tarball_obj.close()
+
+            self.assertEquals(
+                generators.generate_file(
+                    self.config, "cdimage-custom",
+                    [cdimage_tree, 'series', 'product=%s' % cdimage_product],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "custom-HASH.tar.xz"))
+
+            # Cached run
+            self.assertEquals(
+                generators.generate_file_cdimage_custom(
+                    self.config, [cdimage_tree, 'series',
+                                  'product=%s' % cdimage_product],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "custom-HASH.tar.xz"))
+
+            for entry in ("custom-HASH.tar.xz", "custom-HASH.tar.xz.asc",
+                          "custom-HASH.json", "custom-HASH.json.asc"):
+                os.remove(os.path.join(self.config.publish_path,
+                                       "pool", entry))
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
     @mock.patch("systemimage.generators.urlretrieve")
     @mock.patch("systemimage.generators.urlopen")
     def test_generate_file_http(self, mock_urlopen, mock_urlretrieve):
