@@ -163,6 +163,11 @@ class DiffTests(unittest.TestCase):
         o_target.name = "system/o"
         o_target.size = 4
 
+        # Unicode file
+        p_source = tarfile.TarInfo()
+        p_source.name = "system/中文中文中文"
+        p_source.size = 4
+
         source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(a, BytesIO(b"test"))
         source_tarball.addfile(a, BytesIO(b"test"))
@@ -174,6 +179,7 @@ class DiffTests(unittest.TestCase):
         source_tarball.addfile(k_dir)
         source_tarball.addfile(m_source, BytesIO(b"test"))
         source_tarball.addfile(n_source)
+        source_tarball.addfile(p_source)
 
         target_tarball.addfile(a, BytesIO(b"test"))
         target_tarball.addfile(c_dir)
@@ -206,7 +212,7 @@ class DiffTests(unittest.TestCase):
         content_set, content_dict = self.imagediff.scan_content("source")
         self.assertEquals(sorted(content_dict.keys()),
                           ['a', 'b', 'c', 'c/d', 'c/g', 'c/h', 'dir', 'm',
-                           'n'])
+                           'n', 'system/中文中文中文'])
 
         content_set, content_dict = self.imagediff.scan_content("target")
         self.assertEquals(sorted(content_dict.keys()),
@@ -251,6 +257,7 @@ class DiffTests(unittest.TestCase):
  - f (add)
  - system/o (add)
  - system/o.1 (add)
+ - system/中文中文中文 (del)
 """)
 
     def test_generate_tarball(self):
@@ -263,3 +270,10 @@ class DiffTests(unittest.TestCase):
         self.assertEquals(files_list, ['removed', 'c/c', 'c/a_i', 'c/d', 'c/j',
                                        'dir', 'e', 'f', 'system/o',
                                        'system/o.1'])
+
+        removed_list = tarball.extractfile("removed")
+        self.assertEquals(removed_list.read().decode('utf-8'), u"""b
+c/d
+dir
+system/中文中文中文
+""")

@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 import tarfile
 import time
 
@@ -192,11 +193,13 @@ class ImageDiff:
 
         # List both deleted files and modified files in the removal list
         # that's needed to allow file type change (e.g. directory to symlink)
-        removed_files_list = [entry[0] for entry in self.diff
-                              if entry[1] in ("del", "mod")]
+        removed_files_list = sorted([entry[0] for entry in self.diff
+                                     if entry[1] in ("del", "mod")])
 
-        removed_files = "\n".join(removed_files_list)
-        removed_files = "%s\n" % removed_files.encode('utf-8')
+        removed_files = "%s\n" % "\n".join(removed_files_list)
+
+        if sys.version_info.major > 2:  # pragma: no cover
+            removed_files = removed_files.encode('utf-8')
 
         removals = tarfile.TarInfo()
         removals.name = "removed"
@@ -205,7 +208,7 @@ class ImageDiff:
         removals.uname = "root"
         removals.gname = "root"
 
-        output.addfile(removals, BytesIO(removed_files.encode('utf-8')))
+        output.addfile(removals, BytesIO(removed_files))
 
         # Copy all the added and modified
         added = []
