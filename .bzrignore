@@ -1,5 +1,5 @@
 etc/config
-lib/phablet/__pycache__
+lib/systemimage/__pycache__
 secret/gpg/keyrings/*
 secret/gpg/keys/*
 secret/ssh/*
