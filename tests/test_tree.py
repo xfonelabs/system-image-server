@@ -141,6 +141,10 @@ public_https_port = 443
         self.assertRaises(KeyError, test_tree.create_device, "invalid", "test")
         self.assertRaises(KeyError, test_tree.create_device, "testing", "test")
 
+        # Test listing devices
+        self.assertRaises(KeyError, test_tree.list_devices, "invalid")
+        self.assertEquals(test_tree.list_devices("testing"), ["test"])
+
         # Test the index generation
         os.mkdir(os.path.join(self.config.publish_path, "testing", "empty"))
         self.assertRaises(Exception, test_tree.generate_index)

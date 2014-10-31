@@ -416,6 +416,17 @@ class Tree:
         with channels_json(self.config, self.indexpath) as channels:
             return channels
 
+    def list_devices(self, channel_name):
+        """
+            Returns the list of device names for the channel.
+        """
+
+        with channels_json(self.config, self.indexpath) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+            return channels[channel_name]['devices'].keys()
+
     def list_missing_files(self):
         """
             Returns a list of absolute paths that should exist but aren't
