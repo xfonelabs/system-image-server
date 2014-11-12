@@ -236,20 +236,26 @@ public_https_port = 443
         # Create some channels and aliases
         test_tree.create_channel("parent")
         test_tree.create_channel_alias("alias", "parent")
+        test_tree.create_channel_redirect("redirect", "alias")
 
         # Test standard failure cases
         self.assertRaises(KeyError, test_tree.create_channel_alias,
                           "alias", "parent")
+
         self.assertRaises(KeyError, test_tree.create_channel_alias,
                           "alias1", "parent1")
 
         self.assertRaises(KeyError, test_tree.change_channel_alias,
                           "alias1", "parent")
+
         self.assertRaises(KeyError, test_tree.change_channel_alias,
                           "alias", "parent1")
 
         self.assertRaises(KeyError, test_tree.change_channel_alias,
                           "parent", "parent")
+
+        self.assertRaises(KeyError, test_tree.change_channel_alias,
+                          "redirect", "parent")
 
         self.assertRaises(KeyError, test_tree.sync_aliases, "missing")
         self.assertRaises(KeyError, test_tree.sync_alias, "missing")

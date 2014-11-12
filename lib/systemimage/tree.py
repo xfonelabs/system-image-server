@@ -221,6 +221,9 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
+            if "redirect" in channels[channel_name]:
+                raise KeyError("Channel is a redirect: %s" % channel_name)
+
             if "alias" not in channels[channel_name] or \
                     channels[channel_name]['alias'] == channel_name:
                 raise KeyError("Channel isn't an alias: %s" % channel_name)
