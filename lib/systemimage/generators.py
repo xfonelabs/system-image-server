@@ -35,6 +35,12 @@ except ImportError:  # pragma: no cover
 CACHE = {}
 
 
+def list_versions(cdimage_path):
+    return sorted([version for version in os.listdir(cdimage_path)
+                   if version not in ("pending", "current")],
+                  reverse=True)
+
+
 def root_ownership(tarinfo):
     tarinfo.mode = 0o644
     tarinfo.mtime = int(time.strftime("%s", time.localtime()))
@@ -193,11 +199,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
     if not os.path.exists(cdimage_path):
         return None
 
-    versions = sorted([version for version in os.listdir(cdimage_path)
-                       if version not in ("pending", "current")],
-                      reverse=True)
-
-    for version in versions:
+    for version in list_versions(cdimage_path):
         # Skip directory without checksums
         if not os.path.exists(os.path.join(cdimage_path, version,
                                            "SHA256SUMS")):
@@ -372,11 +374,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     if not os.path.exists(cdimage_path):
         return None
 
-    versions = sorted([version for version in os.listdir(cdimage_path)
-                       if version not in ("pending", "current")],
-                      reverse=True)
-
-    for version in versions:
+    for version in list_versions(cdimage_path):
         # Skip directory without checksums
         if not os.path.exists(os.path.join(cdimage_path, version,
                                            "SHA256SUMS")):
@@ -592,11 +590,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
     if not os.path.exists(cdimage_path):
         return None
 
-    versions = sorted([version for version in os.listdir(cdimage_path)
-                       if version not in ("pending", "current")],
-                      reverse=True)
-
-    for version in versions:
+    for version in list_versions(cdimage_path):
         # Skip directory without checksums
         if not os.path.exists(os.path.join(cdimage_path, version,
                                            "SHA256SUMS")):
@@ -713,11 +707,7 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
     if not os.path.exists(cdimage_path):
         return None
 
-    versions = sorted([version for version in os.listdir(cdimage_path)
-                       if version not in ("pending", "current")],
-                      reverse=True)
-
-    for version in versions:
+    for version in list_versions(cdimage_path):
         # Skip directory without checksums
         if not os.path.exists(os.path.join(cdimage_path, version,
                                            "SHA256SUMS")):
