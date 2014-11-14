@@ -10,3 +10,10 @@ Test dependencies:
  - python-coverage, python3-coverage
  - pep8
  - pyflakes3, pyflakes
+
+
+Run once:
+$ ./tests/generate-keys
+
+Then run the tests with:
+$ ./tests/run

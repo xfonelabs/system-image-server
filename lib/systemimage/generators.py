@@ -145,7 +145,8 @@ def generate_file(conf, generator, arguments, environment):
     if generator == "version":
         path = generate_file_version(conf, arguments, environment)
     elif generator == "cdimage-device":
-        path = generate_file_cdimage_device_android(conf, arguments, environment)
+        path = generate_file_cdimage_device_android(
+            conf, arguments, environment)
     elif generator == "cdimage-ubuntu":
         path = generate_file_cdimage_ubuntu(conf, arguments, environment)
     elif generator == "cdimage-custom":
@@ -715,9 +716,9 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
 
         # Check for the custom tarball
         raw_device_path = os.path.join(cdimage_path, version,
-                                   "%s-preinstalled-%s-%s.device.tar.gz" %
-                                   (series, options.get("product", "core"),
-                                    arch))
+                                       "%s-preinstalled-%s-%s.device.tar.gz" %
+                                       (series, options.get("product", "core"),
+                                        arch))
         if not os.path.exists(raw_device_path):
             continue
 

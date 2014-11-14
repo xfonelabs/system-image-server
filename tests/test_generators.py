@@ -182,7 +182,7 @@ public_https_port = 8443
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
     @mock.patch("subprocess.call")
-    def test_generate_file_cdimage_device(self, mock_call):
+    def test_generate_file_cdimage_device_android(self, mock_call):
         def call_side_effect(cmd, stdout=None, stderr=None):
             if cmd[0] == "simg2img":
                 shutil.copy(cmd[1], cmd[2])
@@ -201,13 +201,13 @@ public_https_port = 8443
 
         # Check the path and series requirement
         self.assertEquals(
-            generators.generate_file_cdimage_device(self.config, [],
-                                                    environment),
+            generators.generate_file_cdimage_device_android(self.config, [],
+                                                            environment),
             None)
 
         # Check behaviour on invalid cdimage path
         self.assertEquals(
-            generators.generate_file_cdimage_device(
+            generators.generate_file_cdimage_device_android(
                 self.config, ['invalid-path', 'invalid-series'],
                 environment),
             None)
@@ -216,7 +216,7 @@ public_https_port = 8443
         cdimage_tree = os.path.join(self.temp_directory, "cdimage")
         os.mkdir(cdimage_tree)
         self.assertEquals(
-            generators.generate_file_cdimage_device(
+            generators.generate_file_cdimage_device_android(
                 self.config, [cdimage_tree, 'series'],
                 environment),
             None)
@@ -225,7 +225,7 @@ public_https_port = 8443
         version_path = os.path.join(cdimage_tree, "1234")
         os.mkdir(version_path)
         self.assertEquals(
-            generators.generate_file_cdimage_device(
+            generators.generate_file_cdimage_device_android(
                 self.config, [cdimage_tree, 'series'],
                 environment),
             None)
@@ -238,7 +238,7 @@ public_https_port = 8443
                          ".marked_good"):
             open(os.path.join(version_path, filename), "w+").close()
             self.assertEquals(
-                generators.generate_file_cdimage_device(
+                generators.generate_file_cdimage_device_android(
                     self.config, [cdimage_tree, 'series', 'import=good'],
                     environment),
                 None)
@@ -250,7 +250,7 @@ public_https_port = 8443
                      "generic_x86.img\n")
 
         self.assertEquals(
-            generators.generate_file_cdimage_device(
+            generators.generate_file_cdimage_device_android(
                 self.config, [cdimage_tree, 'series'],
                 environment),
             None)
@@ -290,7 +290,7 @@ public_https_port = 8443
 
             # Cached run
             self.assertEquals(
-                generators.generate_file_cdimage_device(
+                generators.generate_file_cdimage_device_android(
                     self.config, [cdimage_tree, 'series'],
                     environment),
                 os.path.join(self.config.publish_path, "pool",
