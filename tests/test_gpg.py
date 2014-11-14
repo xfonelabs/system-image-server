@@ -96,20 +96,20 @@ gpg_key_path = %s
 
         keyring = gpg.Keyring(self.config, "testing")
         self.assertTrue(os.path.exists(os.path.join(keyring_path, "testing")))
-        self.assertEquals(keyring.keyring_model, None)
-        self.assertEquals(keyring.keyring_name, "testing")
-        self.assertEquals(keyring.keyring_type, None)
-        self.assertEquals(keyring.keyring_expiry, None)
+        self.assertEqual(keyring.keyring_model, None)
+        self.assertEqual(keyring.keyring_name, "testing")
+        self.assertEqual(keyring.keyring_type, None)
+        self.assertEqual(keyring.keyring_expiry, None)
 
         expiry = int(time.strftime("%s", time.gmtime()))
         keyring.set_metadata(keyring_type="test", keyring_model="test",
                              keyring_expiry=expiry)
 
         keyring = gpg.Keyring(self.config, "testing")
-        self.assertEquals(keyring.keyring_model, "test")
-        self.assertEquals(keyring.keyring_name, "testing")
-        self.assertEquals(keyring.keyring_type, "test")
-        self.assertEquals(keyring.keyring_expiry, expiry)
+        self.assertEqual(keyring.keyring_model, "test")
+        self.assertEqual(keyring.keyring_name, "testing")
+        self.assertEqual(keyring.keyring_type, "test")
+        self.assertEqual(keyring.keyring_expiry, expiry)
 
         keyring.import_keys(os.path.join("tests", "keys", "image-signing"))
 
@@ -117,26 +117,26 @@ gpg_key_path = %s
         keys = keyring.list_keys()
         self.assertTrue(len(keys), 1)
         key_id, key_bit, [key_desc] = keys[0]
-        self.assertEquals(key_bit, 2048)
-        self.assertEquals(key_desc,
-                          "[TESTING] Ubuntu System Image Signing Key (YYYY) "
-                          "<system-image@ubuntu.com>")
+        self.assertEqual(key_bit, 2048)
+        self.assertEqual(key_desc,
+                         "[TESTING] Ubuntu System Image Signing Key (YYYY) "
+                         "<system-image@ubuntu.com>")
 
         temp_key = os.path.join(self.temp_directory, "key.asc")
         keyring.export_key(temp_key, key_id)
         self.assertTrue(os.path.exists(temp_key))
         keyring.del_key(key_id)
-        self.assertEquals(keyring.list_keys(), [])
+        self.assertEqual(keyring.list_keys(), [])
         keyring.import_key(temp_key)
 
         # Check that the keyring matches
         keys = keyring.list_keys()
         self.assertTrue(len(keys), 1)
         key_id, key_bit, [key_desc] = keys[0]
-        self.assertEquals(key_bit, 2048)
-        self.assertEquals(key_desc,
-                          "[TESTING] Ubuntu System Image Signing Key (YYYY) "
-                          "<system-image@ubuntu.com>")
+        self.assertEqual(key_bit, 2048)
+        self.assertEqual(key_desc,
+                         "[TESTING] Ubuntu System Image Signing Key (YYYY) "
+                         "<system-image@ubuntu.com>")
 
         self.assertRaises(gpgme.GpgmeError, keyring.export_key,
                           "missing", "abcd")
@@ -151,6 +151,7 @@ gpg_key_path = %s
         self.assertTrue(os.path.exists(os.path.join(keyring_path,
                                                     "testing.tar")))
 
+    @unittest.skipIf("SKIP_SLOW_TESTS" in os.environ, "skipping slow test")
     def test_generate_signing_key(self):
         key_dir = os.path.join(self.temp_directory, "key")
 
@@ -159,5 +160,5 @@ gpg_key_path = %s
         self.assertRaises(Exception, gpg.generate_signing_key, "", "", "", "")
 
         uid = gpg.generate_signing_key(key_dir, "test-key", "a@b.c", "2y")
-        self.assertEquals(uid.name, "test-key")
-        self.assertEquals(uid.email, "a@b.c")
+        self.assertEqual(uid.name, "test-key")
+        self.assertEqual(uid.email, "a@b.c")

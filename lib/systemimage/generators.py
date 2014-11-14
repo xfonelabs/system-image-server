@@ -35,6 +35,12 @@ except ImportError:  # pragma: no cover
 CACHE = {}
 
 
+def list_versions(cdimage_path):
+    return sorted([version for version in os.listdir(cdimage_path)
+                   if version not in ("pending", "current")],
+                  reverse=True)
+
+
 def root_ownership(tarinfo):
     tarinfo.mode = 0o644
     tarinfo.mtime = int(time.strftime("%s", time.localtime()))
@@ -139,11 +145,14 @@ def generate_file(conf, generator, arguments, environment):
     if generator == "version":
         path = generate_file_version(conf, arguments, environment)
     elif generator == "cdimage-device":
-        path = generate_file_cdimage_device(conf, arguments, environment)
+        path = generate_file_cdimage_device_android(
+            conf, arguments, environment)
     elif generator == "cdimage-ubuntu":
         path = generate_file_cdimage_ubuntu(conf, arguments, environment)
     elif generator == "cdimage-custom":
         path = generate_file_cdimage_custom(conf, arguments, environment)
+    elif generator == "cdimage-device-raw":
+        path = generate_file_cdimage_device_raw(conf, arguments, environment)
     elif generator == "http":
         path = generate_file_http(conf, arguments, environment)
     elif generator == "keyring":
@@ -158,7 +167,7 @@ def generate_file(conf, generator, arguments, environment):
     return path
 
 
-def generate_file_cdimage_device(conf, arguments, environment):
+def generate_file_cdimage_device_android(conf, arguments, environment):
     """
         Scan a cdimage tree for new device files.
     """
@@ -191,17 +200,13 @@ def generate_file_cdimage_device(conf, arguments, environment):
     if not os.path.exists(cdimage_path):
         return None
 
-    versions = sorted([version for version in os.listdir(cdimage_path)
-                       if version not in ("pending", "current")],
-                      reverse=True)
-
-    for version in versions:
+    for version in list_versions(cdimage_path):
         # Skip directory without checksums
         if not os.path.exists(os.path.join(cdimage_path, version,
                                            "SHA256SUMS")):
             continue
 
-        # Check for all the needed files
+        # Check for all the ANDROID files
         boot_path = os.path.join(cdimage_path, version,
                                  "%s-preinstalled-boot-%s+%s.img" %
                                  (series, boot_arch,
@@ -370,11 +375,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     if not os.path.exists(cdimage_path):
         return None
 
-    versions = sorted([version for version in os.listdir(cdimage_path)
-                       if version not in ("pending", "current")],
-                      reverse=True)
-
-    for version in versions:
+    for version in list_versions(cdimage_path):
         # Skip directory without checksums
         if not os.path.exists(os.path.join(cdimage_path, version,
                                            "SHA256SUMS")):
@@ -590,11 +591,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
     if not os.path.exists(cdimage_path):
         return None
 
-    versions = sorted([version for version in os.listdir(cdimage_path)
-                       if version not in ("pending", "current")],
-                      reverse=True)
-
-    for version in versions:
+    for version in list_versions(cdimage_path):
         # Skip directory without checksums
         if not os.path.exists(os.path.join(cdimage_path, version,
                                            "SHA256SUMS")):
@@ -669,6 +666,123 @@ def generate_file_cdimage_custom(conf, arguments, environment):
         metadata['series'] = series
         metadata['custom_path'] = custom_path
         metadata['custom_checksum'] = custom_hash
+
+        with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+            fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                         indent=4, separators=(',', ': ')))
+        gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
+
+        # Cleanup
+        shutil.rmtree(temp_dir)
+
+        environment['version_detail'].append(version_detail)
+        return path
+
+    return None
+
+
+def generate_file_cdimage_device_raw(conf, arguments, environment):
+    """
+        Scan a cdimage tree for new device files that can be unpacked as is
+    """
+
+    # We need at least a path and a series
+    if len(arguments) < 2:
+        return None
+
+    # Read the arguments
+    cdimage_path = arguments[0]
+    series = arguments[1]
+
+    options = {}
+    if len(arguments) > 2:
+        options = unpack_arguments(arguments[2])
+
+    arch = "armhf"
+    if environment['device_name'] in ("generic_x86", "generic_i386"):
+        arch = "i386"
+    elif environment['device_name'] in ("generic_amd64",):
+        arch = "amd64"
+
+    # Check that the directory exists
+    if not os.path.exists(cdimage_path):
+        return None
+
+    for version in list_versions(cdimage_path):
+        # Skip directory without checksums
+        if not os.path.exists(os.path.join(cdimage_path, version,
+                                           "SHA256SUMS")):
+            continue
+
+        # Check for the custom tarball
+        raw_device_path = os.path.join(cdimage_path, version,
+                                       "%s-preinstalled-%s-%s.device.tar.gz" %
+                                       (series, options.get("product", "core"),
+                                        arch))
+        if not os.path.exists(raw_device_path):
+            continue
+
+        # Check if we should only import tested images
+        if options.get("import", "any") == "good":
+            if not os.path.exists(os.path.join(cdimage_path, version,
+                                               ".marked_good")):
+                continue
+
+        # Set the version_detail string
+        version_detail = "raw-device=%s" % version
+
+        # Extract the hash
+        raw_device_hash = None
+        with open(os.path.join(cdimage_path, version,
+                               "SHA256SUMS"), "r") as fd:
+            for line in fd:
+                line = line.strip()
+                if line.endswith(raw_device_path.split("/")[-1]):
+                    raw_device_hash = line.split()[0]
+                    break
+
+        if not raw_device_hash:
+            continue
+
+        # Generate the path
+        path = os.path.join(conf.publish_path, "pool",
+                            "device-%s.tar.xz" % raw_device_hash)
+
+        # Return pre-existing entries
+        if os.path.exists(path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
+            return path
+
+        temp_dir = tempfile.mkdtemp()
+
+        # Unpack the source tarball
+        tools.gzip_uncompress(raw_device_path, os.path.join(temp_dir,
+                                                            "source.tar"))
+
+        # Create the pool if it doesn't exist
+        if not os.path.exists(os.path.join(conf.publish_path, "pool")):
+            os.makedirs(os.path.join(conf.publish_path, "pool"))
+
+        # Compress the target tarball and sign it
+        tools.xz_compress(os.path.join(temp_dir, "source.tar"), path)
+        gpg.sign_file(conf, "image-signing", path)
+
+        # Generate the metadata file
+        metadata = {}
+        metadata['generator'] = "cdimage-device-raw"
+        metadata['version'] = version
+        metadata['version_detail'] = version_detail
+        metadata['series'] = series
+        metadata['raw_device_path'] = raw_device_path
+        metadata['raw_device_checksum'] = raw_device_hash
 
         with open(path.replace(".tar.xz", ".json"), "w+") as fd:
             fd.write("%s\n" % json.dumps(metadata, sort_keys=True,

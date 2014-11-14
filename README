@@ -10,3 +10,14 @@ Test dependencies:
  - python-coverage, python3-coverage
  - pep8
  - pyflakes3, pyflakes
+
+
+Run once:
+$ ./tests/generate-keys
+
+Then run the tests with:
+$ ./tests/run
+or
+$ SKIP_SLOW_TESTS=1 ./tests/run
+or
+$ PYTHONPATH=lib python -m unittest tests.test_generators.GeneratorsTests
