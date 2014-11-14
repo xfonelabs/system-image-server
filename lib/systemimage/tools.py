@@ -240,6 +240,7 @@ def sync_mirrors(config):
                        mirror.ssh_key, mirror.ssh_command)
 
 
+# FIXME: keyring_name is not used
 def repack_recovery_keyring(conf, path, keyring_name):
     tempdir = tempfile.mkdtemp()
 
@@ -357,7 +358,12 @@ def repack_recovery_keyring(conf, path, keyring_name):
                 pass
 
         output_tarball.addfile(entry, fileobj=fileptr)
+        if fileptr:
+            fileptr.close()
+            fileptr = None
+
     output_tarball.close()
+    input_tarball.close()
 
     os.remove(path)
     xz_compress(os.path.join(tempdir, "output.tar"), path)
