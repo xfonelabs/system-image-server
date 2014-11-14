@@ -210,22 +210,22 @@ class DiffTests(unittest.TestCase):
 
     def test_content(self):
         content_set, content_dict = self.imagediff.scan_content("source")
-        self.assertEquals(sorted(content_dict.keys()),
-                          ['a', 'b', 'c', 'c/d', 'c/g', 'c/h', 'dir', 'm',
-                           'n', 'system/中文中文中文'])
+        self.assertEqual(sorted(content_dict.keys()),
+                         ['a', 'b', 'c', 'c/d', 'c/g', 'c/h', 'dir', 'm',
+                          'n', 'system/中文中文中文'])
 
         content_set, content_dict = self.imagediff.scan_content("target")
-        self.assertEquals(sorted(content_dict.keys()),
-                          ['a', 'c', 'c/a_i', 'c/c', 'c/d', 'c/g', 'c/h',
-                           'c/j', 'dir', 'e', 'f', 'm', 'n', 'system/o',
-                           'system/o.1'])
+        self.assertEqual(sorted(content_dict.keys()),
+                         ['a', 'c', 'c/a_i', 'c/c', 'c/d', 'c/g', 'c/h',
+                          'c/j', 'dir', 'e', 'f', 'm', 'n', 'system/o',
+                          'system/o.1'])
 
     def test_content_invalid_image(self):
         self.assertRaises(KeyError, self.imagediff.scan_content, "invalid")
 
     def test_compare_files(self):
-        self.assertEquals(compare_files(None, None), True)
-        self.assertEquals(compare_files(None, BytesIO(b"abc")), False)
+        self.assertEqual(compare_files(None, None), True)
+        self.assertEqual(compare_files(None, BytesIO(b"abc")), False)
 
     def test_compare_image(self):
         diff_set = self.imagediff.compare_images()
@@ -247,7 +247,7 @@ class DiffTests(unittest.TestCase):
         output = sys.stdout.getvalue()
         sys.stdout = old_stdout
 
-        self.assertEquals(output, """ - b (del)
+        self.assertEqual(output, """ - b (del)
  - c/a_i (add)
  - c/c (add)
  - c/d (mod)
@@ -267,12 +267,12 @@ class DiffTests(unittest.TestCase):
         tarball = tarfile.open(output_tarball, "r")
 
         files_list = [entry.name for entry in tarball]
-        self.assertEquals(files_list, ['removed', 'c/c', 'c/a_i', 'c/d', 'c/j',
-                                       'dir', 'e', 'f', 'system/o',
-                                       'system/o.1'])
+        self.assertEqual(files_list, ['removed', 'c/c', 'c/a_i', 'c/d', 'c/j',
+                                      'dir', 'e', 'f', 'system/o',
+                                      'system/o.1'])
 
         removed_list = tarball.extractfile("removed")
-        self.assertEquals(removed_list.read().decode('utf-8'), u"""b
+        self.assertEqual(removed_list.read().decode('utf-8'), u"""b
 c/d
 dir
 system/中文中文中文

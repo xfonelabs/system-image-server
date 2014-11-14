@@ -428,7 +428,7 @@ class Tree:
             if channel_name not in channels:
                 raise KeyError("Couldn't find channel: %s" % channel_name)
 
-            return channels[channel_name]['devices'].keys()
+            return list(channels[channel_name]['devices'].keys())
 
     def list_missing_files(self):
         """

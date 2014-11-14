@@ -69,7 +69,7 @@ ssh_host = hostb
                              '-p', '22', 'hosta', 'command'],), {}),
                           ((['ssh', '-i', key_path, '-l', 'user',
                              '-p', '22', 'hostb', 'command'],), {})]
-        self.assertEquals(mock_call.call_args_list, expected_calls)
+        self.assertEqual(mock_call.call_args_list, expected_calls)
 
         # Invalid config
         invalid_config_path = os.path.join(self.temp_directory,
@@ -77,7 +77,7 @@ ssh_host = hostb
         with open(invalid_config_path, "w+") as fd:
             fd.write("""invalid""")
 
-        self.assertEquals(config.parse_config(invalid_config_path), {})
+        self.assertEqual(config.parse_config(invalid_config_path), {})
 
         self.assertRaises(
             Exception, config.Config, os.path.join(self.temp_directory,
@@ -102,7 +102,7 @@ ssh_host = hostb
             fd.write("")
 
         conf = config.Config(empty_config_path)
-        self.assertEquals(conf.base_path, os.getcwd())
+        self.assertEqual(conf.base_path, os.getcwd())
 
         # Single mirror config
         single_mirror_config_path = os.path.join(self.temp_directory,
@@ -122,7 +122,7 @@ ssh_host = host
 """)
 
         conf = config.Config(single_mirror_config_path)
-        self.assertEquals(conf.mirrors['a'].ssh_command, "command")
+        self.assertEqual(conf.mirrors['a'].ssh_command, "command")
 
         # Missing mirror_default
         missing_default_config_path = os.path.join(self.temp_directory,
@@ -197,7 +197,7 @@ ssh_user = other-user
             fd.write("[global]\nbase_path = a/b/c")
         os.environ['SYSTEM_IMAGE_ROOT'] = test_path
         test_config = config.Config()
-        self.assertEquals(test_config.base_path, "a/b/c")
+        self.assertEqual(test_config.base_path, "a/b/c")
 
         # Test the channels config
         # # Multiple channels
@@ -221,20 +221,20 @@ file_b = test;arg3;arg4
 """)
 
         conf = config.Config(channel_config_path)
-        self.assertEquals(
+        self.assertEqual(
             conf.channels['b'].files,
             [{'name': 'a', 'generator': 'test',
               'arguments': ['arg1', 'arg2']},
              {'name': 'b', 'generator': 'test',
               'arguments': ['arg3', 'arg4']}])
 
-        self.assertEquals(conf.channels['a'].fullcount, 10)
-        self.assertEquals(conf.channels['a'].versionbase, 1)
-        self.assertEquals(conf.channels['a'].deltabase, ['a'])
+        self.assertEqual(conf.channels['a'].fullcount, 10)
+        self.assertEqual(conf.channels['a'].versionbase, 1)
+        self.assertEqual(conf.channels['a'].deltabase, ['a'])
 
-        self.assertEquals(conf.channels['b'].fullcount, 0)
-        self.assertEquals(conf.channels['b'].versionbase, 5)
-        self.assertEquals(conf.channels['b'].deltabase, ["a", "b"])
+        self.assertEqual(conf.channels['b'].fullcount, 0)
+        self.assertEqual(conf.channels['b'].versionbase, 5)
+        self.assertEqual(conf.channels['b'].deltabase, ["a", "b"])
 
         # # Single channel
         single_channel_config_path = os.path.join(self.temp_directory,
@@ -251,7 +251,7 @@ file_a = test;arg1;arg2
 """)
 
         conf = config.Config(single_channel_config_path)
-        self.assertEquals(
+        self.assertEqual(
             conf.channels['a'].files,
             [{'name': 'a', 'generator': 'test',
               'arguments': ['arg1', 'arg2']}])

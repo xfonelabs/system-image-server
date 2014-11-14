@@ -50,7 +50,7 @@ public_https_port = 443
     def test_channels(self):
         # Test getting a tree instance
         test_tree = tree.Tree(self.config)
-        self.assertEquals(test_tree.list_channels(), {})
+        self.assertEqual(test_tree.list_channels(), {})
 
         # Test publishing a keyring
         keyring = gpg.Keyring(self.config, "image-signing")
@@ -104,18 +104,18 @@ public_https_port = 443
 
         # Test hidding a channel
         test_tree.create_channel("testing")
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices': {}}})
 
         test_tree.hide_channel("testing")
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices': {},
                                          'hidden': True}})
 
         test_tree.show_channel("testing")
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices': {}}})
 
@@ -131,7 +131,7 @@ public_https_port = 443
             os.path.exists(os.path.join(self.config.publish_path,
                                         "testing", "test", "index.json")))
 
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices':
                                          {'test':
@@ -143,13 +143,13 @@ public_https_port = 443
 
         # Test listing devices
         self.assertRaises(KeyError, test_tree.list_devices, "invalid")
-        self.assertEquals(test_tree.list_devices("testing"), ["test"])
+        self.assertEqual(test_tree.list_devices("testing"), ["test"])
 
         # Test the index generation
         os.mkdir(os.path.join(self.config.publish_path, "testing", "empty"))
         self.assertRaises(Exception, test_tree.generate_index)
         test_tree.generate_index("I know what I'm doing")
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices':
                                          {'test':
@@ -161,7 +161,7 @@ public_https_port = 443
         open(device_keyring, "w+").close()
 
         test_tree.generate_index("I know what I'm doing")
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices':
                                          {'test':
@@ -170,7 +170,7 @@ public_https_port = 443
 
         gpg.sign_file(self.config, "image-signing", device_keyring)
         test_tree.generate_index("I know what I'm doing")
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices':
                                          {'test':
@@ -201,7 +201,7 @@ public_https_port = 443
             os.path.exists(os.path.join(self.config.publish_path,
                                         "testing", "to-remove", "index.json")))
 
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels(), {'testing':
                                         {'devices':
                                          {'test':
@@ -313,8 +313,8 @@ public_https_port = 443
         test_tree.sync_aliases("parent")
 
         alias_device = test_tree.get_device("alias", "device")
-        self.assertEquals(alias_device.get_phased_percentage(1234),
-                          50)
+        self.assertEqual(alias_device.get_phased_percentage(1234),
+                         50)
 
         test_tree.create_channel("new_parent")
         test_tree.change_channel_alias("alias", "new_parent")
@@ -383,7 +383,7 @@ public_https_port = 443
             self.config.publish_path, "redirect")))
         self.assertTrue(os.path.exists(os.path.join(
             self.config.publish_path, "parent", "device")))
-        self.assertEquals(device.list_images(), target.list_images())
+        self.assertEqual(device.list_images(), target.list_images())
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
@@ -442,7 +442,7 @@ public_https_port = 443
 
         self.assertTrue(test_tree.rename_channel("old", "test/new"))
 
-        self.assertEquals(
+        self.assertEqual(
             test_tree.list_channels()['test/new'],
             {'devices': {'device': {'index': '/test/new/device/index.json'}}})
 
@@ -490,7 +490,7 @@ public_https_port = 443
                             base=1233, bootme=True)
 
         # Check the image list
-        self.assertEquals(
+        self.assertEqual(
             device.list_images(),
             [{'bootme': True, 'description': 'abc', 'minversion': 1233,
               'type': 'full', 'version': 1234,
@@ -516,8 +516,8 @@ public_https_port = 443
         # Set descriptions
         device.set_description("delta", 1234, "test", {"fr": "essai"}, 1233)
         entry = device.get_image("delta", 1234, 1233)
-        self.assertEquals(entry['description'], "test")
-        self.assertEquals(entry['description_fr'], "essai")
+        self.assertEqual(entry['description'], "test")
+        self.assertEqual(entry['description_fr'], "essai")
 
         self.assertRaises(TypeError, device.set_description, "delta", 1234,
                           "test", ['test'], 1233)
@@ -525,7 +525,7 @@ public_https_port = 443
         # Remove the images
         device.remove_image("delta", 1234, 1233)
         device.remove_image("full", 1234)
-        self.assertEquals(device.list_images(), [])
+        self.assertEqual(device.list_images(), [])
 
         # Error case of remove_image
         self.assertRaises(ValueError, device.remove_image, "invalid", 1234)
@@ -550,38 +550,38 @@ public_https_port = 443
         test_tree.create_channel("test")
         test_tree.create_device("test", "test")
 
-        self.assertEquals(test_tree.list_missing_files(), [])
-        self.assertEquals(test_tree.list_orphaned_files(), [])
+        self.assertEqual(test_tree.list_missing_files(), [])
+        self.assertEqual(test_tree.list_orphaned_files(), [])
 
         # Confirm that the gpg directory is ignored
         if not os.path.exists(os.path.join(test_tree.path, "gpg")):
             os.mkdir(os.path.join(test_tree.path, "gpg"))
-        self.assertEquals(test_tree.list_orphaned_files(), [])
+        self.assertEqual(test_tree.list_orphaned_files(), [])
 
         # Confirm that it picks up extra directories
         os.mkdir(os.path.join(test_tree.path, "invalid"))
-        self.assertEquals(test_tree.list_orphaned_files(),
-                          [os.path.join(test_tree.path, "invalid")])
+        self.assertEqual(test_tree.list_orphaned_files(),
+                         [os.path.join(test_tree.path, "invalid")])
 
         # And that it gets cleared up
         test_tree.cleanup_tree()
-        self.assertEquals(test_tree.list_orphaned_files(), [])
+        self.assertEqual(test_tree.list_orphaned_files(), [])
 
         # Confirm that it picks up extra files
         open(os.path.join(test_tree.path, "invalid"), "w+").close()
-        self.assertEquals(test_tree.list_orphaned_files(),
-                          [os.path.join(test_tree.path, "invalid")])
+        self.assertEqual(test_tree.list_orphaned_files(),
+                         [os.path.join(test_tree.path, "invalid")])
 
         # And that it gets cleared up
         test_tree.cleanup_tree()
-        self.assertEquals(test_tree.list_orphaned_files(), [])
+        self.assertEqual(test_tree.list_orphaned_files(), [])
 
         # Test that keyrings aren't considered as orphaned files
         keyring_path = os.path.join(test_tree.path, "gpg", "device.tar.xz")
         open(keyring_path, "w+").close()
         gpg.sign_file(self.config, "image-signing", keyring_path)
         test_tree.set_device_keyring("test", "test", keyring_path)
-        self.assertEquals(test_tree.list_orphaned_files(), [])
+        self.assertEqual(test_tree.list_orphaned_files(), [])
 
         # Test that images aren't considered as orphaned files
         image_path = os.path.join(test_tree.path,
@@ -593,7 +593,7 @@ public_https_port = 443
                       image_path.replace(".tar.xz", ".json"))
         device = test_tree.get_device("test", "test")
         device.create_image("full", 12345, "test", [image_path])
-        self.assertEquals(test_tree.list_orphaned_files(), [])
+        self.assertEqual(test_tree.list_orphaned_files(), [])
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
@@ -619,25 +619,25 @@ public_https_port = 443
         device.create_image("delta", 4, "test", [image_path], base=2)
         device.create_image("delta", 4, "test", [image_path], base=1)
 
-        self.assertEquals(len(device.list_images()), 10)
+        self.assertEqual(len(device.list_images()), 10)
 
         device.expire_images(10)
-        self.assertEquals(len(device.list_images()), 10)
+        self.assertEqual(len(device.list_images()), 10)
 
         device.expire_images(3)
-        self.assertEquals(len(device.list_images()), 6)
+        self.assertEqual(len(device.list_images()), 6)
 
         device.expire_images(3)
-        self.assertEquals(len(device.list_images()), 6)
+        self.assertEqual(len(device.list_images()), 6)
 
         device.expire_images(2)
-        self.assertEquals(len(device.list_images()), 3)
+        self.assertEqual(len(device.list_images()), 3)
 
         device.expire_images(1)
-        self.assertEquals(len(device.list_images()), 1)
+        self.assertEqual(len(device.list_images()), 1)
 
         device.expire_images(0)
-        self.assertEquals(len(device.list_images()), 0)
+        self.assertEqual(len(device.list_images()), 0)
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
@@ -658,14 +658,14 @@ public_https_port = 443
         device.create_image("full", 1234, "abc",
                             ["test/test/full"])
         device.set_phased_percentage(1234, 20)
-        self.assertEquals(device.get_phased_percentage(1234), 20)
+        self.assertEqual(device.get_phased_percentage(1234), 20)
 
         # # Adding a second entry
         device = test_tree.get_device("test", "test")
         device.create_image("full", 1235, "abc",
                             ["test/test/full"])
 
-        self.assertEquals(device.get_phased_percentage(1235), 100)
+        self.assertEqual(device.get_phased_percentage(1235), 100)
         device.set_phased_percentage(1235, 0)
 
         device.set_phased_percentage(1235, 100)

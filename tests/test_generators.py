@@ -63,10 +63,10 @@ public_https_port = 8443
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
     def test_unpack_arguments(self):
-        self.assertEquals(generators.unpack_arguments("a=1,b=2"),
-                          {'a': "1", 'b': "2"})
-        self.assertEquals(generators.unpack_arguments("a=1,b=2,c"),
-                          {'a': "1", 'b': "2"})
+        self.assertEqual(generators.unpack_arguments("a=1,b=2"),
+                         {'a': "1", 'b': "2"})
+        self.assertEqual(generators.unpack_arguments("a=1,b=2,c"),
+                         {'a': "1", 'b': "2"})
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
@@ -106,7 +106,7 @@ public_https_port = 8443
                           "version-1.tar.xz"), "w+").close()
         open(os.path.join(self.temp_directory,
                           "version-2.tar.xz"), "w+").close()
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_delta(
                 self.config,
                 os.path.join(self.temp_directory, "version-1.tar.xz"),
@@ -116,7 +116,7 @@ public_https_port = 8443
         # Check that keyring tarballs are just returned
         open(os.path.join(self.temp_directory,
                           "keyring-1.tar.xz"), "w+").close()
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_delta(
                 self.config,
                 os.path.join(self.temp_directory, "keyring-1.tar.xz"),
@@ -124,7 +124,7 @@ public_https_port = 8443
             os.path.join(self.temp_directory, "keyring-1.tar.xz"))
 
         # Generate the diff
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_delta(self.config, source_path_xz,
                                       destination_path_xz),
             os.path.join(self.config.publish_path, "pool",
@@ -153,20 +153,20 @@ public_https_port = 8443
 
         # Ensure we don't generate a new tarball when there are no changes
         environment['new_files'] = []
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "version", [], environment),
             None)
 
         # Do a standard run
         environment['new_files'] = ["some-file.tar.xz"]
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "version", [], environment),
             os.path.realpath(os.path.join(self.device.path,
                              "version-%s.tar.xz" % environment['version'])))
 
         # Go through the cache code path
         environment['new_files'] = ["some-file.tar.xz"]
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "version", [], environment),
             os.path.realpath(os.path.join(self.device.path,
                              "version-%s.tar.xz" % environment['version'])))
@@ -174,7 +174,7 @@ public_https_port = 8443
         # Confirm pool creation
         environment['new_files'] = ["some-file.tar.xz"]
         shutil.rmtree(self.device.path)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "version", [], environment),
             os.path.realpath(os.path.join(self.device.path,
                              "version-%s.tar.xz" % environment['version'])))
@@ -200,13 +200,13 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Check the path and series requirement
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_device_android(self.config, [],
                                                             environment),
             None)
 
         # Check behaviour on invalid cdimage path
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_device_android(
                 self.config, ['invalid-path', 'invalid-series'],
                 environment),
@@ -215,7 +215,7 @@ public_https_port = 8443
         # Check behaviour on empty tree
         cdimage_tree = os.path.join(self.temp_directory, "cdimage")
         os.mkdir(cdimage_tree)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_device_android(
                 self.config, [cdimage_tree, 'series'],
                 environment),
@@ -224,7 +224,7 @@ public_https_port = 8443
         # Check behaviour on missing hash
         version_path = os.path.join(cdimage_tree, "1234")
         os.mkdir(version_path)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_device_android(
                 self.config, [cdimage_tree, 'series'],
                 environment),
@@ -237,7 +237,7 @@ public_https_port = 8443
                          "series-preinstalled-system-i386+generic_x86.img",
                          ".marked_good"):
             open(os.path.join(version_path, filename), "w+").close()
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file_cdimage_device_android(
                     self.config, [cdimage_tree, 'series', 'import=good'],
                     environment),
@@ -249,7 +249,7 @@ public_https_port = 8443
             fd.write("HASH *series-preinstalled-recovery-i386+"
                      "generic_x86.img\n")
 
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_device_android(
                 self.config, [cdimage_tree, 'series'],
                 environment),
@@ -280,7 +280,7 @@ public_https_port = 8443
                 fd.write("HASH *series-preinstalled-system-%s+%s.img\n" %
                          (cdimage_arch, device_arch))
 
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file(
                     self.config, "cdimage-device", [cdimage_tree, 'series'],
                     environment),
@@ -289,7 +289,7 @@ public_https_port = 8443
                              "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
 
             # Cached run
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file_cdimage_device_android(
                     self.config, [cdimage_tree, 'series'],
                     environment),
@@ -309,13 +309,13 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Check the path and series requirement
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_ubuntu(self.config, [],
                                                     environment),
             None)
 
         # Check behaviour on invalid cdimage path
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_ubuntu(
                 self.config, ['invalid-path', 'invalid-series'],
                 environment),
@@ -324,7 +324,7 @@ public_https_port = 8443
         # Check behaviour on empty tree
         cdimage_tree = os.path.join(self.temp_directory, "cdimage")
         os.mkdir(cdimage_tree)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_ubuntu(
                 self.config, [cdimage_tree, 'series'],
                 environment),
@@ -333,7 +333,7 @@ public_https_port = 8443
         # Check behaviour on missing hash
         version_path = os.path.join(cdimage_tree, "1234")
         os.mkdir(version_path)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_ubuntu(
                 self.config, [cdimage_tree, 'series'],
                 environment),
@@ -344,7 +344,7 @@ public_https_port = 8443
                          "series-preinstalled-touch-i386.tar.gz",
                          ".marked_good"):
             open(os.path.join(version_path, filename), "w+").close()
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file_cdimage_ubuntu(
                     self.config, [cdimage_tree, 'series', 'import=good'],
                     environment),
@@ -400,7 +400,7 @@ public_https_port = 8443
 
             tarball_obj.close()
 
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file(
                     self.config, "cdimage-ubuntu",
                     [cdimage_tree, 'series', 'product=%s' % cdimage_product],
@@ -409,7 +409,7 @@ public_https_port = 8443
                              "ubuntu-HASH.tar.xz"))
 
             # Cached run
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file_cdimage_ubuntu(
                     self.config, [cdimage_tree, 'series',
                                   'product=%s' % cdimage_product],
@@ -434,13 +434,13 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Check the path and series requirement
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_custom(self.config, [],
                                                     environment),
             None)
 
         # Check behaviour on invalid cdimage path
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_custom(
                 self.config, ['invalid-path', 'invalid-series'],
                 environment),
@@ -449,7 +449,7 @@ public_https_port = 8443
         # Check behaviour on empty tree
         cdimage_tree = os.path.join(self.temp_directory, "cdimage")
         os.mkdir(cdimage_tree)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_custom(
                 self.config, [cdimage_tree, 'series'],
                 environment),
@@ -458,7 +458,7 @@ public_https_port = 8443
         # Check behaviour on missing hash
         version_path = os.path.join(cdimage_tree, "1234")
         os.mkdir(version_path)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_cdimage_custom(
                 self.config, [cdimage_tree, 'series'],
                 environment),
@@ -469,7 +469,7 @@ public_https_port = 8443
                          "series-preinstalled-touch-i386.custom.tar.gz",
                          ".marked_good"):
             open(os.path.join(version_path, filename), "w+").close()
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file_cdimage_custom(
                     self.config, [cdimage_tree, 'series', 'import=good'],
                     environment),
@@ -499,7 +499,7 @@ public_https_port = 8443
             tarball_obj = tarfile.open(tarball, "w:gz")
             tarball_obj.close()
 
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file(
                     self.config, "cdimage-custom",
                     [cdimage_tree, 'series', 'product=%s' % cdimage_product],
@@ -508,7 +508,7 @@ public_https_port = 8443
                              "custom-HASH.tar.xz"))
 
             # Cached run
-            self.assertEquals(
+            self.assertEqual(
                 generators.generate_file_cdimage_custom(
                     self.config, [cdimage_tree, 'series',
                                   'product=%s' % cdimage_product],
@@ -559,13 +559,13 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Without arguments
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_http(self.config, [], {}),
             None)
 
         # Timeout without monitor
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/timeout"],
                                      environment),
@@ -573,7 +573,7 @@ public_https_port = 8443
 
         # Error without monitor
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/error"],
                                      environment),
@@ -581,7 +581,7 @@ public_https_port = 8443
 
         # Timeout with monitor
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/timeout",
                                       "monitor=http://1.2.3.4/timeout"],
@@ -590,7 +590,7 @@ public_https_port = 8443
 
         # Error with monitor
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/error",
                                       "monitor=http://1.2.3.4/error"],
@@ -599,7 +599,7 @@ public_https_port = 8443
 
         # Invalid build number with monitor
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/file",
                                       "monitor=http://1.2.3.4/long"],
@@ -608,7 +608,7 @@ public_https_port = 8443
 
         # Normal run without monitor
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/file"],
                                      environment),
@@ -617,7 +617,7 @@ public_https_port = 8443
                          "2d4c6a0d1b63f93a3018cef1020df3b.tar.xz"))
 
         # Cached run without monitor
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/file"],
                                      environment),
@@ -627,7 +627,7 @@ public_https_port = 8443
 
         # Cached run without monitor (no path caching)
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/file"],
                                      environment),
@@ -637,7 +637,7 @@ public_https_port = 8443
 
         # Normal run with monitor
         generators.CACHE = {}
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/file",
                                       "monitor=http://1.2.3.4/buildid"],
@@ -647,7 +647,7 @@ public_https_port = 8443
                          "5cef1809ce82af09d41e2f5af.tar.xz"))
 
         # Cached run with monitor
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "http",
                                      ["http://1.2.3.4/file",
                                       "monitor=http://1.2.3.4/buildid"],
@@ -672,19 +672,19 @@ public_https_port = 8443
 
         # Ensure we don't generate a new tarball when there are no changes
         environment['new_files'] = []
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "keyring",
                                      ['archive-master'], environment),
             None)
         environment['new_files'] = ['abc']
 
         # Check the arguments count
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_keyring(self.config, [], environment),
             None)
 
         # Check for invalid keyring name
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_keyring(self.config,
                                              ['invalid'],
                                              environment),
@@ -703,7 +703,7 @@ public_https_port = 8443
         global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
 
         # Normal run
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "keyring",
                                                   ['archive-master'],
                                                   environment),
@@ -711,7 +711,7 @@ public_https_port = 8443
                          "keyring-%s.tar.xz" % global_hash))
 
         # Cached run
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "keyring",
                                                   ['archive-master'],
                                                   environment),
@@ -730,12 +730,12 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Check the arguments count
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_system_image(self.config, [], {}),
             None)
 
         # Check for channel name
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_system_image(self.config,
                                                   ['invalid', 'file'],
                                                   {}),
@@ -743,7 +743,7 @@ public_https_port = 8443
 
         # Check for device name
         environment['device_name'] = "invalid"
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_system_image(self.config,
                                                   ['test', 'file'],
                                                   environment),
@@ -751,7 +751,7 @@ public_https_port = 8443
 
         # Run against an empty channel
         environment['device_name'] = "test"
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_system_image(self.config,
                                                   ['test', 'file'],
                                                   environment),
@@ -771,14 +771,14 @@ public_https_port = 8443
                                  minversion=1233, bootme=True)
 
         # Invalid filename
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_system_image(self.config,
                                                   ['test', 'invalid'],
                                                   environment),
             None)
 
         # Normal run
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "system-image",
                                                   ['test', 'file'],
                                                   environment),
@@ -902,96 +902,96 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Without arguments
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(self.config, [], {}),
             None)
 
         # Invalid server
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://error', 'chan', 'prefix'],
                 environment), None)
 
         # Server timeout
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://timeout', 'chan', 'prefix'],
                 environment), None)
 
         # Invalid channel
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://valid', 'invalid', 'prefix'],
                 environment), None)
 
         # Missing devices dict
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://partial-json', 'chan', 'prefix'],
                 environment), None)
 
         # Invalid device
         environment['device_name'] = "invalid"
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://channels.json', 'chan', 'prefix'],
                 environment), None)
         environment['device_name'] = "test"
 
         # Invalid device override
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://channels.json', 'chan', 'prefix',
                               'device=invalid'],
                 environment), None)
 
         # Missing index
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://partial-json1', 'chan', 'prefix'],
                 environment), None)
 
         # index.json timeout
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://index-timeout', 'chan', 'prefix'],
                 environment), None)
 
         # index.json error
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://index-error', 'chan', 'prefix'],
                 environment), None)
 
         # empty index.json
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://empty-json', 'chan', 'prefix'],
                 environment), None)
 
         # valid index.json timeout
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://file-timeout', 'chan', 'a',
                               'keyring=fail'],
                 environment), None)
 
         # valid index.json error
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://file-error', 'chan', 'a',
                               'keyring=fail'],
                 environment), None)
 
         # valid index.json, fail at repacking
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://valid-json', 'chan', 'a',
                               'keyring=fail'],
                 environment), None)
 
         # valid index.json, metadata timeout
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://meta-timeout', 'chan', 'a',
                               'keyring=archive-master'],
@@ -999,7 +999,7 @@ public_https_port = 8443
 
         # valid index.json, metadata error
         shutil.rmtree("%s/www/pool/" % self.temp_directory)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://meta-error', 'chan', 'a',
                               'keyring=archive-master'],
@@ -1008,7 +1008,7 @@ public_https_port = 8443
         # valid device override
         shutil.rmtree("%s/www/pool/" % self.temp_directory)
         environment['device_name'] = "invalid"
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://valid-json', 'chan', 'a',
                               'keyring=archive-master,device=test'],
@@ -1017,14 +1017,14 @@ public_https_port = 8443
 
         # valid index.json
         shutil.rmtree("%s/www/pool/" % self.temp_directory)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://valid-json', 'chan', 'a',
                               'keyring=archive-master'],
                 environment), "%s/www/pool/a-a.tar.xz" % self.temp_directory)
 
         # from cache
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file_remote_system_image(
                 self.config, ['http://valid-json', 'chan', 'a',
                               'keyring=archive-master'],
@@ -1032,7 +1032,7 @@ public_https_port = 8443
 
         # no match
         shutil.rmtree("%s/www/pool/" % self.temp_directory)
-        self.assertEquals(
+        self.assertEqual(
             generators.generate_file(self.config, "remote-system-image",
                                      ['http://no-match', 'chan', 'a',
                                       'keyring=archive-master'],

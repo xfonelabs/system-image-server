@@ -60,11 +60,12 @@ public_https_port = 8443
 
         version_file = version_tarfile.extractfile("a/b/version")
         self.assertTrue(version_file)
-        self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4\n")
+        self.assertEqual(version_file.read().decode('utf-8'), "1.2.3.4\n")
+        version_file.close()
 
         channel_file = version_tarfile.extractfile("a/b/channel")
         self.assertTrue(channel_file)
-        self.assertEquals(channel_file.read().decode('utf-8'), """[service]
+        self.assertEqual(channel_file.read().decode('utf-8'), """[service]
 base: system-image.example.net
 http_port: 880
 https_port: 8443
@@ -72,6 +73,7 @@ channel: testing
 device: test
 build_number: 1.2.3.4
 """)
+        channel_file.close()
         os.remove(version_tarball)
 
         # Run without version_detail or channel_target but custom ports
@@ -84,15 +86,16 @@ build_number: 1.2.3.4
                                        version_tarball, "a/b/version",
                                        "a/b/channel")
 
-        version_tarfile = tarfile.open(version_tarball, "r:")
+        with tarfile.open(version_tarball, "r:") as version_tarfile:
 
-        version_file = version_tarfile.extractfile("a/b/version")
-        self.assertTrue(version_file)
-        self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4\n")
+            version_file = version_tarfile.extractfile("a/b/version")
+            self.assertTrue(version_file)
+            self.assertEqual(version_file.read().decode('utf-8'), "1.2.3.4\n")
+            version_file.close()
 
-        channel_file = version_tarfile.extractfile("a/b/channel")
-        self.assertTrue(channel_file)
-        self.assertEquals(channel_file.read().decode('utf-8'), """[service]
+            channel_file = version_tarfile.extractfile("a/b/channel")
+            self.assertTrue(channel_file)
+            self.assertEqual(channel_file.read().decode('utf-8'), """[service]
 base: system-image.example.net
 http_port: disabled
 https_port: disabled
@@ -100,6 +103,7 @@ channel: testing
 device: test
 build_number: 1.2.3.4
 """)
+            channel_file.close()
         os.remove(version_tarball)
         self.config.public_http_port = 880
         self.config.public_https_port = 8443
@@ -111,15 +115,16 @@ build_number: 1.2.3.4
                                        version_tarball, "a/b/version",
                                        "a/b/channel", "abcdef", "origin")
 
-        version_tarfile = tarfile.open(version_tarball, "r:")
+        with tarfile.open(version_tarball, "r:") as version_tarfile:
 
-        version_file = version_tarfile.extractfile("a/b/version")
-        self.assertTrue(version_file)
-        self.assertEquals(version_file.read().decode('utf-8'), "1.2.3.4\n")
+            version_file = version_tarfile.extractfile("a/b/version")
+            self.assertTrue(version_file)
+            self.assertEqual(version_file.read().decode('utf-8'), "1.2.3.4\n")
+            version_file.close()
 
-        channel_file = version_tarfile.extractfile("a/b/channel")
-        self.assertTrue(channel_file)
-        self.assertEquals(channel_file.read().decode('utf-8'), """[service]
+            channel_file = version_tarfile.extractfile("a/b/channel")
+            self.assertTrue(channel_file)
+            self.assertEqual(channel_file.read().decode('utf-8'), """[service]
 base: system-image.example.net
 http_port: 880
 https_port: 8443
@@ -129,6 +134,7 @@ build_number: 1.2.3.4
 channel_target: origin
 version_detail: abcdef
 """)
+            channel_file.close()
         os.remove(version_tarball)
 
     def test_gzip_compress(self):
@@ -139,18 +145,18 @@ version_detail: abcdef
         with open(test_file, "w+") as fd:
             fd.write(test_string)
 
-        self.assertEquals(tools.gzip_compress(test_file), "%s.gz" % test_file)
+        self.assertEqual(tools.gzip_compress(test_file), "%s.gz" % test_file)
         self.assertTrue(os.path.exists("%s.gz" % test_file))
 
         os.remove(test_file)
         self.assertFalse(os.path.exists(test_file))
 
-        self.assertEquals(tools.gzip_uncompress("%s.gz" % test_file),
-                          test_file)
+        self.assertEqual(tools.gzip_uncompress("%s.gz" % test_file),
+                         test_file)
         self.assertTrue(os.path.exists(test_file))
 
         with open(test_file, "r") as fd:
-            self.assertEquals(fd.read(), test_string)
+            self.assertEqual(fd.read(), test_string)
 
         self.assertRaises(Exception, tools.gzip_compress, test_file)
         self.assertRaises(Exception, tools.gzip_uncompress,
@@ -165,18 +171,18 @@ version_detail: abcdef
         with open(test_file, "w+") as fd:
             fd.write(test_string)
 
-        self.assertEquals(tools.xz_compress(test_file), 0)
+        self.assertEqual(tools.xz_compress(test_file), 0)
         self.assertTrue(os.path.exists("%s.xz" % test_file))
 
         os.remove(test_file)
         self.assertFalse(os.path.exists(test_file))
 
-        self.assertEquals(tools.xz_uncompress("%s.xz" % test_file), 0)
+        self.assertEqual(tools.xz_uncompress("%s.xz" % test_file), 0)
         self.assertTrue(os.path.exists(test_file))
         os.remove("%s.xz" % test_file)
 
         with open(test_file, "r") as fd:
-            self.assertEquals(fd.read(), test_string)
+            self.assertEqual(fd.read(), test_string)
 
         # Forcing xz
         bin_dir = os.path.join(self.temp_directory, "bin")
@@ -188,17 +194,17 @@ version_detail: abcdef
         with open(test_file, "w+") as fd:
             fd.write(test_string)
 
-        self.assertEquals(tools.xz_compress(test_file), 0)
+        self.assertEqual(tools.xz_compress(test_file), 0)
         self.assertTrue(os.path.exists("%s.xz" % test_file))
 
         os.remove(test_file)
         self.assertFalse(os.path.exists(test_file))
 
-        self.assertEquals(tools.xz_uncompress("%s.xz" % test_file), 0)
+        self.assertEqual(tools.xz_uncompress("%s.xz" % test_file), 0)
         self.assertTrue(os.path.exists(test_file))
 
         with open(test_file, "r") as fd:
-            self.assertEquals(fd.read(), test_string)
+            self.assertEqual(fd.read(), test_string)
 
         self.assertRaises(Exception, tools.xz_compress, test_file)
         self.assertRaises(Exception, tools.xz_uncompress, "%s.xz" % test_file)
@@ -287,7 +293,7 @@ version_detail: abcdef
                              "initrd/"], stderr=devnull, stdout=devnull)
 
         # Try an empty tarball
-        self.assertEquals(tools.repack_recovery_keyring(
+        self.assertEqual(tools.repack_recovery_keyring(
             self.config, "%s/empty.tar.xz" % self.temp_directory,
             "archive-master"), False)
 
