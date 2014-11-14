@@ -299,6 +299,101 @@ public_https_port = 8443
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),
                      "No GPG testing keys present. Run tests/generate-keys")
+    def test_generate_file_cdimage_device_raw(self):
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "generic_x86"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        # Check the path and series requirement
+        self.assertEqual(
+            generators.generate_file_cdimage_device_raw(self.config, [],
+                                                        environment),
+            None)
+
+        # Check behaviour on invalid cdimage path
+        self.assertEqual(
+            generators.generate_file_cdimage_device_raw(
+                self.config, ['invalid-path', 'invalid-series'],
+                environment),
+            None)
+
+        # Check behaviour on empty tree
+        cdimage_tree = os.path.join(self.temp_directory, "cdimage")
+        os.mkdir(cdimage_tree)
+        self.assertEqual(
+            generators.generate_file_cdimage_device_raw(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing hash
+        version_path = os.path.join(cdimage_tree, "1234")
+        os.mkdir(version_path)
+        self.assertEqual(
+            generators.generate_file_cdimage_device_raw(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        # Check behaviour on missing files
+        for filename in ("SHA256SUMS",
+                         "series-preinstalled-core-i386.device.tar.gz",
+                         ".marked_good"):
+            open(os.path.join(version_path, filename), "w+").close()
+            self.assertEqual(
+                generators.generate_file_cdimage_device_raw(
+                    self.config, [cdimage_tree, 'series', 'import=good'],
+                    environment),
+                None)
+
+        # Check SHA256SUMS parsing
+        with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+            fd.write("\n")
+
+        self.assertEqual(
+            generators.generate_file_cdimage_device_raw(
+                self.config, [cdimage_tree, 'series'],
+                environment),
+            None)
+
+        for device_arch, cdimage_arch in (
+                ("generic_x86", "i386"),
+                ("generic_i386", "i386"),
+                ("generic_amd64", "amd64")):
+            environment['device_name'] = device_arch
+
+            for filename in (
+                    "SHA256SUMS",
+                    "series-preinstalled-core-%s.device.tar.gz" % cdimage_arch, 
+                    ".marked_good"):
+                open(os.path.join(version_path, filename), "w+").close()
+
+            # Working run
+            with open(os.path.join(version_path, "SHA256SUMS"), "w+") as fd:
+                fd.write("HASH *series-preinstalled-core-%s.device.tar.gz\n" %
+                         cdimage_arch)
+
+            self.assertEqual(
+                generators.generate_file(
+                    self.config, "cdimage-device-raw", [cdimage_tree, 'series'],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "device-HASH.tar.xz"))
+
+            # Cached run
+            self.assertEqual(
+                generators.generate_file_cdimage_device_raw(
+                    self.config, [cdimage_tree, 'series'],
+                    environment),
+                os.path.join(self.config.publish_path, "pool",
+                             "device-HASH.tar.xz"))
+
+    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
+                     "No GPG testing keys present. Run tests/generate-keys")
     def test_generate_file_cdimage_ubuntu(self):
         environment = {}
         environment['channel_name'] = "test"

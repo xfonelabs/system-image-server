@@ -777,7 +777,7 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
 
         # Generate the metadata file
         metadata = {}
-        metadata['generator'] = "cdimage-raw-device"
+        metadata['generator'] = "cdimage-device-raw"
         metadata['version'] = version
         metadata['version_detail'] = version_detail
         metadata['series'] = series
