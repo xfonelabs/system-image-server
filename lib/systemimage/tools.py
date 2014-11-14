@@ -240,7 +240,6 @@ def sync_mirrors(config):
                        mirror.ssh_key, mirror.ssh_command)
 
 
-# FIXME: keyring_name is not used
 def repack_recovery_keyring(conf, path, keyring_name):
     tempdir = tempfile.mkdtemp()
 
@@ -284,15 +283,15 @@ def repack_recovery_keyring(conf, path, keyring_name):
     os.chdir(old_pwd)
 
     # Swap the files
-    keyring_path = os.path.join(conf.gpg_keyring_path, "archive-master")
+    keyring_path = os.path.join(conf.gpg_keyring_path, keyring_name)
 
     shutil.copy("%s.tar.xz" % keyring_path,
                 os.path.join(tempdir, "initrd", "etc", "system-image",
-                             "archive-master.tar.xz"))
+                             "%s.tar.xz" % keyring_name))
 
     shutil.copy("%s.tar.xz.asc" % keyring_path,
                 os.path.join(tempdir, "initrd", "etc", "system-image",
-                             "archive-master.tar.xz.asc"))
+                             "%s.tar.xz.asc" % keyring_name))
 
     # Re-generate the initrd
     old_pwd = os.getcwd()
