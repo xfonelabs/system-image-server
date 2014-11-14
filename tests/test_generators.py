@@ -368,7 +368,7 @@ public_https_port = 8443
 
             for filename in (
                     "SHA256SUMS",
-                    "series-preinstalled-core-%s.device.tar.gz" % cdimage_arch, 
+                    "series-preinstalled-core-%s.device.tar.gz" % cdimage_arch,
                     ".marked_good"):
                 open(os.path.join(version_path, filename), "w+").close()
 
@@ -379,8 +379,8 @@ public_https_port = 8443
 
             self.assertEqual(
                 generators.generate_file(
-                    self.config, "cdimage-device-raw", [cdimage_tree, 'series'],
-                    environment),
+                    self.config, "cdimage-device-raw",
+                    [cdimage_tree, 'series'], environment),
                 os.path.join(self.config.publish_path, "pool",
                              "device-HASH.tar.xz"))
 
