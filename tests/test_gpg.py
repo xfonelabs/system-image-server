@@ -151,6 +151,7 @@ gpg_key_path = %s
         self.assertTrue(os.path.exists(os.path.join(keyring_path,
                                                     "testing.tar")))
 
+    @unittest.skipIf("SKIP_SLOW_TESTS" in os.environ, "skipping slow test")
     def test_generate_signing_key(self):
         key_dir = os.path.join(self.temp_directory, "key")
 
