@@ -368,7 +368,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     arch = "armhf"
     if environment['device_name'] in ("generic_x86", "generic_i386"):
         arch = "i386"
-    elif environment['device_name'] in ("generic_amd64",):
+    elif environment['device_name'] in ("generic_amd64", "azure_amd64"):
         arch = "amd64"
 
     # Check that the directory exists
@@ -703,6 +703,8 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
         arch = "i386"
     elif environment['device_name'] in ("generic_amd64",):
         arch = "amd64"
+    elif environment['device_name'] == "azure_amd64":
+        arch = "amd64.azure"
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
@@ -715,14 +717,7 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
             continue
 
         # Check for the custom tarball
-        if environment['device_name'] in ("azure_amd64", ):
-            raw_device_path = os.path.join(
-                cdimage_path, version,
-                "%s-preinstalled-%s-%s.azure.device.tar.gz" %
-                (series, options.get("product", "core"),
-                 arch))
-        else:
-            raw_device_path = os.path.join(
+        raw_device_path = os.path.join(
                 cdimage_path, version,
                 "%s-preinstalled-%s-%s.device.tar.gz" %
                 (series, options.get("product", "core"),
