@@ -718,10 +718,10 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
 
         # Check for the custom tarball
         raw_device_path = os.path.join(
-                cdimage_path, version,
-                "%s-preinstalled-%s-%s.device.tar.gz" %
-                (series, options.get("product", "core"),
-                 arch))
+            cdimage_path, version,
+            "%s-preinstalled-%s-%s.device.tar.gz" %
+            (series, options.get("product", "core"),
+             arch))
         if not os.path.exists(raw_device_path):
             continue
 
