@@ -363,7 +363,8 @@ public_https_port = 8443
         for device_arch, cdimage_arch in (
                 ("generic_x86", "i386"),
                 ("generic_i386", "i386"),
-                ("generic_amd64", "amd64")):
+                ("generic_amd64", "amd64"),
+                ("azure_amd64", "amd64.azure")):
             environment['device_name'] = device_arch
 
             for filename in (
