@@ -715,12 +715,12 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
             continue
 
         # Check for the custom tarball
-        if environment['device_name']:
+        if environment['device_name'] in ("azure_amd64", ):
             raw_device_path = os.path.join(
                 cdimage_path, version,
-                "%s-preinstalled-%s-%s.%s.device.tar.gz" %
+                "%s-preinstalled-%s-%s.azure.device.tar.gz" %
                 (series, options.get("product", "core"),
-                 arch), environment['device_name'])
+                 arch))
         else:
             raw_device_path = os.path.join(
                 cdimage_path, version,
