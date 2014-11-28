@@ -499,10 +499,16 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
             new_file.gname = "root"
             target_tarball.addfile(new_file)
 
-        # # /userdata
+        # writable partition
+        # (/userdata for Touch, /writable for Core)
         new_file = tarfile.TarInfo()
         new_file.type = tarfile.DIRTYPE
-        new_file.name = "system/userdata"
+
+        if options.get("product", "touch") == "core":
+            new_file.name = "system/writable"
+        else:
+            new_file.name = "system/userdata"
+
         new_file.mode = 0o755
         new_file.mtime = int(time.strftime("%s", time.localtime()))
         new_file.uname = "root"
