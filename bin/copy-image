@@ -269,9 +269,10 @@ if __name__ == '__main__':
     logging.info("Publishing new image '%s' (%s) with %s files."
                  % (new_version, ",".join(environment['version_detail']),
                     len(new_images['full']['files'])))
-    destination_device.create_image("full", new_version,
-                                    ",".join(environment['version_detail']),
-                                    new_images['full']['files'])
+    destination_device.create_image(
+        "full", new_version, ",".join(environment['version_detail']),
+        new_images['full']['files'],
+        version_detail=environment['version_detail'])
 
     # Add delta images
     for delta in delta_base:
@@ -286,7 +287,8 @@ if __name__ == '__main__':
             "delta", new_version,
             ",".join(environment['version_detail']),
             files,
-            base=delta['version'])
+            base=delta['version'],
+            version_detail=environment['version_detail'])
 
     # Expire images
     if args.destination_channel in conf.channels:

@@ -806,7 +806,8 @@ class Device:
         self.indexpath = os.path.join(path, "index.json")
 
     def create_image(self, entry_type, version, description, paths,
-                     base=None, bootme=False, minversion=None):
+                     base=None, bootme=False, minversion=None,
+                     version_detail=None):
         """
             Add a new image to the index.
         """
@@ -857,6 +858,9 @@ class Device:
                 if entry_type == "delta":
                     raise KeyError("Minimum version set for delta image.")
                 image['minversion'] = minversion
+
+            if version_detail:
+                image['version_detail'] = version_detail
 
             image['description'] = description
             image['files'] = files

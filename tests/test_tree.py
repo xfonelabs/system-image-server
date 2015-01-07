@@ -487,7 +487,7 @@ public_https_port = 443
 
         # Valid delta image
         device.create_image("delta", 1234, "abc", ["file", "second"],
-                            base=1233, bootme=True)
+                            base=1233, bootme=True, version_detail="blah")
 
         # Check the image list
         self.assertEqual(
@@ -503,7 +503,7 @@ public_https_port = 443
                                      '27ae41e4649b934ca495991b7852b855',
                          'size': 0, 'order': 1}]},
              {'bootme': True, 'description': 'abc', 'type': 'delta',
-              'base': 1233, 'version': 1234,
+              'base': 1233, 'version': 1234, 'version_detail': "blah",
               'files': [{'signature': '/file.asc', 'path': '/file',
                          'checksum': 'e3b0c44298fc1c149afbf4c8996fb924'
                                      '27ae41e4649b934ca495991b7852b855',

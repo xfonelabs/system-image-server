@@ -269,9 +269,12 @@ if __name__ == '__main__':
                              % (new_version,
                                 ",".join(environment['version_detail']),
                                 len(new_images['full']['files'])))
-                device.create_image("full", new_version,
-                                    ",".join(environment['version_detail']),
-                                    new_images['full']['files'])
+                device.create_image(
+                    "full", new_version,
+                    ",".join(environment['version_detail']),
+                    new_images['full']['files'],
+                    version_detail=environment['version_detail'])
+
                 # Publish deltas
                 for delta in delta_base:
                     files = new_images["delta_%s" % delta['version']]['files']
@@ -285,7 +288,8 @@ if __name__ == '__main__':
                     device.create_image(
                         "delta", new_version,
                         ",".join(environment['version_detail']), files,
-                        base=delta['version'])
+                        base=delta['version'],
+                        version_detail=environment['version_detail'])
 
             # Expire images
             if channel.fullcount > 0:
