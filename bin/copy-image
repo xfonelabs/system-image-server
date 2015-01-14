@@ -272,7 +272,7 @@ if __name__ == '__main__':
     destination_device.create_image(
         "full", new_version, ",".join(environment['version_detail']),
         new_images['full']['files'],
-        version_detail=environment['version_detail'])
+        version_detail=",".join(environment['version_detail']))
 
     # Add delta images
     for delta in delta_base:

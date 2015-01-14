@@ -273,7 +273,7 @@ if __name__ == '__main__':
                     "full", new_version,
                     ",".join(environment['version_detail']),
                     new_images['full']['files'],
-                    version_detail=environment['version_detail'])
+                    ",".join(version_detail=environment['version_detail']))
 
                 # Publish deltas
                 for delta in delta_base:
