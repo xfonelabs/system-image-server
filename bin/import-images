@@ -289,7 +289,7 @@ if __name__ == '__main__':
                         "delta", new_version,
                         ",".join(environment['version_detail']), files,
                         base=delta['version'],
-                        version_detail=environment['version_detail'])
+                        version_detail=",".join(environment['version_detail']))
 
             # Expire images
             if channel.fullcount > 0:
