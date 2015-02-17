@@ -10,6 +10,7 @@ Test dependencies:
  - python-coverage, python3-coverage
  - pep8
  - pyflakes3, pyflakes
+ - both pxz and xz-utils (for 100% coverage)
 
 
 Run once:
