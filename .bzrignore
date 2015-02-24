@@ -7,3 +7,7 @@ tests/coverage
 tests/keys/*
 www/*
 state/*
+.tox
+dist
+system_image.egg-info
+__pycache__
