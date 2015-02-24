@@ -22,11 +22,18 @@ import subprocess
 import unittest
 
 
+FILTER_DIRS = [
+    '.bzr',
+    '.tox',
+    '__pycache__',
+    ]
+
+
 class StaticTests(unittest.TestCase):
     def all_paths(self):
         paths = []
         for dirpath, dirnames, filenames in os.walk("."):
-            for ignore in ".bzr", "__pycache__":
+            for ignore in FILTER_DIRS:
                 if ignore in dirnames:
                     dirnames.remove(ignore)
             filenames = [
@@ -36,12 +43,13 @@ class StaticTests(unittest.TestCase):
                 for filename in filenames:
                     if filename in ("simg2img"):
                         continue
-
-                    paths.append(os.path.join(dirpath, filename))
+                    full_path = os.path.join(dirpath, filename)
+                    paths.append(full_path)
             else:
                 for filename in filenames:
                     if filename.endswith(".py"):
-                        paths.append(os.path.join(dirpath, filename))
+                        full_path = os.path.join(dirpath, filename)
+                        paths.append(full_path)
         return paths
 
     @unittest.skipIf(not os.path.exists("/usr/bin/pep8"),

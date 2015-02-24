@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from io import BytesIO
-
 import gzip
 import os
 import re
@@ -25,6 +23,9 @@ import subprocess
 import tarfile
 import tempfile
 import time
+
+from io import BytesIO
+from systemimage.helpers import chdir
 
 
 def expand_path(path, base="/"):
@@ -256,31 +257,25 @@ def repack_recovery_keyring(conf, path, keyring_name):
 
     # Extract the content of the .img
     os.mkdir(os.path.join(tempdir, "img"))
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(tempdir, "img"))
-    cmd = ["abootimg",
-           "-x", os.path.join(tempdir, "partitions", "recovery.img")]
+    with chdir(os.path.join(tempdir, "img")):
+        cmd = ["abootimg",
+               "-x", os.path.join(tempdir, "partitions", "recovery.img")]
 
-    with open(os.path.devnull, "w") as devnull:
-        subprocess.call(cmd, stdout=devnull, stderr=devnull)
-
-    os.chdir(old_pwd)
+        with open(os.path.devnull, "w") as devnull:
+            subprocess.call(cmd, stdout=devnull, stderr=devnull)
 
     # Extract the content of the initrd
     os.mkdir(os.path.join(tempdir, "initrd"))
     state_path = os.path.join(tempdir, "fakeroot_state")
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(tempdir, "initrd"))
 
-    gzip_uncompress(os.path.join(tempdir, "img", "initrd.img"),
-                    os.path.join(tempdir, "img", "initrd"))
+    with chdir(os.path.join(tempdir, "initrd")):
+        gzip_uncompress(os.path.join(tempdir, "img", "initrd.img"),
+                        os.path.join(tempdir, "img", "initrd"))
 
-    with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
-        with open(os.path.devnull, "w") as devnull:
-            subprocess.call(['fakeroot', '-s', state_path, 'cpio', '-i'],
-                            stdin=fd, stdout=devnull, stderr=devnull)
-
-    os.chdir(old_pwd)
+        with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
+            with open(os.path.devnull, "w") as devnull:
+                subprocess.call(['fakeroot', '-s', state_path, 'cpio', '-i'],
+                                stdin=fd, stdout=devnull, stderr=devnull)
 
     # Swap the files
     keyring_path = os.path.join(conf.gpg_keyring_path, keyring_name)
@@ -294,19 +289,15 @@ def repack_recovery_keyring(conf, path, keyring_name):
                              "%s.tar.xz.asc" % keyring_name))
 
     # Re-generate the initrd
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(tempdir, "initrd"))
-
-    find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
-    with open(os.path.join(tempdir, "img", "initrd"), "w+") as fd:
-        with open(os.path.devnull, "w") as devnull:
-            subprocess.call(['fakeroot', '-i', state_path, 'cpio',
-                             '-o', '--format=newc'],
-                            stdin=find.stdout,
-                            stdout=fd,
-                            stderr=devnull)
-
-    os.chdir(old_pwd)
+    with chdir(os.path.join(tempdir, "initrd")):
+        find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
+        with open(os.path.join(tempdir, "img", "initrd"), "w+") as fd:
+            with open(os.path.devnull, "w") as devnull:
+                subprocess.call(['fakeroot', '-i', state_path, 'cpio',
+                                 '-o', '--format=newc'],
+                                stdin=find.stdout,
+                                stdout=fd,
+                                stderr=devnull)
 
     os.rename(os.path.join(tempdir, "img", "initrd.img"),
               os.path.join(tempdir, "img", "initrd.img.bak"))

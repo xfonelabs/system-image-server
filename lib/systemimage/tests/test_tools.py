@@ -23,6 +23,7 @@ import tempfile
 import unittest
 
 from systemimage import config, tools
+from systemimage.helpers import chdir
 
 
 class ToolTests(unittest.TestCase):
@@ -247,18 +248,16 @@ version_detail: abcdef
         open("%s/initrd/etc/system-image/archive-master.tar.xz.asc" %
              self.temp_directory, "w+").close()
 
-        old_pwd = os.getcwd()
-        os.chdir(os.path.join(self.temp_directory, "initrd"))
-
-        find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
-        with open("../initrd.img", "w+") as fd:
-            with open(os.path.devnull, "w") as devnull:
-                subprocess.call(['fakeroot', 'cpio',
-                                 '-o', '--format=newc'],
-                                stdin=find.stdout,
-                                stdout=fd,
-                                stderr=devnull)
-        os.chdir(old_pwd)
+        initrd_dir = os.path.join(self.temp_directory, "initrd")
+        with chdir(initrd_dir):
+            find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
+            with open("../initrd.img", "w+") as fd:
+                with open(os.path.devnull, "w") as devnull:
+                    subprocess.call(['fakeroot', 'cpio',
+                                     '-o', '--format=newc'],
+                                    stdin=find.stdout,
+                                    stdout=fd,
+                                    stderr=devnull)
 
         tools.gzip_compress(os.path.join(self.temp_directory, "initrd.img"),
                             os.path.join(self.temp_directory, "initrd.gz"))

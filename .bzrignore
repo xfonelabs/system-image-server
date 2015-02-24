@@ -11,3 +11,5 @@ state/*
 dist
 system_image.egg-info
 __pycache__
+.coverage
+coverage-py34

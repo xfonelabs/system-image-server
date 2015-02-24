@@ -22,7 +22,6 @@ import unittest
 
 from systemimage import config
 from systemimage import tools
-from systemimage.helpers import chdir
 
 try:
     from unittest import mock
@@ -88,11 +87,13 @@ ssh_host = hostb
         config_file = os.path.join(os.path.dirname(config.__file__),
                                    "../../etc/config")
 
-        with chdir(self.temp_directory):
-            if not os.path.exists(config_file):
-                self.assertRaises(Exception, config.Config)
-            else:
-                self.assertTrue(config.Config())
+        old_pwd = os.getcwd()
+        os.chdir(self.temp_directory)
+        if not os.path.exists(config_file):
+            self.assertRaises(Exception, config.Config)
+        else:
+            self.assertTrue(config.Config())
+        os.chdir(old_pwd)
 
         # Empty config
         empty_config_path = os.path.join(self.temp_directory,
