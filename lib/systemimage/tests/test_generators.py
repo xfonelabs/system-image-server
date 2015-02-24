@@ -754,8 +754,9 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Generate the keyring tarballs
-        os.environ['SYSTEM_IMAGE_ROOT'] = self.temp_directory
-        subprocess.call(['bin/generate-keyrings'])
+        env = dict(os.environ)
+        env['SYSTEM_IMAGE_ROOT'] = self.temp_directory
+        subprocess.call(['bin/generate-keyrings'], env=env)
 
         # Ensure we don't generate a new tarball when there are no changes
         environment['new_files'] = []

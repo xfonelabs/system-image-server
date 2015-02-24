@@ -237,9 +237,9 @@ version_detail: abcdef
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_repack_recovery_keyring(self):
         # Generate the keyring tarballs
-        environ = dict(os.environ)
-        environ['SYSTEM_IMAGE_ROOT'] = self.temp_directory
-        subprocess.call(['bin/generate-keyrings'], env=environ)
+        env = dict(os.environ)
+        env['SYSTEM_IMAGE_ROOT'] = self.temp_directory
+        subprocess.call(['bin/generate-keyrings'], env=env)
 
         # Generate a fake recovery partition
         os.makedirs("%s/initrd/etc/system-image/" % self.temp_directory)

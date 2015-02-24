@@ -23,6 +23,7 @@ import unittest
 from systemimage import config
 from systemimage import tools
 from systemimage.helpers import chdir
+from systemimage.testing.helpers import system_image_root
 
 try:
     from unittest import mock
@@ -194,8 +195,8 @@ ssh_user = other-user
         os.makedirs(os.path.join(test_path, "etc"))
         with open(os.path.join(test_path, "etc", "config"), "w+") as fd:
             fd.write("[global]\nbase_path = a/b/c")
-        os.environ['SYSTEM_IMAGE_ROOT'] = test_path
-        test_config = config.Config()
+        with system_image_root(test_path):
+            test_config = config.Config()
         self.assertEqual(test_config.base_path, "a/b/c")
 
         # Test the channels config
