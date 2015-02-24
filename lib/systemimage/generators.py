@@ -440,7 +440,6 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"),
                                       "w:")
 
-        added = []
         for entry in source_tarball:
             # FIXME: Will need to be done on the real rootfs
             # Skip some files
@@ -460,7 +459,6 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
             entry.name = "system/%s" % entry.name
             target_tarball.addfile(entry, fileobj=fileptr)
-            added.append(entry.name)
 
         if options.get("product", "touch") == "touch":
             # FIXME: Will need to be done on the real rootfs
