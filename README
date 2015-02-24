@@ -13,11 +13,18 @@ Test dependencies:
 
 
 Run once:
-$ ./tests/generate-keys
+$ ./tools/generate-keys
 
 Then run the tests with:
-$ ./tests/run
+$ tox
+
+Run individual tests with:
+$ .tox/py34/bin/python -m nose2 -v
 or
-$ SKIP_SLOW_TESTS=1 ./tests/run
-or
-$ PYTHONPATH=lib python -m unittest tests.test_generators.GeneratorsTests
+$ .tox/py27/bin/python -m nose2 -v
+
+Add `-P <pattern>` flags to run just individual tests, where <pattern> can be
+any test name, test class, or test module, and multiple -P options may be
+given.
+
+Add the environment variable `SKIP_SLOW_TESTS=1` to... skip slow tests!
