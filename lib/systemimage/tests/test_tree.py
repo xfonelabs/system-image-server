@@ -22,6 +22,7 @@ import tempfile
 import unittest
 
 from systemimage import config, gpg, tree, tools
+from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
 
 class TreeTests(unittest.TestCase):
@@ -38,15 +39,14 @@ gpg_key_path = %s
 public_fqdn = example.net
 public_http_port = 80
 public_https_port = 443
-""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tools", "keys")))
         self.config = config.Config(config_path)
         os.makedirs(self.config.publish_path)
 
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_channels(self):
         # Test getting a tree instance
         test_tree = tree.Tree(self.config)
@@ -228,8 +228,7 @@ public_https_port = 443
                           "test", "unsigned")
         os.remove(unsigned_path)
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_alias(self):
         test_tree = tree.Tree(self.config)
 
@@ -323,8 +322,7 @@ public_https_port = 443
         test_tree.remove_channel("new_parent")
         test_tree.remove_channel("parent")
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_redirect(self):
         test_tree = tree.Tree(self.config)
 
@@ -385,8 +383,7 @@ public_https_port = 443
             self.config.publish_path, "parent", "device")))
         self.assertEqual(device.list_images(), target.list_images())
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_rename(self):
         test_tree = tree.Tree(self.config)
 
@@ -446,8 +443,7 @@ public_https_port = 443
             test_tree.list_channels()['test/new'],
             {'devices': {'device': {'index': '/test/new/device/index.json'}}})
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_index(self):
         device = tree.Device(self.config, self.temp_directory)
 
@@ -543,8 +539,7 @@ public_https_port = 443
 
         self.assertRaises(TypeError, device.list_images)
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_file_lists(self):
         test_tree = tree.Tree(self.config)
         test_tree.create_channel("test")
@@ -595,8 +590,7 @@ public_https_port = 443
         device.create_image("full", 12345, "test", [image_path])
         self.assertEqual(test_tree.list_orphaned_files(), [])
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_expiry(self):
         test_tree = tree.Tree(self.config)
         test_tree.create_channel("test")
@@ -639,8 +633,7 @@ public_https_port = 443
         device.expire_images(0)
         self.assertEqual(len(device.list_images()), 0)
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_phased_percentage(self):
         test_tree = tree.Tree(self.config)
 

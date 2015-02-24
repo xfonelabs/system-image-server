@@ -24,6 +24,7 @@ import time
 import unittest
 
 from systemimage import config, gpg
+from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
 
 class GPGTests(unittest.TestCase):
@@ -38,15 +39,13 @@ class GPGTests(unittest.TestCase):
             fd.write("""[global]
 base_path = %s
 gpg_key_path = %s
-""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tools", "keys")))
         self.config = config.Config(config_path)
 
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
-    @unittest.skipIf(not os.path.exists(os.path.join("tests", "keys",
-                                                     "generated")),
-                     "No GPG testing keys present. Run generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_sign_file(self):
         test_string = "test-string"
 
@@ -87,9 +86,7 @@ gpg_key_path = %s
         self.assertRaises(Exception, gpg.sign_file, self.config,
                           "image-signing", "invalid")
 
-    @unittest.skipIf(not os.path.exists(os.path.join("tests", "keys",
-                                                     "generated")),
-                     "No GPG testing keys present. Run generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_keyring(self):
         keyring_path = os.path.join(self.temp_directory, "secret", "gpg",
                                     "keyrings")
@@ -111,7 +108,7 @@ gpg_key_path = %s
         self.assertEqual(keyring.keyring_type, "test")
         self.assertEqual(keyring.keyring_expiry, expiry)
 
-        keyring.import_keys(os.path.join("tests", "keys", "image-signing"))
+        keyring.import_keys(os.path.join("tools", "keys", "image-signing"))
 
         # Check that the keyring matches
         keys = keyring.list_keys()

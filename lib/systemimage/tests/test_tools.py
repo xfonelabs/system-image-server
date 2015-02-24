@@ -24,6 +24,7 @@ import unittest
 
 from systemimage import config, tools
 from systemimage.helpers import chdir
+from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
 
 class ToolTests(unittest.TestCase):
@@ -233,8 +234,7 @@ version_detail: abcdef
         os.environ["PATH"] = bin_dir
         self.assertFalse(tools.find_on_path("program"))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_repack_recovery_keyring(self):
         # Generate the keyring tarballs
         environ = dict(os.environ)

@@ -24,9 +24,9 @@ sys.path.insert(0, 'lib')
 
 from systemimage import gpg
 
-target_dir = "tests/keys/"
+target_dir = "tools/keys/"
 if not os.path.exists(target_dir):
-    raise Exception("Missing tests/keys directory")
+    raise Exception("Missing tools/keys directory")
 
 keys = (("archive-master", "[TESTING] Ubuntu Archive Master Signing Key",
          "ftpmaster@ubuntu.com", 0),
@@ -49,4 +49,4 @@ for key_name, key_description, key_email, key_expiry in keys:
     print("%s <%s>" % (uid.name, uid.email))
 
 # All done, let's mark it as done
-open("tests/keys/generated", "w+").close()
+open("tools/keys/generated", "w+").close()
