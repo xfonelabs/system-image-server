@@ -42,7 +42,7 @@ gpg_key_path = %s
 public_fqdn = system-image.example.net
 public_http_port = 880
 public_https_port = 8443
-""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tools", "keys")))
         self.config = config.Config(config_path)
 
     def tearDown(self):
