@@ -82,3 +82,16 @@ do (to run all the tests in the module)::
 or (to run all tests in the class)::
 
     $ .tox/py34/bin/python -m nose2 -v -P GPGTests
+
+
+Notes for Precise
+=================
+
+Neither `tox` nor `nose2` is available in Precise.  Here's how to run the test
+suite on that distribution version::
+
+    $ python -m unittest discover -s lib -v
+    $ python3 -m unittest discover -s lib -v
+
+Note however that the Python 3 test suite will have failures on Precise due to
+other missing packages (e.g. `python3-gpgme`).  If it hurts, don't do it.
