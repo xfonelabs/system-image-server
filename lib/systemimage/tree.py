@@ -17,6 +17,7 @@
 
 import copy
 import json
+import logging
 import os
 import shutil
 import time
@@ -24,6 +25,8 @@ import time
 from contextlib import contextmanager
 from hashlib import sha256
 from systemimage import gpg, tools
+
+logger = logging.getLogger(__name__)
 
 
 # Context managers
@@ -242,7 +245,9 @@ class Tree:
             Remove any orphaned file from the tree.
         """
 
-        for entry in self.list_orphaned_files():
+        orphaned_files = self.list_orphaned_files()
+        for entry in orphaned_files:
+
             if os.path.isdir(entry):
                 os.rmdir(entry)
             else:
@@ -466,6 +471,7 @@ class Tree:
                 if tarname in referenced_files:
                     orphaned_files.remove(entry)
 
+        logger.debug('Orphaned files: %s' % orphaned_files)
         return sorted(orphaned_files)
 
     def publish_keyring(self, keyring_name):

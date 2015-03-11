@@ -18,6 +18,7 @@
 from io import BytesIO
 
 import gzip
+import logging
 import os
 import re
 import shutil
@@ -25,6 +26,8 @@ import subprocess
 import tarfile
 import tempfile
 import time
+
+logger = logging.getLogger(__name__)
 
 
 def expand_path(path, base="/"):
@@ -134,7 +137,9 @@ def gzip_compress(path, destination=None, level=9):
         destination = "%s.gz" % path
 
     if os.path.exists(destination):
-        raise Exception("destination already exists.")
+        raise Exception("Destination already exists: %s" % destination)
+
+    logger.debug('Gzipping file: %s' % destination)
 
     uncompressed = open(path, "rb")
     compressed = gzip.open(destination, "wb+", level)
@@ -153,14 +158,16 @@ def gzip_uncompress(path, destination=None):
     """
 
     if not destination and path[-3:] != ".gz":
-        raise Exception("unspecified destination and path doesn't end"
+        raise Exception("Unspecified destination and path doesn't end"
                         " with .gz")
 
     if not destination:
         destination = path[:-3]
 
     if os.path.exists(destination):
-        raise Exception("destination already exists.")
+        raise Exception("Destination already exists: %s" % destination)
+
+    logger.debug('Ungzipping file: %s' % destination)
 
     compressed = gzip.open(path, "rb")
     uncompressed = open(destination, "wb+")
@@ -185,7 +192,9 @@ def xz_compress(path, destination=None, level=9):
         destination = "%s.xz" % path
 
     if os.path.exists(destination):
-        raise Exception("destination already exists.")
+        raise Exception("Destination already exists: %s" % destination)
+
+    logger.debug('Xzipping file: %s' % destination)
 
     if find_on_path("pxz"):
         xz_command = "pxz"
@@ -208,14 +217,16 @@ def xz_uncompress(path, destination=None):
     # NOTE: Once we can drop support for < 3.3, the new lzma module can be used
 
     if not destination and path[-3:] != ".xz":
-        raise Exception("unspecified destination and path doesn't end"
+        raise Exception("Unspecified destination and path doesn't end"
                         " with .xz")
 
     if not destination:
         destination = path[:-3]
 
     if os.path.exists(destination):
-        raise Exception("destination already exists.")
+        raise Exception("Destination already exists: %s" % destination)
+
+    logger.debug('Unxzipping file: %s' % destination)
 
     with open(destination, "wb+") as fd:
         retval = subprocess.call(['xz', '-d', '-c', path],

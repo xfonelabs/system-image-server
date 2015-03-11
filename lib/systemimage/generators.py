@@ -17,6 +17,8 @@
 
 from hashlib import sha256
 from systemimage import diff, gpg, tree, tools
+
+import logging
 import json
 import os
 import socket
@@ -34,11 +36,14 @@ except ImportError:  # pragma: no cover
 # Global
 CACHE = {}
 
+logger = logging.getLogger(__name__)
 
 def list_versions(cdimage_path):
-    return sorted([version for version in os.listdir(cdimage_path)
+    versions = sorted([version for version in os.listdir(cdimage_path)
                    if version not in ("pending", "current")],
                   reverse=True)
+    logger.debug('Versions detected: %s' % versions)
+    return versions
 
 
 def root_ownership(tarinfo):
@@ -89,6 +94,7 @@ def generate_delta(conf, source_path, target_path):
     path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                          "%s.delta-%s.tar.xz" %
                                          (target_filename, source_filename)))
+    logger.debug('Path generated: %s' % path)
 
     # Return pre-existing entries
     if os.path.exists(path):
@@ -174,12 +180,13 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
 
     # We need at least a path and a series
     if len(arguments) < 2:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
     cdimage_path = arguments[0]
     series = arguments[1]
-
+    
     options = {}
     if len(arguments) > 2:
         options = unpack_arguments(arguments[2])
@@ -198,12 +205,15 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
+        logger.debug('Directory not found: %s' % cdimage_path)
         return None
 
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
-        if not os.path.exists(os.path.join(cdimage_path, version,
-                                           "SHA256SUMS")):
+        checksum_path = os.path.exists(os.path.join(cdimage_path, version,
+                                           "SHA256SUMS"))
+        if not checksum_path:
+            logger.debug('Missing checksum: %s' % checksum_path)
             continue
 
         # Check for all the ANDROID files
@@ -212,6 +222,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
                                  (series, boot_arch,
                                   environment['device_name']))
         if not os.path.exists(boot_path):
+            logger.debug('Missing boot image: %s' % boot_path)
             continue
 
         recovery_path = os.path.join(cdimage_path, version,
@@ -219,6 +230,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
                                      (series, recovery_arch,
                                       environment['device_name']))
         if not os.path.exists(recovery_path):
+            logger.debug('Missing recovery image: %s' % recovery_path)
             continue
 
         system_path = os.path.join(cdimage_path, version,
@@ -226,6 +238,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
                                    (series, system_arch,
                                     environment['device_name']))
         if not os.path.exists(system_path):
+            logger.debug('Missing system image: %s' % system_path)
             continue
 
         # Check if we should only import tested images
@@ -256,6 +269,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
                     break
 
         if not boot_hash or not recovery_hash or not system_hash:
+            logger.debug('Boot, recovery or system checksum missing')
             continue
 
         hash_string = "%s/%s/%s" % (boot_hash, recovery_hash, system_hash)
@@ -264,6 +278,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
         # Generate the path
         path = os.path.join(conf.publish_path, "pool",
                             "device-%s.tar.xz" % global_hash)
+        logger.debug('Path generated: %s' % path)
 
         # Return pre-existing entries
         if os.path.exists(path):
@@ -281,6 +296,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
         temp_dir = tempfile.mkdtemp()
 
         # Generate a new tarball
+        logger.debug('Opening tarball for processing')
         target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"),
                                       "w:")
 
@@ -310,6 +326,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
                            arcname="partitions/recovery.img",
                            filter=root_ownership)
 
+        logger.debug('Closing tarbal')
         target_tarball.close()
 
         # Create the pool if it doesn't exist
@@ -355,6 +372,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
     # We need at least a path and a series
     if len(arguments) < 2:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
@@ -373,12 +391,15 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
+        logger.debug('Directory not found: %s' % cdimage_path)
         return None
 
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
-        if not os.path.exists(os.path.join(cdimage_path, version,
-                                           "SHA256SUMS")):
+        checksum_path = os.path.exists(os.path.join(cdimage_path, version,
+                                           "SHA256SUMS"))
+        if not checksum_path:
+            logger.debug('Missing checksum: %s' % checksum_path)
             continue
 
         # Check for the rootfs
@@ -387,6 +408,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
                                    (series, options.get("product", "touch"),
                                     arch))
         if not os.path.exists(rootfs_path):
+            logger.debug('Missing rootfs tarball: %s' % rootfs_path)
             continue
 
         # Check if we should only import tested images
@@ -414,6 +436,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         # Generate the path
         path = os.path.join(conf.publish_path, "pool",
                             "ubuntu-%s.tar.xz" % rootfs_hash)
+        logger.debug('Path generated: %s' % path)
 
         # Return pre-existing entries
         if os.path.exists(path):
@@ -431,6 +454,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         temp_dir = tempfile.mkdtemp()
 
         # Unpack the source tarball
+        logger.debug('Opening tarball for processing')
         tools.gzip_uncompress(rootfs_path, os.path.join(temp_dir,
                                                         "source.tar"))
 
@@ -534,6 +558,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         new_file.gname = "root"
         target_tarball.addfile(new_file)
 
+        logger.debug('Closing tarball')
         source_tarball.close()
         target_tarball.close()
 
@@ -575,6 +600,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
 
     # We need at least a path and a series
     if len(arguments) < 2:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
@@ -593,12 +619,15 @@ def generate_file_cdimage_custom(conf, arguments, environment):
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
+        logger.debug('Directory not found: %s' % cdimage_path)
         return None
 
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
-        if not os.path.exists(os.path.join(cdimage_path, version,
-                                           "SHA256SUMS")):
+        checksum_path = os.path.exists(os.path.join(cdimage_path, version,
+                                           "SHA256SUMS"))
+        if not checksum_path:
+            logger.debug('Missing checksum: %s' % checksum_path)
             continue
 
         # Check for the custom tarball
@@ -607,6 +636,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
                                    (series, options.get("product", "touch"),
                                     arch))
         if not os.path.exists(custom_path):
+            logger.debug('Missing custom tarball: %s' % custom_path)
             continue
 
         # Check if we should only import tested images
@@ -634,6 +664,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
         # Generate the path
         path = os.path.join(conf.publish_path, "pool",
                             "custom-%s.tar.xz" % custom_hash)
+        logger.debug('Path generated: %s' % path)
 
         # Return pre-existing entries
         if os.path.exists(path):
@@ -692,6 +723,7 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
 
     # We need at least a path and a series
     if len(arguments) < 2:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
@@ -712,6 +744,7 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
+        logger.debug('Directory not found: %s' % cdimage_path)
         return None
 
     for version in list_versions(cdimage_path):
@@ -754,6 +787,7 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
         # Generate the path
         path = os.path.join(conf.publish_path, "pool",
                             "device-%s.tar.xz" % raw_device_hash)
+        logger.debug('Path generated: %s' % path)
 
         # Return pre-existing entries
         if os.path.exists(path):
@@ -813,6 +847,7 @@ def generate_file_http(conf, arguments, environment):
 
     # We need at least a URL
     if len(arguments) == 0:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
@@ -844,6 +879,7 @@ def generate_file_http(conf, arguments, environment):
 
             # Validate the version number
             if not version or len(version.split("\n")) > 1:
+                logger.debug('Invalid or missing version number')
                 return None
 
             # Push the result in the cache
@@ -857,6 +893,8 @@ def generate_file_http(conf, arguments, environment):
                                                  "%s-%s.tar.xz" %
                                                  (options.get("name", "http"),
                                                   version)))
+        logger.debug('Path generated: %s' % old_path)
+
         if os.path.exists(old_path):
             # Get the real version number (in case it got copied)
             if os.path.exists(old_path.replace(".tar.xz", ".json")):
@@ -876,6 +914,7 @@ def generate_file_http(conf, arguments, environment):
                                              "%s-%s.tar.xz" %
                                              (options.get("name", "http"),
                                               global_hash)))
+        logger.debug('Path generated: %s' % path)
 
         # Return pre-existing entries
         if os.path.exists(path):
@@ -921,6 +960,8 @@ def generate_file_http(conf, arguments, environment):
                                              "%s-%s.tar.xz" %
                                              (options.get("name", "http"),
                                               version)))
+        logger.debug('Path generated: %s' % path)
+
         # Return pre-existing entries
         if os.path.exists(path):
             # Get the real version number (in case it got copied)
@@ -969,10 +1010,12 @@ def generate_file_keyring(conf, arguments, environment):
 
     # Don't generate keyring tarballs when nothing changed
     if len(environment['new_files']) == 0:
+        logger.debug('Nothing has changed, no new files')
         return None
 
     # We need a keyring name
     if len(arguments) == 0:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
@@ -997,6 +1040,7 @@ def generate_file_keyring(conf, arguments, environment):
     path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                          "keyring-%s.tar.xz" %
                                          global_hash))
+    logger.debug('Path generated: %s' % path)
 
     # Set the version_detail string
     environment['version_detail'].append("keyring=%s" % keyring_name)
@@ -1051,6 +1095,7 @@ def generate_file_remote_system_image(conf, arguments, environment):
 
     # We need at least a channel name and a file prefix
     if len(arguments) < 3:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
@@ -1079,20 +1124,25 @@ def generate_file_remote_system_image(conf, arguments, environment):
     socket.setdefaulttimeout(old_timeout)
 
     if channel_name not in channel_json:
+        logger.debug('Missing channel name in JSON: %s' % channel_name)
         return None
 
     if "devices" not in channel_json[channel_name]:
+        logger.debug('Missing devices for channel name in JSON')
         return None
 
     if device_name not in channel_json[channel_name]['devices']:
+        logger.debug('Missing device name in JSON: %s' % device_name)
         return None
 
     if "index" not in (channel_json[channel_name]['devices']
                        [device_name]):
+        logger.debug('Missing index for the channel device in JSON')
         return None
 
     index_url = "%s/%s" % (base_url, channel_json[channel_name]['devices']
                            [device_name]['index'])
+    logger.debug('Index file for the devices in channel: %s' % index_url)
 
     # Fetch and validate the remote index.json
     old_timeout = socket.getdefaulttimeout()
@@ -1109,6 +1159,7 @@ def generate_file_remote_system_image(conf, arguments, environment):
     full_images = sorted([image for image in index_json['images']
                           if image['type'] == "full"],
                          key=lambda image: image['version'])
+    logger.debug('List of full images founds %s' % full_images)
 
     # No images
     if not full_images:
@@ -1121,6 +1172,8 @@ def generate_file_remote_system_image(conf, arguments, environment):
         if file_prefix == prefix:
             path = os.path.realpath("%s/%s" % (conf.publish_path,
                                                file_entry['path']))
+            logger.debug('Path generated: %s' % path)
+
             if os.path.exists(path):
                 return path
 
@@ -1187,6 +1240,7 @@ def generate_file_system_image(conf, arguments, environment):
 
     # We need at least a channel name and a file prefix
     if len(arguments) < 2:
+        logger.debug('Too few arguments')
         return None
 
     # Read the arguments
@@ -1196,10 +1250,12 @@ def generate_file_system_image(conf, arguments, environment):
     # Run some checks
     pub = tree.Tree(conf)
     if channel_name not in pub.list_channels():
+        logger.debug('Channel not in the published list: %s' % channel_name)
         return None
 
     if (not environment['device_name'] in
             pub.list_channels()[channel_name]['devices']):
+        logger.debug('Device not in the channel list')
         return None
 
     # Try to find the file
@@ -1208,6 +1264,7 @@ def generate_file_system_image(conf, arguments, environment):
     full_images = sorted([image for image in device.list_images()
                           if image['type'] == "full"],
                          key=lambda image: image['version'])
+    logger.debug('List of full images founds %s' % full_images)
 
     # No images
     if not full_images:
@@ -1220,6 +1277,7 @@ def generate_file_system_image(conf, arguments, environment):
         if file_prefix == prefix:
             path = os.path.realpath("%s/%s" % (conf.publish_path,
                                                file_entry['path']))
+            logger.debug('Path generated: %s' % path)
 
             if os.path.exists(path.replace(".tar.xz", ".json")):
                 with open(path.replace(".tar.xz", ".json"), "r") as fd:
@@ -1241,16 +1299,19 @@ def generate_file_version(conf, arguments, environment):
 
     # Don't generate version tarballs when nothing changed
     if len(environment['new_files']) == 0:
+        logger.debug('Nothing has changed, no new files')
         return None
 
     path = os.path.realpath(os.path.join(environment['device'].path,
                             "version-%s.tar.xz" % environment['version']))
+    logger.debug('Path generated: %s' % path)
 
     # Set the version_detail string
     environment['version_detail'].append("version=%s" % environment['version'])
 
     # Don't bother re-generating a file if it already exists
     if os.path.exists(path):
+        logger.debug('Version file already exists')
         return path
 
     # Generate version_detail
