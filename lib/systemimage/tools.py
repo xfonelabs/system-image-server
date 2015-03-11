@@ -139,7 +139,7 @@ def gzip_compress(path, destination=None, level=9):
     if os.path.exists(destination):
         raise Exception("Destination already exists: %s" % destination)
 
-    logger.debug('Gzipping file: %s' % destination)
+    logger.debug("Gzipping file: %s" % destination)
 
     uncompressed = open(path, "rb")
     compressed = gzip.open(destination, "wb+", level)
@@ -167,7 +167,7 @@ def gzip_uncompress(path, destination=None):
     if os.path.exists(destination):
         raise Exception("Destination already exists: %s" % destination)
 
-    logger.debug('Ungzipping file: %s' % destination)
+    logger.debug("Ungzipping file: %s" % destination)
 
     compressed = gzip.open(path, "rb")
     uncompressed = open(destination, "wb+")
@@ -194,7 +194,7 @@ def xz_compress(path, destination=None, level=9):
     if os.path.exists(destination):
         raise Exception("Destination already exists: %s" % destination)
 
-    logger.debug('Xzipping file: %s' % destination)
+    logger.debug("Xzipping file: %s" % destination)
 
     if find_on_path("pxz"):
         xz_command = "pxz"
@@ -226,7 +226,7 @@ def xz_uncompress(path, destination=None):
     if os.path.exists(destination):
         raise Exception("Destination already exists: %s" % destination)
 
-    logger.debug('Unxzipping file: %s' % destination)
+    logger.debug("Unxzipping file: %s" % destination)
 
     with open(destination, "wb+") as fd:
         retval = subprocess.call(['xz', '-d', '-c', path],

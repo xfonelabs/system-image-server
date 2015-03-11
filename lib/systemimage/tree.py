@@ -471,7 +471,7 @@ class Tree:
                 if tarname in referenced_files:
                     orphaned_files.remove(entry)
 
-        logger.debug('Orphaned files: %s' % orphaned_files)
+        logger.debug("Orphaned files: %s" % orphaned_files)
         return sorted(orphaned_files)
 
     def publish_keyring(self, keyring_name):

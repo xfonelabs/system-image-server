@@ -92,7 +92,7 @@ def sign_file(config, key, path, destination=None, detach=True, armor=True):
     [key] = ctx.keylist()
     ctx.signers = [key]
 
-    logger.debug('Signing file: %s' % destination)
+    logger.debug("Signing file: %s" % destination)
 
     with open(path, "rb") as fd_in, open(destination, "wb+") as fd_out:
         if detach:
