@@ -37,10 +37,10 @@ def parse_config(path):
         for option in configp.options(section):
             value = configp.get(section, option)
             if ", " in value:
-                value = [entry.strip('"').strip()
+                value = [entry.strip("\"").strip()
                          for entry in value.split(", ")]
             else:
-                value = value.strip('"').strip()
+                value = value.strip("\"").strip()
             config_section[option] = value
         config[section] = config_section
 
@@ -172,13 +172,13 @@ class Config:
 
                     channel.deltabase = [entry]
                     if "deltabase" in config[dict_entry]:
-                        if isinstance(config[dict_entry]["deltabase"],
+                        if isinstance(config[dict_entry]['deltabase'],
                                       list):
                             channel.deltabase = \
-                                config[dict_entry]["deltabase"]
+                                config[dict_entry]['deltabase']
                         else:
                             channel.deltabase = \
-                                [config[dict_entry]["deltabase"]]
+                                [config[dict_entry]['deltabase']]
 
                     # Parse the file list
                     files = config[dict_entry].get("files", [])
@@ -192,7 +192,7 @@ class Config:
                                            "file_%s" % file_entry)
 
                         fields = (config[dict_entry]
-                                  ["file_%s" % file_entry].split(";"))
+                                  ['file_%s' % file_entry].split(";"))
 
                         file_dict = {}
                         file_dict['name'] = file_entry

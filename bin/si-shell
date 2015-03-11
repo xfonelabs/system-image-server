@@ -69,7 +69,7 @@ The system-image tree is availabe as: pub
             try:
                 import readline
             except ImportError:
-                print('I: readline module not available.')
+                print("I: readline module not available.")
             else:
                 import rlcompleter
                 rlcompleter  # Silence pyflakes

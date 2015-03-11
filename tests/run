@@ -43,16 +43,16 @@ if len(sys.argv) > 1:
 else:
     test_filter = ''
 
-tests = [t[:-3] for t in os.listdir('tests')
-         if t.startswith('test_') and t.endswith('.py') and
+tests = [t[:-3] for t in os.listdir("tests")
+         if t.startswith("test_") and t.endswith(".py") and
          re.search(test_filter, t)]
 tests.sort()
 suite = unittest.TestLoader().loadTestsFromNames(tests)
 res = unittest.TextTestRunner(verbosity=2).run(suite)
 
 if coverage:
-    if os.path.exists('tests/coverage'):
-        shutil.rmtree('tests/coverage')
+    if os.path.exists("tests/coverage"):
+        shutil.rmtree("tests/coverage")
     cov.stop()
     cov.html_report(include=glob.glob("lib/systemimage/*.py"),
                     directory='tests/coverage')

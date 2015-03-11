@@ -185,7 +185,7 @@ if __name__ == '__main__':
     # Create new empty entries
     new_images = {'full': {'files': []}}
     for delta in delta_base:
-        new_images["delta_%s" % delta['version']] = {'files': []}
+        new_images['delta_%s' % delta['version']] = {'files': []}
 
     # Extract current version_detail and files
     version_detail = ""
@@ -276,7 +276,7 @@ if __name__ == '__main__':
 
     # Add delta images
     for delta in delta_base:
-        files = new_images["delta_%s" % delta['version']]['files']
+        files = new_images['delta_%s' % delta['version']]['files']
         logging.info("Publishing new delta from '%s' (%s)"
                      " to '%s' (%s) with %s files" %
                      (delta['version'], delta.get("description", ""),

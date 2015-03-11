@@ -62,7 +62,7 @@ def channels_json(config, path, commit=False):
             new_path = "%s.new" % path
             with open(new_path, "w+") as fd:
                 fd.write("%s\n" % json.dumps(json_content, sort_keys=True,
-                                             indent=4, separators=(',', ': ')))
+                                             indent=4, separators=(",", ": ")))
 
             # Move the signature
             gpg.sign_file(config, "image-signing", new_path)
@@ -130,7 +130,7 @@ def index_json(config, path, commit=False):
             new_path = "%s.new" % path
             with open(new_path, "w+") as fd:
                 fd.write("%s\n" % json.dumps(json_content, sort_keys=True,
-                                             indent=4, separators=(',', ': ')))
+                                             indent=4, separators=(",", ": ")))
 
             # Move the signature
             gpg.sign_file(config, "image-signing", new_path)
@@ -359,7 +359,7 @@ class Tree:
         for channel_name in [entry for entry in os.listdir(self.path)
                              if os.path.isdir(os.path.join(self.path,
                                                            entry))
-                             and entry not in ('gpg',)]:
+                             and entry not in ("gpg",)]:
             self.create_channel(channel_name)
 
             for device_name in os.listdir(os.path.join(self.path,
@@ -661,11 +661,11 @@ class Tree:
                 target_device = self.get_device(target_name, device_name)
 
                 # Extract all the current builds
-                device_images = {(image['version'], image.get('base', None),
+                device_images = {(image['version'], image.get("base", None),
                                   image['type'])
                                  for image in device.list_images()}
 
-                target_images = {(image['version'], image.get('base', None),
+                target_images = {(image['version'], image.get("base", None),
                                   image['type'])
                                  for image in target_device.list_images()}
 
@@ -683,7 +683,7 @@ class Tree:
                         orig = [entry for entry in target_device.list_images()
                                 if entry['type'] == image[2] and
                                 entry['version'] == image[0] and
-                                entry.get('base', None) == image[1]]
+                                entry.get("base", None) == image[1]]
 
                         entry = copy.deepcopy(orig[0])
 

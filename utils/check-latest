@@ -44,8 +44,8 @@ def long_version_number(image):
 
     for entry in image['files']:
         file_name = entry['path'].split("/")[-1]
-        file_version = (file_name.split("-")[1].split('.full.')[0]
-                        .split('.delta.')[0])
+        file_version = (file_name.split("-")[1].split(".full.")[0]
+                        .split(".delta.")[0])
 
         if file_name.startswith("ubuntu-"):
             details.append("ubuntu=%s" % file_version)

@@ -60,12 +60,12 @@ public_https_port = 8443
 
         version_file = version_tarfile.extractfile("a/b/version")
         self.assertTrue(version_file)
-        self.assertEqual(version_file.read().decode('utf-8'), "1.2.3.4\n")
+        self.assertEqual(version_file.read().decode("utf-8"), "1.2.3.4\n")
         version_file.close()
 
         channel_file = version_tarfile.extractfile("a/b/channel")
         self.assertTrue(channel_file)
-        self.assertEqual(channel_file.read().decode('utf-8'), """[service]
+        self.assertEqual(channel_file.read().decode("utf-8"), """[service]
 base: system-image.example.net
 http_port: 880
 https_port: 8443
@@ -90,12 +90,12 @@ build_number: 1.2.3.4
 
             version_file = version_tarfile.extractfile("a/b/version")
             self.assertTrue(version_file)
-            self.assertEqual(version_file.read().decode('utf-8'), "1.2.3.4\n")
+            self.assertEqual(version_file.read().decode("utf-8"), "1.2.3.4\n")
             version_file.close()
 
             channel_file = version_tarfile.extractfile("a/b/channel")
             self.assertTrue(channel_file)
-            self.assertEqual(channel_file.read().decode('utf-8'), """[service]
+            self.assertEqual(channel_file.read().decode("utf-8"), """[service]
 base: system-image.example.net
 http_port: disabled
 https_port: disabled
@@ -119,12 +119,12 @@ build_number: 1.2.3.4
 
             version_file = version_tarfile.extractfile("a/b/version")
             self.assertTrue(version_file)
-            self.assertEqual(version_file.read().decode('utf-8'), "1.2.3.4\n")
+            self.assertEqual(version_file.read().decode("utf-8"), "1.2.3.4\n")
             version_file.close()
 
             channel_file = version_tarfile.extractfile("a/b/channel")
             self.assertTrue(channel_file)
-            self.assertEqual(channel_file.read().decode('utf-8'), """[service]
+            self.assertEqual(channel_file.read().decode("utf-8"), """[service]
 base: system-image.example.net
 http_port: 880
 https_port: 8443
@@ -221,7 +221,7 @@ version_detail: abcdef
         program = os.path.join(bin_dir, "program")
         open(program, "w+").close()
         os.chmod(program, 0o755)
-        os.environ["PATH"] = "::%s" % bin_dir
+        os.environ['PATH'] = "::%s" % bin_dir
         self.assertTrue(tools.find_on_path("program"))
 
     def test_find_on_path_present_not_executable(self):
@@ -229,7 +229,7 @@ version_detail: abcdef
         os.mkdir(bin_dir)
         program = os.path.join(bin_dir, "program")
         open(program, "w+").close()
-        os.environ["PATH"] = bin_dir
+        os.environ['PATH'] = bin_dir
         self.assertFalse(tools.find_on_path("program"))
 
     @unittest.skipIf(not os.path.exists("tests/keys/generated"),

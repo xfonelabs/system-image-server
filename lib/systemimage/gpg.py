@@ -123,9 +123,9 @@ class Keyring:
             with open("%s/keyring.json" % keyring_path, "r") as fd:
                 keyring_json = json.loads(fd.read())
 
-            self.keyring_type = keyring_json.get('type', None)
-            self.keyring_expiry = keyring_json.get('expiry', None)
-            self.keyring_model = keyring_json.get('model', None)
+            self.keyring_type = keyring_json.get("type", None)
+            self.keyring_expiry = keyring_json.get("expiry", None)
+            self.keyring_model = keyring_json.get("model", None)
         else:
             open("%s/pubring.gpg" % keyring_path, "w+").close()
 
@@ -171,7 +171,7 @@ class Keyring:
 
         with open("%s/keyring.json" % self.keyring_path, "w+") as fd:
             fd.write("%s\n" % json.dumps(keyring_json, sort_keys=True,
-                                         indent=4, separators=(',', ': ')))
+                                         indent=4, separators=(",", ": ")))
 
     def list_keys(self):
         os.environ['GNUPGHOME'] = self.keyring_path
