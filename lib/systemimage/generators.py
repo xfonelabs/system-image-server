@@ -38,10 +38,11 @@ CACHE = {}
 
 logger = logging.getLogger(__name__)
 
+
 def list_versions(cdimage_path):
     versions = sorted([version for version in os.listdir(cdimage_path)
-                   if version not in ("pending", "current")],
-                  reverse=True)
+                      if version not in ("pending", "current")],
+                      reverse=True)
     logger.debug("Versions detected: %s" % versions)
     return versions
 
@@ -186,7 +187,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
     # Read the arguments
     cdimage_path = arguments[0]
     series = arguments[1]
-    
+
     options = {}
     if len(arguments) > 2:
         options = unpack_arguments(arguments[2])
@@ -211,7 +212,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
         checksum_path = os.path.exists(os.path.join(cdimage_path, version,
-                                           "SHA256SUMS"))
+                                       "SHA256SUMS"))
         if not checksum_path:
             logger.debug("Missing checksum: %s" % checksum_path)
             continue
@@ -397,7 +398,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
         checksum_path = os.path.exists(os.path.join(cdimage_path, version,
-                                           "SHA256SUMS"))
+                                       "SHA256SUMS"))
         if not checksum_path:
             logger.debug("Missing checksum: %s" % checksum_path)
             continue
@@ -625,7 +626,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
         checksum_path = os.path.exists(os.path.join(cdimage_path, version,
-                                           "SHA256SUMS"))
+                                       "SHA256SUMS"))
         if not checksum_path:
             logger.debug("Missing checksum: %s" % checksum_path)
             continue
