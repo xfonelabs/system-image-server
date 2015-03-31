@@ -26,6 +26,7 @@ Some additional dependencies are required for the test suite:
  - python-coverage, python3-coverage
  - pep8
  - pyflakes3, pyflakes
+ - both pxz and xz-utils (for 100% coverage)
 
 
 The full test suite require you to pre-generate some GPG keys.  Actually, you

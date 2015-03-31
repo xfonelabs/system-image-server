@@ -35,7 +35,7 @@ def expand_path(path, base="/"):
     """
 
     if path.startswith(base):
-        path = re.sub('^%s' % re.escape(base), "", path)
+        path = re.sub("^%s" % re.escape(base), "", path)
 
     if path.startswith(os.sep):
         relpath = path[1:]
@@ -86,7 +86,7 @@ def generate_version_tarball(config, channel, device, version, path,
     # Append a line break
     version += "\n"
 
-    tarball.addfile(version_file, BytesIO(version.encode('utf-8')))
+    tarball.addfile(version_file, BytesIO(version.encode("utf-8")))
 
     http_port = config.public_http_port
     https_port = config.public_https_port
@@ -118,7 +118,7 @@ build_number: %s
     channel_file.mtime = int(time.strftime("%s", time.localtime()))
     channel_file.name = channel_path
 
-    tarball.addfile(channel_file, BytesIO(channel.encode('utf-8')))
+    tarball.addfile(channel_file, BytesIO(channel.encode("utf-8")))
 
     tarball.close()
 

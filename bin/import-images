@@ -148,13 +148,13 @@ if __name__ == '__main__':
             new_images = {}
             new_images['full'] = {'files': []}
             for delta in delta_base:
-                new_images["delta_%s" % delta['version']] = {'files': []}
+                new_images['delta_%s' % delta['version']] = {'files': []}
 
             # Iterate through the files
             for file_entry in channel.files:
                 # Deal with device specific overrides
                 if "," in file_entry['name']:
-                    file_name, file_device = file_entry['name'].split(',', 1)
+                    file_name, file_device = file_entry['name'].split(",", 1)
                     if file_device != device_name:
                         logging.debug("Skipping '%s' because the device name"
                                       "doesn't match" % file_entry['name'])
@@ -277,7 +277,7 @@ if __name__ == '__main__':
 
                 # Publish deltas
                 for delta in delta_base:
-                    files = new_images["delta_%s" % delta['version']]['files']
+                    files = new_images['delta_%s' % delta['version']]['files']
                     logging.info("Publishing new delta from '%s' (%s)"
                                  " to '%s' (%s) with %s files" %
                                  (delta['version'],

@@ -55,20 +55,20 @@ def list_tarfile(tarfile):
 
     for entry in tarfile:
         if entry.isdir():
-            set_content.add((entry.path, 'dir', None))
-            dict_content[entry.path] = ('dir', None)
+            set_content.add((entry.path, "dir", None))
+            dict_content[entry.path] = ("dir", None)
         else:
             fhash = ("%s" % entry.mode,
                      "%s" % entry.devmajor,
                      "%s" % entry.devminor,
-                     "%s" % entry.type.decode('utf-8'),
+                     "%s" % entry.type.decode("utf-8"),
                      "%s" % entry.uid,
                      "%s" % entry.gid,
                      "%s" % entry.size,
                      "%s" % entry.mtime)
 
-            set_content.add((entry.path, 'file', fhash))
-            dict_content[entry.path] = ('file', fhash)
+            set_content.add((entry.path, "file", fhash))
+            dict_content[entry.path] = ("file", fhash)
 
     return (set_content, dict_content)
 
@@ -199,7 +199,7 @@ class ImageDiff:
         removed_files = "%s\n" % "\n".join(removed_files_list)
 
         if sys.version_info.major > 2:  # pragma: no cover
-            removed_files = removed_files.encode('utf-8')
+            removed_files = removed_files.encode("utf-8")
 
         removals = tarfile.TarInfo()
         removals.name = "removed"

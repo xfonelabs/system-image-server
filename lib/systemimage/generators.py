@@ -129,7 +129,7 @@ def generate_delta(conf, source_path, target_path):
 
     with open(path.replace(".tar.xz", ".json"), "w+") as fd:
         fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                     indent=4, separators=(',', ': ')))
+                                     indent=4, separators=(",", ": ")))
     gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
     return path
@@ -259,7 +259,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
             continue
 
         hash_string = "%s/%s/%s" % (boot_hash, recovery_hash, system_hash)
-        global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
+        global_hash = sha256(hash_string.encode("utf-8")).hexdigest()
 
         # Generate the path
         path = os.path.join(conf.publish_path, "pool",
@@ -336,7 +336,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
 
         with open(path.replace(".tar.xz", ".json"), "w+") as fd:
             fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                         indent=4, separators=(',', ': ')))
+                                         indent=4, separators=(",", ": ")))
         gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
         # Cleanup
@@ -440,7 +440,6 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"),
                                       "w:")
 
-        added = []
         for entry in source_tarball:
             # FIXME: Will need to be done on the real rootfs
             # Skip some files
@@ -460,7 +459,6 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
             entry.name = "system/%s" % entry.name
             target_tarball.addfile(entry, fileobj=fileptr)
-            added.append(entry.name)
 
         if options.get("product", "touch") == "touch":
             # FIXME: Will need to be done on the real rootfs
@@ -558,7 +556,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
         with open(path.replace(".tar.xz", ".json"), "w+") as fd:
             fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                         indent=4, separators=(',', ': ')))
+                                         indent=4, separators=(",", ": ")))
         gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
         # Cleanup
@@ -675,7 +673,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
 
         with open(path.replace(".tar.xz", ".json"), "w+") as fd:
             fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                         indent=4, separators=(',', ': ')))
+                                         indent=4, separators=(",", ": ")))
         gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
         # Cleanup
@@ -792,11 +790,11 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
         metadata['series'] = series
         metadata['raw_device_path'] = raw_device_path
         metadata['raw_device_checksum'] = raw_device_hash
-        metadata['device'] = environment.get('device_name', 'none')
+        metadata['device'] = environment.get("device_name", "none")
 
         with open(path.replace(".tar.xz", ".json"), "w+") as fd:
             fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                         indent=4, separators=(',', ': ')))
+                                         indent=4, separators=(",", ": ")))
         gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
         # Cleanup
@@ -873,7 +871,7 @@ def generate_file_http(conf, arguments, environment):
 
         # Build the path, hasing together the URL and version
         hash_string = "%s:%s" % (url, version)
-        global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
+        global_hash = sha256(hash_string.encode("utf-8")).hexdigest()
         path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                              "%s-%s.tar.xz" %
                                              (options.get("name", "http"),
@@ -954,7 +952,7 @@ def generate_file_http(conf, arguments, environment):
 
     with open(path.replace(".tar.xz", ".json"), "w+") as fd:
         fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                     indent=4, separators=(',', ': ')))
+                                     indent=4, separators=(",", ": ")))
     gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
     # Cleanup
@@ -993,7 +991,7 @@ def generate_file_keyring(conf, arguments, environment):
         hash_signature = sha256(fd.read()).hexdigest()
 
     hash_string = "%s/%s" % (hash_tarball, hash_signature)
-    global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
+    global_hash = sha256(hash_string.encode("utf-8")).hexdigest()
 
     # Build the path
     path = os.path.realpath(os.path.join(conf.publish_path, "pool",
@@ -1037,7 +1035,7 @@ def generate_file_keyring(conf, arguments, environment):
 
     with open(path.replace(".tar.xz", ".json"), "w+") as fd:
         fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                     indent=4, separators=(',', ': ')))
+                                     indent=4, separators=(",", ": ")))
     gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
     # Cleanup
@@ -1288,7 +1286,7 @@ def generate_file_version(conf, arguments, environment):
 
     with open(path.replace(".tar.xz", ".json"), "w+") as fd:
         fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                     indent=4, separators=(',', ': ')))
+                                     indent=4, separators=(",", ": ")))
     gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
 
     # Cleanup

@@ -272,7 +272,7 @@ class DiffTests(unittest.TestCase):
                                       'system/o.1'])
 
         removed_list = tarball.extractfile("removed")
-        self.assertEqual(removed_list.read().decode('utf-8'), u"""b
+        self.assertEqual(removed_list.read().decode("utf-8"), u"""b
 c/d
 dir
 system/中文中文中文

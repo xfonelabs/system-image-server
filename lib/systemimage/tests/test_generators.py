@@ -788,7 +788,7 @@ public_https_port = 8443
             hash_signature = sha256(fd.read()).hexdigest()
 
         hash_string = "%s/%s" % (hash_tarball, hash_signature)
-        global_hash = sha256(hash_string.encode('utf-8')).hexdigest()
+        global_hash = sha256(hash_string.encode("utf-8")).hexdigest()
 
         # Normal run
         self.assertEqual(
