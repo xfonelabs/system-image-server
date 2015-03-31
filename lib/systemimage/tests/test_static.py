@@ -28,14 +28,14 @@ try:
     # by using six because it too is too old on Precise.  2015-02-26
     # barry@ubuntu.com
     import pyflakes
-    if tuple(int(v) for v in pyflakes.__version__.split('.')) < (8, 0):
+    if tuple(int(v) for v in pyflakes.__version__.split(".")) < (8, 0):
         pyflakes = None
 except ImportError:
     pyflakes = None
 
 # Also make sure the binary exists.
 if pyflakes is not None:
-    binary = '/usr/bin/pyflakes' + ('' if sys.version_info < (3,) else '3')
+    binary = "/usr/bin/pyflakes" + ("" if sys.version_info < (3,) else "3")
     if not os.path.exists(binary):
         pyflakes = None
 
@@ -81,7 +81,7 @@ class StaticTests(unittest.TestCase):
             print(line)
         self.assertEqual(0, len(output))
 
-    @unittest.skipIf(pyflakes is None, 'Missing pyflakes, skipping test.')
+    @unittest.skipIf(pyflakes is None, "Missing pyflakes, skipping test.")
     def test_pyflakes_clean(self):
         subp = subprocess.Popen(
             ["pyflakes"] + self.all_paths(),
@@ -91,7 +91,7 @@ class StaticTests(unittest.TestCase):
             print(line)
         self.assertEqual(0, len(output))
 
-    @unittest.skipIf(pyflakes is None, 'Missing pyflakes3, skipping test.')
+    @unittest.skipIf(pyflakes is None, "Missing pyflakes, skipping test.")
     def test_pyflakes3_clean(self):
         subp = subprocess.Popen(
             ["pyflakes3"] + self.all_paths(),

@@ -37,8 +37,8 @@ class SystemImagePlugin(Plugin):
         self.verbosity = 0
         self.log_file = None
         self.log_level = 'info'
-        self.addArgument(self.patterns, 'P', 'pattern',
-                         'Add a test matching pattern')
+        self.addArgument(self.patterns, "P", "pattern",
+                         "Add a test matching pattern")
 
     def getTestCaseNames(self, event):
         if len(self.patterns) == 0:
@@ -46,14 +46,14 @@ class SystemImagePlugin(Plugin):
             return
         # Does the pattern match the fully qualified class name?
         for pattern in self.patterns:
-            full_class_name = '{}.{}'.format(
+            full_class_name = "{}.{}".format(
                 event.testCase.__module__, event.testCase.__name__)
             if re.search(pattern, full_class_name):
                 # Don't suppress this test class.
                 return
         names = filter(event.isTestMethod, dir(event.testCase))
         for name in names:
-            full_test_name = '{}.{}.{}'.format(
+            full_test_name = "{}.{}.{}".format(
                 event.testCase.__module__,
                 event.testCase.__name__,
                 name)

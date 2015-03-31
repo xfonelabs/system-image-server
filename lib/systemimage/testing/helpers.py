@@ -25,19 +25,19 @@ import os
 from contextlib import contextmanager
 
 
-HAS_TEST_KEYS = os.path.exists(os.path.join('tools', 'keys', 'generated'))
+HAS_TEST_KEYS = os.path.exists(os.path.join("tools", "keys", "generated"))
 MISSING_KEYS_WARNING = 'No GPG testing keys present.  Run tools/generate-keys'
 
 
 @contextmanager
 def system_image_root(path):
     """Temporarily set the $SYSTEM_IMAGE_ROOT environment variable."""
-    old_envar = os.environ.get('SYSTEM_IMAGE_ROOT')
+    old_envar = os.environ.get("SYSTEM_IMAGE_ROOT")
     try:
-        os.environ['SYSTEM_IMAGE_ROOT'] = path
+        os.environ["SYSTEM_IMAGE_ROOT"] = path
         yield
     finally:
         if old_envar is None:
-            del os.environ['SYSTEM_IMAGE_ROOT']
+            del os.environ["SYSTEM_IMAGE_ROOT"]
         else:
-            os.environ['SYSTEM_IMAGE_ROOT'] = old_envar
+            os.environ["SYSTEM_IMAGE_ROOT"] = old_envar

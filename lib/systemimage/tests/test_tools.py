@@ -239,7 +239,7 @@ version_detail: abcdef
         # Generate the keyring tarballs
         env = dict(os.environ)
         env['SYSTEM_IMAGE_ROOT'] = self.temp_directory
-        subprocess.call(['bin/generate-keyrings'], env=env)
+        subprocess.call(["bin/generate-keyrings"], env=env)
 
         # Generate a fake recovery partition
         os.makedirs("%s/initrd/etc/system-image/" % self.temp_directory)
@@ -253,8 +253,8 @@ version_detail: abcdef
             find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
             with open("../initrd.img", "w+") as fd:
                 with open(os.path.devnull, "w") as devnull:
-                    subprocess.call(['fakeroot', 'cpio',
-                                     '-o', '--format=newc'],
+                    subprocess.call(["fakeroot", "cpio",
+                                     "-o", "--format=newc"],
                                     stdin=find.stdout,
                                     stdout=fd,
                                     stderr=devnull)
