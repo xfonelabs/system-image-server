@@ -96,3 +96,15 @@ suite on that distribution version::
 
 Note however that the Python 3 test suite will have failures on Precise due to
 other missing packages (e.g. `python3-gpgme`).  If it hurts, don't do it.
+
+
+See also
+========
+
+For more information on setting up a server see:
+
+    https://wiki.ubuntu.com/ImageBasedUpgrades/ServerSetup
+
+For more information on operating a server see:
+
+    https://wiki.ubuntu.com/ImageBasedUpgrades/ServerOperation

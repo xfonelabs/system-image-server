@@ -120,6 +120,29 @@ build_number: %s
 
     tarball.addfile(channel_file, BytesIO(channel.encode("utf-8")))
 
+    # With system-image 3.0, we need a couple of additional files.  For now we
+    # can just use symlink, but once support for system-image < 3.0 is
+    # removed, these symlinks should become real files and the channel_file
+    # should be removed.
+    path_00_default = os.path.join(
+        os.path.dirname(channel_path),
+        'config.d', '00_default.ini')
+    default_file = tarfile.TarInfo()
+    default_file.name = path_00_default
+    default_file.type = tarfile.SYMTYPE
+    default_file.linkname = os.path.join(
+        os.path.dirname(channel_path), 'client.ini')
+    tarball.addfile(default_file)
+
+    path_01_channel = os.path.join(
+        os.path.dirname(channel_path),
+        'config.d', '01_channel.ini')
+    channel_file = tarfile.TarInfo()
+    channel_file.name = path_01_channel
+    channel_file.type = tarfile.SYMTYPE
+    channel_file.linkname = channel_path
+    tarball.addfile(channel_file)
+
     tarball.close()
 
 

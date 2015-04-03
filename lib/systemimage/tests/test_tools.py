@@ -300,3 +300,21 @@ version_detail: abcdef
         tools.repack_recovery_keyring(self.config, "%s/recovery.tar.xz" %
                                                    self.temp_directory,
                                       "archive-master")
+
+    def test_system_image_30_symlinks(self):
+        # To support system-image 3.0, generate symlinks for config.d
+        version_tarball = "%s/version.tar" % self.temp_directory
+        tools.generate_version_tarball(self.config, "testing", "test",
+                                       "1.2.3.4",
+                                       version_tarball)
+        version_tarfile = tarfile.open(version_tarball, "r:")
+        default_ini = version_tarfile.getmember(
+            "system/etc/system-image/config.d/00_default.ini")
+        self.assertEqual(default_ini.type, tarfile.SYMTYPE)
+        self.assertEqual(default_ini.linkname,
+                         "system/etc/system-image/client.ini")
+        channel_ini = version_tarfile.getmember(
+            "system/etc/system-image/config.d/01_channel.ini")
+        self.assertEqual(channel_ini.type, tarfile.SYMTYPE)
+        self.assertEqual(channel_ini.linkname,
+                         "system/etc/system-image/channel.ini")
