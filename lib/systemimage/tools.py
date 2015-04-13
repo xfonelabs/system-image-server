@@ -274,7 +274,7 @@ def repack_recovery_keyring(conf, path, keyring_name):
 
         with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
             with open(os.path.devnull, "w") as devnull:
-                subprocess.call(['fakeroot', '-s', state_path, 'cpio', '-i'],
+                subprocess.call(["fakeroot", "-s", state_path, "cpio", "-i"],
                                 stdin=fd, stdout=devnull, stderr=devnull)
 
     # Swap the files
@@ -293,8 +293,8 @@ def repack_recovery_keyring(conf, path, keyring_name):
         find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
         with open(os.path.join(tempdir, "img", "initrd"), "w+") as fd:
             with open(os.path.devnull, "w") as devnull:
-                subprocess.call(['fakeroot', '-i', state_path, 'cpio',
-                                 '-o', '--format=newc'],
+                subprocess.call(["fakeroot', "-i", state_path, "cpio",
+                                 "-o", "--format=newc"],
                                 stdin=find.stdout,
                                 stdout=fd,
                                 stderr=devnull)

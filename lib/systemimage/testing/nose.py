@@ -16,7 +16,7 @@
 """Nose plugin for testing."""
 
 __all__ = [
-    'SystemImagePlugin',
+    "SystemImagePlugin",
     ]
 
 
@@ -27,7 +27,7 @@ from nose2.events import Plugin
 
 class SystemImagePlugin(Plugin):
     # Hook into nose2's unittest.cfg configuration.
-    configSection = 'systemimage'
+    configSection = "systemimage"
 
     controller = None
 
@@ -36,7 +36,7 @@ class SystemImagePlugin(Plugin):
         self.patterns = []
         self.verbosity = 0
         self.log_file = None
-        self.log_level = 'info'
+        self.log_level = "info"
         self.addArgument(self.patterns, "P", "pattern",
                          "Add a test matching pattern")
 

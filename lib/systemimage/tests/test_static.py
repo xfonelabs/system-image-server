@@ -41,9 +41,9 @@ if pyflakes is not None:
 
 
 FILTER_DIRS = [
-    '.bzr',
-    '.tox',
-    '__pycache__',
+    ".bzr",
+    ".tox",
+    "__pycache__",
     ]
 
 
