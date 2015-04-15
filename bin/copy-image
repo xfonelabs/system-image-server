@@ -35,6 +35,9 @@ if __name__ == '__main__':
     parser.add_argument("version", metavar="VERSION", type=int)
     parser.add_argument("-k", "--keep-version", action="store_true",
                         help="Keep the original verison number")
+    parser.add_argument("-p", "--phased-percentage", type=int,
+                        help="Set the phased percentage for the copied image",
+                        default=100)
     parser.add_argument("--verbose", "-v", action="count", default=0)
 
     args = parser.parse_args()
@@ -289,6 +292,12 @@ if __name__ == '__main__':
             files,
             base=delta['version'],
             version_detail=",".join(environment['version_detail']))
+
+    # Set the phased percentage value for the new image
+    logging.info("Setting phased percentage of the new image to %s%%" %
+        args.phased_percentage)
+    destination_device.set_phased_percentage(
+        new_version, args.phased_percentage)
 
     # Expire images
     if args.destination_channel in conf.channels:
