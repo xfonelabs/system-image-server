@@ -22,6 +22,7 @@ Running the test suite
 
 Some additional dependencies are required for the test suite:
 
+ - python-tox
  - python-mock, python3-mock
  - python-coverage, python3-coverage
  - pep8

@@ -16,12 +16,12 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='system-image',
-    description='Ubuntu System Image Server',
-    author='Barry Warsaw',
-    author_email='barry@ubuntu.com',
-    license='GNU GPLv3',
-    packages=find_packages('lib'),
-    package_dir={'': 'lib'},
+    name="system-image",
+    description="Ubuntu System Image Server",
+    author="Barry Warsaw",
+    author_email="barry@ubuntu.com",
+    license="GNU GPLv3",
+    packages=find_packages("lib"),
+    package_dir={"": "lib"},
     include_package_data=True,
     )
