@@ -14,9 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 __all__ = [
-    'HAS_TEST_KEYS',
-    'MISSING_KEYS_WARNING',
-    'system_image_root',
+    "HAS_TEST_KEYS",
+    "MISSING_KEYS_WARNING",
+    "system_image_root",
     ]
 
 
@@ -34,10 +34,10 @@ def system_image_root(path):
     """Temporarily set the $SYSTEM_IMAGE_ROOT environment variable."""
     old_envar = os.environ.get("SYSTEM_IMAGE_ROOT")
     try:
-        os.environ["SYSTEM_IMAGE_ROOT"] = path
+        os.environ['SYSTEM_IMAGE_ROOT'] = path
         yield
     finally:
         if old_envar is None:
-            del os.environ["SYSTEM_IMAGE_ROOT"]
+            del os.environ['SYSTEM_IMAGE_ROOT']
         else:
-            os.environ["SYSTEM_IMAGE_ROOT"] = old_envar
+            os.environ['SYSTEM_IMAGE_ROOT'] = old_envar

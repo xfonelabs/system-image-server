@@ -28,7 +28,7 @@ try:
     # by using six because it too is too old on Precise.  2015-02-26
     # barry@ubuntu.com
     import pyflakes
-    if tuple(int(v) for v in pyflakes.__version__.split(".")) < (8, 0):
+    if tuple(int(v) for v in pyflakes.__version__.split(".")) < (0, 8, 0):
         pyflakes = None
 except ImportError:
     pyflakes = None
@@ -41,9 +41,9 @@ if pyflakes is not None:
 
 
 FILTER_DIRS = [
-    '.bzr',
-    '.tox',
-    '__pycache__',
+    ".bzr",
+    ".tox",
+    "__pycache__",
     ]
 
 
