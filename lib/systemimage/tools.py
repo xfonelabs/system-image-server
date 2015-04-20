@@ -130,17 +130,17 @@ build_number: %s
     # should be removed.
     path_00_default = os.path.join(
         os.path.dirname(channel_path),
-        'config.d', '00_default.ini')
+        "config.d", "00_default.ini")
     default_file = tarfile.TarInfo()
     default_file.name = path_00_default
     default_file.type = tarfile.SYMTYPE
     default_file.linkname = os.path.join(
-        os.path.dirname(channel_path), 'client.ini')
+        os.path.dirname(channel_path), "client.ini")
     tarball.addfile(default_file)
 
     path_01_channel = os.path.join(
         os.path.dirname(channel_path),
-        'config.d', '01_channel.ini')
+        "config.d", "01_channel.ini")
     channel_file = tarfile.TarInfo()
     channel_file.name = path_01_channel
     channel_file.type = tarfile.SYMTYPE
