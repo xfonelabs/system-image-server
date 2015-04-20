@@ -17,10 +17,13 @@
 
 import json
 import gpgme
+import logging
 import os
 import tarfile
 
 from io import BytesIO
+
+logger = logging.getLogger(__name__)
 
 
 def generate_signing_key(keyring_path, key_name, key_email, key_expiry):
@@ -79,7 +82,7 @@ def sign_file(config, key, path, destination=None, detach=True, armor=True):
             destination = "%s.gpg" % path
 
     if os.path.exists(destination):
-        raise Exception("destination already exists.")
+        raise Exception("Destination already exists: %s" % destination)
 
     os.environ['GNUPGHOME'] = key_path
 
@@ -88,6 +91,8 @@ def sign_file(config, key, path, destination=None, detach=True, armor=True):
     ctx.armor = armor
     [key] = ctx.keylist()
     ctx.signers = [key]
+
+    logger.debug("Signing file: %s" % destination)
 
     with open(path, "rb") as fd_in, open(destination, "wb+") as fd_out:
         if detach:
