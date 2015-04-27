@@ -32,8 +32,10 @@ class DiffTests(unittest.TestCase):
         source_tarball_path = "%s/source.tar" % temp_directory
         target_tarball_path = "%s/target.tar" % temp_directory
 
-        source_tarball = tarfile.open(source_tarball_path, "w")
-        target_tarball = tarfile.open(target_tarball_path, "w")
+        source_tarball = tarfile.open(
+            source_tarball_path, "w", encoding="utf-8")
+        target_tarball = tarfile.open(
+            target_tarball_path, "w", encoding="utf-8")
 
         # Standard file
         a = tarfile.TarInfo()
@@ -165,7 +167,7 @@ class DiffTests(unittest.TestCase):
 
         # Unicode file
         p_source = tarfile.TarInfo()
-        p_source.name = "system/中文中文中文"
+        p_source.name = u"system/中文中文中文"
         p_source.size = 4
 
         source_tarball.addfile(a, BytesIO(b"test"))
