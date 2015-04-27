@@ -79,8 +79,8 @@ class ImageDiff:
     diff = None
 
     def __init__(self, source, target):
-        self.source_file = tarfile.open(source, 'r:')
-        self.target_file = tarfile.open(target, 'r:')
+        self.source_file = tarfile.open(source, 'r:', encoding='utf-8')
+        self.target_file = tarfile.open(target, 'r:', encoding='utf-8')
 
     def scan_content(self, image):
         """

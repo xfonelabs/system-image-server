@@ -23,12 +23,13 @@ Running the test suite
 Some additional dependencies are required for the test suite:
 
  - python-tox
+ - python-nose2, python3-nose2
  - python-mock, python3-mock
  - python-coverage, python3-coverage
  - pep8
- - pyflakes3, pyflakes
+ - pyflakes (includes executables for both Python 2 and 3)
  - both pxz and xz-utils (for 100% coverage)
-
+ - cpio
 
 The full test suite require you to pre-generate some GPG keys.  Actually, you
 can run the test suite without this, but many tests will be skipped.  To
