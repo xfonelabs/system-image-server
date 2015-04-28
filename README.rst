@@ -26,6 +26,7 @@ Some additional dependencies are required for the test suite:
  - python-nose2, python3-nose2
  - python-mock, python3-mock
  - python-coverage, python3-coverage
+ - libjs-jquery-hotkeys, libjs-jquery-isonscreen, libjs-jquery-tablesorter
  - pep8
  - pyflakes (includes executables for both Python 2 and 3)
  - both pxz and xz-utils (for 100% coverage)
