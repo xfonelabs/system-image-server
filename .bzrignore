@@ -7,3 +7,15 @@ tests/coverage
 tests/keys/*
 www/*
 state/*
+.tox
+dist
+system_image.egg-info
+__pycache__
+.coverage*
+coverage-py34
+tools/keys/archive-master
+tools/keys/device-signing
+tools/keys/generated
+tools/keys/image-master
+tools/keys/image-signing
+coverage-py27

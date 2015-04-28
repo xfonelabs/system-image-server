@@ -22,6 +22,8 @@ import unittest
 
 from systemimage import config
 from systemimage import tools
+from systemimage.helpers import chdir
+from systemimage.testing.helpers import system_image_root
 
 try:
     from unittest import mock
@@ -87,13 +89,11 @@ ssh_host = hostb
         config_file = os.path.join(os.path.dirname(config.__file__),
                                    "../../etc/config")
 
-        old_pwd = os.getcwd()
-        os.chdir(self.temp_directory)
-        if not os.path.exists(config_file):
-            self.assertRaises(Exception, config.Config)
-        else:
-            self.assertTrue(config.Config())
-        os.chdir(old_pwd)
+        with chdir(self.temp_directory):
+            if not os.path.exists(config_file):
+                self.assertRaises(Exception, config.Config)
+            else:
+                self.assertTrue(config.Config())
 
         # Empty config
         empty_config_path = os.path.join(self.temp_directory,
@@ -195,8 +195,8 @@ ssh_user = other-user
         os.makedirs(os.path.join(test_path, "etc"))
         with open(os.path.join(test_path, "etc", "config"), "w+") as fd:
             fd.write("[global]\nbase_path = a/b/c")
-        os.environ['SYSTEM_IMAGE_ROOT'] = test_path
-        test_config = config.Config()
+        with system_image_root(test_path):
+            test_config = config.Config()
         self.assertEqual(test_config.base_path, "a/b/c")
 
         # Test the channels config

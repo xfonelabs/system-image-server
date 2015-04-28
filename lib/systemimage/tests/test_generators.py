@@ -15,10 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from hashlib import sha256
-from io import BytesIO, StringIO
-from systemimage import config, generators, gpg, tools, tree
-
 import json
 import os
 import shutil
@@ -32,6 +28,11 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+
+from hashlib import sha256
+from io import BytesIO, StringIO
+from systemimage import config, generators, gpg, tools, tree
+from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
 
 class GeneratorsTests(unittest.TestCase):
@@ -48,7 +49,7 @@ gpg_key_path = %s
 public_fqdn = system-image.example.net
 public_http_port = 880
 public_https_port = 8443
-""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tools", "keys")))
         self.config = config.Config(config_path)
 
         os.mkdir(os.path.join(self.temp_directory, "www"))
@@ -60,16 +61,14 @@ public_https_port = 8443
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_unpack_arguments(self):
         self.assertEqual(generators.unpack_arguments("a=1,b=2"),
                          {'a': "1", 'b': "2"})
         self.assertEqual(generators.unpack_arguments("a=1,b=2,c"),
                          {'a': "1", 'b': "2"})
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_delta(self):
         # Source tarball
         source_path = os.path.join(self.temp_directory, "source.tar")
@@ -134,14 +133,12 @@ public_https_port = 8443
         generators.generate_delta(self.config, source_path_xz,
                                   destination_path_xz)
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file(self):
         self.assertRaises(Exception, generators.generate_file, self.config,
                           "invalid", [], {})
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file_version(self):
         environment = {}
         environment['channel_name'] = "test"
@@ -179,8 +176,7 @@ public_https_port = 8443
             os.path.realpath(os.path.join(self.device.path,
                              "version-%s.tar.xz" % environment['version'])))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     @mock.patch("subprocess.call")
     def test_generate_file_cdimage_device_android(self, mock_call):
         def call_side_effect(cmd, stdout=None, stderr=None):
@@ -297,8 +293,7 @@ public_https_port = 8443
                              "device-cbafd7270154b197d8a963751d653f968"
                              "1fef86f8ec1e6e679f55f677a3a1b94.tar.xz"))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file_cdimage_device_raw(self):
         environment = {}
         environment['channel_name'] = "test"
@@ -393,8 +388,7 @@ public_https_port = 8443
                 os.path.join(self.config.publish_path, "pool",
                              "device-HASH.tar.xz"))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file_cdimage_ubuntu(self):
         environment = {}
         environment['channel_name'] = "test"
@@ -518,8 +512,7 @@ public_https_port = 8443
                 os.remove(os.path.join(self.config.publish_path,
                                        "pool", entry))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file_cdimage_custom(self):
         environment = {}
         environment['channel_name'] = "test"
@@ -617,8 +610,7 @@ public_https_port = 8443
                 os.remove(os.path.join(self.config.publish_path,
                                        "pool", entry))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     @mock.patch("systemimage.generators.urlretrieve")
     @mock.patch("systemimage.generators.urlopen")
     def test_generate_file_http(self, mock_urlopen, mock_urlretrieve):
@@ -752,8 +744,7 @@ public_https_port = 8443
                          "http-f09815f899863cb369f2a12fa6b29ce8bca0d4a"
                          "5cef1809ce82af09d41e2f5af.tar.xz"))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file_keyring(self):
         environment = {}
         environment['channel_name'] = "test"
@@ -763,8 +754,9 @@ public_https_port = 8443
         environment['version_detail'] = []
 
         # Generate the keyring tarballs
-        os.environ['SYSTEM_IMAGE_ROOT'] = self.temp_directory
-        subprocess.call(['bin/generate-keyrings'])
+        env = dict(os.environ)
+        env['SYSTEM_IMAGE_ROOT'] = self.temp_directory
+        subprocess.call(["bin/generate-keyrings"], env=env)
 
         # Ensure we don't generate a new tarball when there are no changes
         environment['new_files'] = []
@@ -814,8 +806,7 @@ public_https_port = 8443
             os.path.join(self.config.publish_path, "pool",
                          "keyring-%s.tar.xz" % global_hash))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file_system_image(self):
         environment = {}
         environment['channel_name'] = "test"
@@ -880,8 +871,7 @@ public_https_port = 8443
                                                   environment),
             os.path.join(self.config.publish_path, "file-1.tar.xz"))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     @mock.patch("systemimage.tools.repack_recovery_keyring")
     @mock.patch("systemimage.generators.urlretrieve")
     @mock.patch("systemimage.generators.urlopen")

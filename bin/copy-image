@@ -295,7 +295,7 @@ if __name__ == '__main__':
 
     # Set the phased percentage value for the new image
     logging.info("Setting phased percentage of the new image to %s%%" %
-        args.phased_percentage)
+                 args.phased_percentage)
     destination_device.set_phased_percentage(
         new_version, args.phased_percentage)
 

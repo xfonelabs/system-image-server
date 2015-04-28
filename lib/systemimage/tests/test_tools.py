@@ -23,6 +23,8 @@ import tempfile
 import unittest
 
 from systemimage import config, tools
+from systemimage.helpers import chdir
+from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
 
 class ToolTests(unittest.TestCase):
@@ -40,7 +42,7 @@ gpg_key_path = %s
 public_fqdn = system-image.example.net
 public_http_port = 880
 public_https_port = 8443
-""" % (self.temp_directory, os.path.join(os.getcwd(), "tests", "keys")))
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tools", "keys")))
         self.config = config.Config(config_path)
 
     def tearDown(self):
@@ -232,13 +234,12 @@ version_detail: abcdef
         os.environ['PATH'] = bin_dir
         self.assertFalse(tools.find_on_path("program"))
 
-    @unittest.skipIf(not os.path.exists("tests/keys/generated"),
-                     "No GPG testing keys present. Run tests/generate-keys")
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_repack_recovery_keyring(self):
         # Generate the keyring tarballs
-        environ = dict(os.environ)
-        environ['SYSTEM_IMAGE_ROOT'] = self.temp_directory
-        subprocess.call(['bin/generate-keyrings'], env=environ)
+        env = dict(os.environ)
+        env['SYSTEM_IMAGE_ROOT'] = self.temp_directory
+        subprocess.call(["bin/generate-keyrings"], env=env)
 
         # Generate a fake recovery partition
         os.makedirs("%s/initrd/etc/system-image/" % self.temp_directory)
@@ -247,18 +248,16 @@ version_detail: abcdef
         open("%s/initrd/etc/system-image/archive-master.tar.xz.asc" %
              self.temp_directory, "w+").close()
 
-        old_pwd = os.getcwd()
-        os.chdir(os.path.join(self.temp_directory, "initrd"))
-
-        find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
-        with open("../initrd.img", "w+") as fd:
-            with open(os.path.devnull, "w") as devnull:
-                subprocess.call(['fakeroot', 'cpio',
-                                 '-o', '--format=newc'],
-                                stdin=find.stdout,
-                                stdout=fd,
-                                stderr=devnull)
-        os.chdir(old_pwd)
+        initrd_dir = os.path.join(self.temp_directory, "initrd")
+        with chdir(initrd_dir):
+            find = subprocess.Popen(["find", "."], stdout=subprocess.PIPE)
+            with open("../initrd.img", "w+") as fd:
+                with open(os.path.devnull, "w") as devnull:
+                    subprocess.call(["fakeroot", "cpio",
+                                     "-o", "--format=newc"],
+                                    stdin=find.stdout,
+                                    stdout=fd,
+                                    stderr=devnull)
 
         tools.gzip_compress(os.path.join(self.temp_directory, "initrd.img"),
                             os.path.join(self.temp_directory, "initrd.gz"))
