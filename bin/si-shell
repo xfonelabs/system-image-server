@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # Start the shell
     banner = """Welcome to the system-image shell.
 The configuration is available as: conf
-The system-image tree is availabe as: pub
+The system-image tree is available as: pub
 """
 
     class CompleterConsole(code.InteractiveConsole):
