@@ -128,14 +128,16 @@ build_number: %s
     # can just use symlink, but once support for system-image < 3.0 is
     # removed, these symlinks should become real files and the channel_file
     # should be removed.
+    #
+    # We use relative paths in the links so that we don't have to worry
+    # about the recovery "system/" prefix.
     path_00_default = os.path.join(
         os.path.dirname(channel_path),
         "config.d", "00_default.ini")
     default_file = tarfile.TarInfo()
     default_file.name = path_00_default
     default_file.type = tarfile.SYMTYPE
-    default_file.linkname = os.path.join(
-        os.path.dirname(channel_path), "client.ini")
+    default_file.linkname = "../client.ini"
     tarball.addfile(default_file)
 
     path_01_channel = os.path.join(
@@ -144,7 +146,8 @@ build_number: %s
     channel_file = tarfile.TarInfo()
     channel_file.name = path_01_channel
     channel_file.type = tarfile.SYMTYPE
-    channel_file.linkname = channel_path
+    channel_file.linkname = os.path.join(
+        "..", os.path.basename(channel_path))
     tarball.addfile(channel_file)
 
     tarball.close()
@@ -192,13 +195,11 @@ def gzip_uncompress(path, destination=None):
     if os.path.exists(destination):
         raise Exception("Destination already exists: %s" % destination)
 
-    logger.debug("Ungzipping file: %s" % destination)
+    logger.debug("Ungzipping {} to: {}".format(path, destination))
 
-    compressed = gzip.open(path, "rb")
-    uncompressed = open(destination, "wb+")
-    uncompressed.writelines(compressed)
-    uncompressed.close()
-    compressed.close()
+    with gzip.open(path, "rb") as compressed:
+        with open(destination, "wb+") as uncompressed:
+            uncompressed.writelines(compressed)
 
     return destination
 
@@ -304,8 +305,13 @@ def repack_recovery_keyring(conf, path, keyring_name):
     state_path = os.path.join(tempdir, "fakeroot_state")
 
     with chdir(os.path.join(tempdir, "initrd")):
-        gzip_uncompress(os.path.join(tempdir, "img", "initrd.img"),
-                        os.path.join(tempdir, "img", "initrd"))
+        xz_path = os.path.join(tempdir, "img", "initrd.img")
+        un_path = os.path.join(tempdir, "img", "initrd")
+        try:
+            gzip_uncompress(xz_path, un_path)
+        except IOError:
+            # I guess it's not compressed.
+            os.rename(xz_path, un_path)
 
         with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
             with open(os.path.devnull, "w") as devnull:
