@@ -311,10 +311,8 @@ version_detail: abcdef
         default_ini = version_tarfile.getmember(
             "system/etc/system-image/config.d/00_default.ini")
         self.assertEqual(default_ini.type, tarfile.SYMTYPE)
-        self.assertEqual(default_ini.linkname,
-                         "system/etc/system-image/client.ini")
+        self.assertEqual(default_ini.linkname, "../client.ini")
         channel_ini = version_tarfile.getmember(
             "system/etc/system-image/config.d/01_channel.ini")
         self.assertEqual(channel_ini.type, tarfile.SYMTYPE)
-        self.assertEqual(channel_ini.linkname,
-                         "system/etc/system-image/channel.ini")
+        self.assertEqual(channel_ini.linkname, "../channel.ini")
