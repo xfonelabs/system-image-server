@@ -305,13 +305,8 @@ def repack_recovery_keyring(conf, path, keyring_name):
     state_path = os.path.join(tempdir, "fakeroot_state")
 
     with chdir(os.path.join(tempdir, "initrd")):
-        xz_path = os.path.join(tempdir, "img", "initrd.img")
-        un_path = os.path.join(tempdir, "img", "initrd")
-        try:
-            gzip_uncompress(xz_path, un_path)
-        except IOError:
-            # I guess it's not compressed.
-            os.rename(xz_path, un_path)
+        gzip_uncompress(os.path.join(tempdir, "img", "initrd.img"),
+                        os.path.join(tempdir, "img", "initrd"))
 
         with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
             with open(os.path.devnull, "w") as devnull:
