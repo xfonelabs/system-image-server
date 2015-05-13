@@ -17,6 +17,7 @@
 
 import os
 import shutil
+import stat
 import subprocess
 import tarfile
 import tempfile
@@ -25,6 +26,24 @@ import unittest
 from systemimage import config, tools
 from systemimage.helpers import chdir
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
+
+
+def safe_extract(tarfile_path, tempdir):
+    # Safely unpack the tarball, ignoring any device nodes or paths that point
+    # outside the tempdir (using a shorthand of any absolute paths or
+    # references to ../)
+    unpackables = []
+    with tarfile.open(tarfile_path) as tf:
+        for member in tf:
+            if member.isdev():
+                continue
+            # Sanity check the member's path name.  Disallow any absolute paths
+            # or paths with .. in them.
+            if os.path.isabs(member.name) or '..' in member.name.split('/'):
+                continue
+            unpackables.append(member)
+        # Do the extraction.
+        tf.extractall(tempdir, members=unpackables)
 
 
 class ToolTests(unittest.TestCase):
@@ -316,3 +335,23 @@ version_detail: abcdef
             "system/etc/system-image/config.d/01_channel.ini")
         self.assertEqual(channel_ini.type, tarfile.SYMTYPE)
         self.assertEqual(channel_ini.linkname, "../channel.ini")
+
+    def test_system_image_30_permissions(self):
+        # The etc/system-image/config.d directory should be created with
+        # drwxrwxr-x permissions.  LP: #1454447
+        version_tarball = "%s/version.tar" % self.temp_directory
+        tools.generate_version_tarball(self.config, "testing", "test",
+                                       "1.2.3.4",
+                                       version_tarball)
+        # Extract the tarfile to another temp directory, so that we can
+        # exactly compare extracted directory modes.
+        extract_dir = tempfile.mkdtemp()
+        try:
+            safe_extract(version_tarball, extract_dir)
+            config_d = os.path.join(
+                extract_dir, "system", "etc", "system-image", "config.d")
+            mode = stat.S_IMODE(os.stat(config_d).st_mode)
+        finally:
+            shutil.rmtree(extract_dir)
+        self.assertEqual(mode, 0o775,
+                         'got 0o{:o}, expected 0o775'.format(mode))

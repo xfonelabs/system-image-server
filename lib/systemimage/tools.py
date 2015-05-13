@@ -131,18 +131,22 @@ build_number: %s
     #
     # We use relative paths in the links so that we don't have to worry
     # about the recovery "system/" prefix.
-    path_00_default = os.path.join(
-        os.path.dirname(channel_path),
-        "config.d", "00_default.ini")
+    #
+    # The directory needs to be created with drwxrwxr-x permissions.
+    config_d = os.path.join(os.path.dirname(channel_path), "config.d")
+    directory = tarfile.TarInfo(config_d)
+    directory.type = tarfile.DIRTYPE
+    directory.mode = 0o775
+    tarball.addfile(directory)
+
+    path_00_default = os.path.join(config_d, "00_default.ini")
     default_file = tarfile.TarInfo()
     default_file.name = path_00_default
     default_file.type = tarfile.SYMTYPE
     default_file.linkname = "../client.ini"
     tarball.addfile(default_file)
 
-    path_01_channel = os.path.join(
-        os.path.dirname(channel_path),
-        "config.d", "01_channel.ini")
+    path_01_channel = os.path.join(config_d, "01_channel.ini")
     channel_file = tarfile.TarInfo()
     channel_file.name = path_01_channel
     channel_file.type = tarfile.SYMTYPE
