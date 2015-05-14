@@ -107,6 +107,18 @@ def main():
                 Record(
                     'http://system-image.ubuntu.com/{}'.format(signature),
                     str(root / signature)))
+            # We also need the version-*.json files, which are used by
+            # bin/copy-image
+            version_details = path.name.split('.')
+            if (version_details[0].startswith('version')
+                    and version_details[-1] == 'xz'
+                    and version_details[-2] == 'tar'):
+                prefix, version = version_details[0].split('-')
+                version_file = 'version-{}.json'.format(version)
+                url = 'http://system-image.ubuntu.com/{}/{}'.format(
+                    path.parent, version_file)
+                dest = local_path.parent / version_file
+                records.append(Record(url, str(dest)))
     for parent in parents:
         with suppress(FileExistsError):
             parent.mkdir(parents=True)
