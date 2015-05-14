@@ -222,7 +222,7 @@ if __name__ == '__main__':
     environment['new_files'] = new_images['full']['files']
 
     logging.info("Generating new version tarball for '%s' (%s)"
-                 % (new_version, "," % environment['version_detail']))
+                 % (new_version, ",".join(environment['version_detail'])))
     version_path = generators.generate_file(conf, "version", [], environment)
     if version_path:
         new_images['full']['files'].append(version_path)

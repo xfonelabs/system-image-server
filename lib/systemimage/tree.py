@@ -776,6 +776,7 @@ class Tree:
                           for name, channel
                           in self.list_channels().items()
                           if channel.get("alias", None) == channel_name
+                          and channel.get("redirect", None) is None
                           and name != channel_name]
 
         for alias_name in alias_channels:
