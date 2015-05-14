@@ -73,7 +73,7 @@ def main():
     with channels_json.open('r', encoding='utf-8') as fp:
         channels = Channels.from_json(fp.read())
     index_path = channels[args.channel]['devices'][args.device]['index']
-    index_json = channel_dir / 'index.json'
+    index_json = channel_dir / args.device / 'index.json'
 
     records = [
         Record('http://system-image.ubuntu.com/{}'.format(index_path),
