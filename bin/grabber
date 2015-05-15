@@ -1,0 +1,131 @@
+#!/usr/bin/python3
+
+# Copyright (C) 2015 Canonical Ltd.
+# Author: Barry Warsaw <barry@ubuntu.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""Mirror a specific device/channel."""
+
+import os
+import sys
+import argparse
+
+from contextlib import suppress
+from pathlib import Path
+from systemimage.channel import Channels
+from systemimage.curl import CurlDownloadManager
+from systemimage.download import Record
+from systemimage.index import Index
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('root', help='Root directory for the local mirror')
+    parser.add_argument('-c', '--channel', required=True,
+                        help='The channel to use')
+    parser.add_argument('-d', '--device', required=True,
+                        help='The device to use')
+    args = parser.parse_args()
+
+    root = Path(args.root).resolve()
+    if not root.is_dir():
+        print(root, 'must exist and be a directory', file=sys.stderr)
+        return 1
+
+    # Make some local directories.
+    gpg = root / 'gpg'
+    with suppress(FileExistsError):
+        gpg.mkdir(parents=True)
+    channel_dir = root / args.channel
+    with suppress(FileExistsError):
+        channel_dir.mkdir(parents=True)
+
+    # Start by grabbing the channels.json* files and the gpg keyrings.
+    records = [
+        Record('http://system-image.ubuntu.com/channels.json',
+               str(root / 'channels.json')),
+        Record('http://system-image.ubuntu.com/channels.json.asc',
+               str(root / 'channels.json.asc')),
+        ]
+    for keyring in ('archive-master',
+                    'blacklist',
+                    'image-master',
+                    'image-signing'):
+        url = 'http://system-image.ubuntu.com/gpg/{}.tar.xz'.format(keyring)
+        dest = gpg / '{}.tar.xz'.format(keyring)
+        records.append(Record(url, str(dest)))
+    downloader = CurlDownloadManager()
+    downloader.get_files(records)
+
+    # Chase the channel/device to find the index.json file.
+    channels_json = root / 'channels.json'
+    with channels_json.open('r', encoding='utf-8') as fp:
+        channels = Channels.from_json(fp.read())
+    index_path = channels[args.channel]['devices'][args.device]['index']
+    index_json = channel_dir / args.device / 'index.json'
+
+    records = [
+        Record('http://system-image.ubuntu.com/{}'.format(index_path),
+               str(index_json)),
+        ]
+    downloader.get_files(records)
+
+    with index_json.open('r', encoding='utf-8') as fp:
+        index = Index.from_json(fp.read())
+
+    # Collect all the data files for all the images in this channel.
+    records = []
+    parents = []
+    for image in index['images']:
+        for file in image['files']:
+            path = Path(file['path'])
+            signature = Path(file['signature'])
+            checksum = file['checksum']
+            if path.is_absolute():
+                path = path.relative_to('/')
+            if signature.is_absolute():
+                signature = signature.relative_to('/')
+            local_path = root / path
+            parents.append(local_path.parent)
+            records.append(
+                Record(
+                    'http://system-image.ubuntu.com/{}'.format(path),
+                    str(local_path),
+                    checksum))
+            records.append(
+                Record(
+                    'http://system-image.ubuntu.com/{}'.format(signature),
+                    str(root / signature)))
+            # We also need the version-*.json files, which are used by
+            # bin/copy-image
+            version_details = path.name.split('.')
+            if (version_details[0].startswith('version')
+                    and version_details[-1] == 'xz'
+                    and version_details[-2] == 'tar'):
+                prefix, version = version_details[0].split('-')
+                version_file = 'version-{}.json'.format(version)
+                url = 'http://system-image.ubuntu.com/{}/{}'.format(
+                    path.parent, version_file)
+                dest = local_path.parent / version_file
+                records.append(Record(url, str(dest)))
+    for parent in parents:
+        with suppress(FileExistsError):
+            parent.mkdir(parents=True)
+    downloader.get_files(records)
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
