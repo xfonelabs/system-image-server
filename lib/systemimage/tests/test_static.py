@@ -17,6 +17,7 @@
 
 # Mostly copy/pasted from the cdimage test of the same name.
 
+import codecs
 import os
 import sys
 import subprocess
@@ -48,7 +49,7 @@ FILTER_DIRS = [
 
 
 class StaticTests(unittest.TestCase):
-    def all_paths(self):
+    def all_paths(self, shebang_py=None):
         paths = []
         for dirpath, dirnames, filenames in os.walk("."):
             for ignore in FILTER_DIRS:
@@ -58,11 +59,27 @@ class StaticTests(unittest.TestCase):
                 n for n in filenames
                 if not n.startswith(".") and not n.endswith("~")]
             if dirpath.split(os.sep)[-1] == "bin":
-                for filename in filenames:
-                    if filename in ("simg2img"):
-                        continue
-                    full_path = os.path.join(dirpath, filename)
-                    paths.append(full_path)
+                # Don't return this script unless we either don't care about
+                # the shebangs, or it matches what's given in the argument.
+                if shebang_py is None:
+                    # We don't care, so add them all.
+                    paths.extend(os.path.join(dirpath, filename)
+                                 for filename in filenames)
+                else:
+                    # Make sure the last path component of the shebang
+                    # matches.  Yes this a dumb, but effective test.
+                    for filename in filenames:
+                        full_path = os.path.join(dirpath, filename)
+                        with codecs.open(
+                                full_path, 'r', encoding='utf-8') as fp:
+                            first_line = fp.readline()
+                        if not first_line.startswith('#!'):
+                            # Do we even know if it's Python?  The old code
+                            # would assume so, so let's do the same.
+                            paths.append(full_path)
+                            continue
+                        if first_line.split('/')[-1] == shebang_py:
+                            paths.append(full_path)
             else:
                 for filename in filenames:
                     if filename.endswith(".py"):
@@ -84,7 +101,7 @@ class StaticTests(unittest.TestCase):
     @unittest.skipIf(pyflakes is None, "Missing pyflakes, skipping test.")
     def test_pyflakes_clean(self):
         subp = subprocess.Popen(
-            ["pyflakes"] + self.all_paths(),
+            ["pyflakes"] + self.all_paths(shebang_py='python'),
             stdout=subprocess.PIPE, universal_newlines=True)
         output = subp.communicate()[0].splitlines()
         for line in output:
@@ -94,7 +111,7 @@ class StaticTests(unittest.TestCase):
     @unittest.skipIf(pyflakes is None, "Missing pyflakes, skipping test.")
     def test_pyflakes3_clean(self):
         subp = subprocess.Popen(
-            ["pyflakes3"] + self.all_paths(),
+            ["pyflakes3"] + self.all_paths(shebang_py='python3'),
             stdout=subprocess.PIPE, universal_newlines=True)
         output = subp.communicate()[0].splitlines()
         for line in output:
