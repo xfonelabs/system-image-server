@@ -24,6 +24,11 @@ import unittest
 from systemimage import config, gpg, tree, tools
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 
 class TreeTests(unittest.TestCase):
     def setUp(self):
@@ -382,6 +387,29 @@ public_https_port = 443
         self.assertTrue(os.path.exists(os.path.join(
             self.config.publish_path, "parent", "device")))
         self.assertEqual(device.list_images(), target.list_images())
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_redirect_alias(self):
+        # LP: #1455119 - a channel which is both an alias and a redirect is
+        # culled from sync_aliases().
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels and aliases
+        test_tree.create_channel("parent")
+        test_tree.create_channel("overthere")
+        test_tree.create_channel_redirect("redirect", "overthere")
+
+        # Make the overthere channel both an alias and a redirect
+        with tree.channels_json(test_tree.config,
+                                test_tree.indexpath, True) as channels:
+            channel = channels["overthere"]
+            channel["alias"] = "redirect"
+            channel["redirect"] = "overthere"
+
+        # No sync_alias() call should be made on the this channel.
+        with patch.object(test_tree, 'sync_alias') as mock:
+            test_tree.sync_aliases("redirect")
+        self.assertFalse(mock.called)
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_rename(self):
