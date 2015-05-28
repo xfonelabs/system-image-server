@@ -20,6 +20,7 @@ import sys
 import tarfile
 import time
 
+from collections import namedtuple
 from io import BytesIO
 
 
@@ -41,6 +42,14 @@ def compare_files(fd_source, fd_target):
     return fd_source.read() == fd_target.read()
 
 
+# For the data portion of the set and dict contents.
+FHash = namedtuple('FHash', 'mode devmajor devminor type uid gid size mtime')
+# The set contents record.
+SContent = namedtuple('SContent', 'path filetype data')
+# The dict contents record.
+DContent = namedtuple('DContent', 'filetype data')
+
+
 def list_tarfile(tarfile):
     """
         Walk through a tarfile and generate a list of the content.
@@ -55,22 +64,23 @@ def list_tarfile(tarfile):
 
     for entry in tarfile:
         if entry.isdir():
-            set_content.add((entry.path, "dir", None))
-            dict_content[entry.path] = ("dir", None)
+            set_content.add(SContent(entry.path, "dir", None))
+            dict_content[entry.path] = DContent("dir", None)
         else:
-            fhash = ("%s" % entry.mode,
-                     "%s" % entry.devmajor,
-                     "%s" % entry.devminor,
-                     "%s" % entry.type.decode("utf-8"),
-                     "%s" % entry.uid,
-                     "%s" % entry.gid,
-                     "%s" % entry.size,
-                     "%s" % entry.mtime)
+            fhash = FHash(
+                "%s" % entry.mode,
+                "%s" % entry.devmajor,
+                "%s" % entry.devminor,
+                "%s" % entry.type.decode("utf-8"),
+                "%s" % entry.uid,
+                "%s" % entry.gid,
+                "%s" % entry.size,
+                "%s" % entry.mtime)
 
-            set_content.add((entry.path, "file", fhash))
-            dict_content[entry.path] = ("file", fhash)
+            set_content.add(SContent(entry.path, "file", fhash))
+            dict_content[entry.path] = DContent("file", fhash)
 
-    return (set_content, dict_content)
+    return set_content, dict_content
 
 
 class ImageDiff:
@@ -87,15 +97,12 @@ class ImageDiff:
             Scan the content of an image and return the image tuple.
             This also caches the content for further use.
         """
-
-        if image not in ("source", "target"):
+        image_file = getattr(self, image + "_file", None)
+        if image_file is None:
             raise KeyError("Invalid image '%s'." % image)
 
-        image_file = getattr(self, "%s_file" % image)
-
         content = list_tarfile(image_file)
-
-        setattr(self, "%s_content" % image, content)
+        setattr(self, image + "_content", content)
         return content
 
     def compare_images(self):
@@ -105,54 +112,69 @@ class ImageDiff:
 
             The set contains tuples of (path, changetype).
         """
-        if not self.source_content:
+        if self.source_content is None:
             self.scan_content("source")
 
-        if not self.target_content:
+        if self.target_content is None:
             self.scan_content("target")
+
+        source_set, source_dict = self.source_content
+        target_set, target_dict = self.target_content
 
         # Find the changes in the two trees
         changes = set()
-        for change in self.source_content[0] \
-                .symmetric_difference(self.target_content[0]):
-            if change[0] not in self.source_content[1]:
-                changetype = "add"
-            elif change[0] not in self.target_content[1]:
-                changetype = "del"
+        for change in source_set.symmetric_difference(target_set):
+            if change.path not in source_dict:
+                change_type = "add"
+            elif change.path not in target_dict:
+                change_type = "del"
             else:
-                changetype = "mod"
-            changes.add((change[0], changetype))
+                change_type = "mod"
+            changes.add((change.path, change_type))
 
         # Ignore files that only vary in mtime
         # (separate loop to run after de-dupe)
         for change in sorted(changes):
-            if change[1] == "mod":
-                fstat_source = self.source_content[1][change[0]][1]
-                fstat_target = self.target_content[1][change[0]][1]
+            change_path, change_type = change
+            if change_type == "mod":
+                fstat_source = source_dict[change_path].data
+                fstat_target = target_dict[change_path].data
 
                 # Skip differences between directories and files
                 if not fstat_source or not fstat_target:  # pragma: no cover
                     continue
 
-                # Deal with switched hardlinks
-                if (fstat_source[0:2] == fstat_target[0:2] and
-                        fstat_source[3] != fstat_target[3] and
-                        (fstat_source[3] == "1" or fstat_target[3] == "1") and
-                        fstat_source[4:5] == fstat_target[4:5] and
-                        fstat_source[7] == fstat_target[7]):
-                    source_file = self.source_file.getmember(change[0])
-                    target_file = self.target_file.getmember(change[0])
+                # Deal with switched hardlinks.
+                # stgraber says on 2015-05-27: this was trying to solve the
+                # case where the hardlink target would be placed *after* the
+                # hardlink in the tar archive, leading to a hardlink being
+                # created to the wrong file at unpack.  barry thinks: ???
+                if (
+                        fstat_source.mode == fstat_target.mode
+                        and fstat_source.devmajor == fstat_target.devmajor
+                        and fstat_source.devminor == fstat_target.devminor
+                        # "1" is the LNKTYPE, meaning symbolic or hard link.
+                        and (fstat_source.type == "1" or
+                             fstat_target.type == "1")
+                        and fstat_source.uid == fstat_target.uid
+                        and fstat_source.gid == fstat_target.gid
+                        # size is ignored since it is always 0 for hardlinks.
+                        and fstat_source.mtime == fstat_target.mtime):
+                    source_file = self.source_file.getmember(change_path)
+                    target_file = self.target_file.getmember(change_path)
                     if compare_files(
-                            self.source_file.extractfile(change[0]),
-                            self.target_file.extractfile(change[0])):
+                            self.source_file.extractfile(change_path),
+                            self.target_file.extractfile(change_path)):
                         changes.remove(change)
                         continue
 
-                # Deal with regular files
+                # Deal with regular files.  Compare all attributes of the file
+                # except the mtime.
                 if fstat_source[0:7] == fstat_target[0:7]:
-                    source_file = self.source_file.getmember(change[0])
-                    target_file = self.target_file.getmember(change[0])
-
+                    source_file = self.source_file.getmember(change_path)
+                    target_file = self.target_file.getmember(change_path)
+                    # linkpath will be empty if the source is not a symbolic
+                    # or hard link.
                     if (source_file.linkpath
                             and source_file.linkpath == target_file.linkpath):
                         changes.remove(change)
@@ -160,8 +182,8 @@ class ImageDiff:
 
                     if (source_file.isfile() and target_file.isfile()
                             and compare_files(
-                                self.source_file.extractfile(change[0]),
-                                self.target_file.extractfile(change[0]))):
+                                self.source_file.extractfile(change_path),
+                                self.target_file.extractfile(change_path))):
                         changes.remove(change)
                         continue
 
