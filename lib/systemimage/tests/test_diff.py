@@ -253,6 +253,7 @@ class DiffTests(unittest.TestCase):
  - c/a_i (add)
  - c/c (add)
  - c/d (mod)
+ - c/h (mod)
  - c/j (add)
  - dir (mod)
  - e (add)
@@ -269,13 +270,23 @@ class DiffTests(unittest.TestCase):
         tarball = tarfile.open(output_tarball, "r")
 
         files_list = [entry.name for entry in tarball]
-        self.assertEqual(files_list, ['removed', 'c/c', 'c/a_i', 'c/d', 'c/j',
-                                      'dir', 'e', 'f', 'system/o',
-                                      'system/o.1'])
-
+        self.assertEqual(files_list, [
+            'removed',
+            'c/c',
+            'c/a_i',
+            'c/d',
+            'c/h',
+            'c/j',
+            'dir',
+            'e',
+            'f',
+            'system/o',
+            'system/o.1',
+            ])
         removed_list = tarball.extractfile("removed")
         self.assertEqual(removed_list.read().decode("utf-8"), u"""b
 c/d
+c/h
 dir
 system/中文中文中文
 """)
