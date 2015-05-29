@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import shutil
 import sys
 import tarfile
@@ -26,11 +27,14 @@ from systemimage.diff import ImageDiff, compare_files
 
 
 class DiffTests(unittest.TestCase):
-    def setUp(self):
-        temp_directory = tempfile.mkdtemp()
+    maxDiff = None
 
-        source_tarball_path = "%s/source.tar" % temp_directory
-        target_tarball_path = "%s/target.tar" % temp_directory
+    def setUp(self):
+        self.temp_directory = temp_directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_directory)
+
+        source_tarball_path = os.path.join(temp_directory, "source.tar")
+        target_tarball_path = os.path.join(temp_directory, "target.tar")
 
         source_tarball = tarfile.open(
             source_tarball_path, "w", encoding="utf-8")
@@ -205,10 +209,6 @@ class DiffTests(unittest.TestCase):
         self.imagediff = ImageDiff(source_tarball_path, target_tarball_path)
         self.source_tarball_path = source_tarball_path
         self.target_tarball_path = target_tarball_path
-        self.temp_directory = temp_directory
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_directory)
 
     def test_content(self):
         content_set, content_dict = self.imagediff.scan_content("source")
@@ -249,7 +249,7 @@ class DiffTests(unittest.TestCase):
         output = sys.stdout.getvalue()
         sys.stdout = old_stdout
 
-        self.assertEqual(output, """ - b (del)
+        self.assertMultiLineEqual(output, """ - b (del)
  - c/a_i (add)
  - c/c (add)
  - c/d (mod)
@@ -279,3 +279,135 @@ c/d
 dir
 system/中文中文中文
 """)
+
+
+class TestHardLinkTargetIsModified(unittest.TestCase):
+    def setUp(self):
+        self.temp_directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_directory)
+
+    def _make_tarballs(self, order):
+        source_tarball_path = os.path.join(self.temp_directory, "source.tar")
+        target_tarball_path = os.path.join(self.temp_directory, "target.tar")
+
+        # Use an ExitStack() when we drop Python 2.7 compatibility.
+        source_tarball = tarfile.open(
+            source_tarball_path, "w", encoding="utf-8")
+        target_tarball = tarfile.open(
+            target_tarball_path, "w", encoding="utf-8")
+
+        if order == "a->b":
+            # Add a regular file to the source.
+            a_source = tarfile.TarInfo()
+            a_source.name = "a"
+            a_source.size = 4
+            source_tarball.addfile(a_source, BytesIO(b"XXXX"))
+
+            # Add a hardlink to this file.
+            b = tarfile.TarInfo()
+            b.name = "b"
+            b.type = tarfile.LNKTYPE
+            b.linkname = "a"
+            source_tarball.addfile(b)
+
+            # Change the content of link's target, i.e. the "a" file in the
+            # target tarball, but keep the hardlink pointing at it.
+            a_target = tarfile.TarInfo()
+            a_target.name = "a"
+            a_target.size = 5
+
+            target_tarball.addfile(a_target, BytesIO(b"YYYYY"))
+            target_tarball.addfile(b)
+        else:
+            assert order == "b->a", "Bad order: {}".format(order)
+            # Add a regular file to the source.
+            a_source = tarfile.TarInfo()
+            a_source.name = "a"
+            a_source.size = 4
+            source_tarball.addfile(a_source, BytesIO(b"XXXX"))
+
+            # Add a hardlink to this file.
+            b_source = tarfile.TarInfo()
+            b_source.name = "b"
+            b_source.type = tarfile.LNKTYPE
+            b_source.linkname = "a"
+            source_tarball.addfile(b_source)
+
+            # Swap things around in the target such that 'b' is the regular
+            # file and 'a' is the hardlink to b.
+            b_target = tarfile.TarInfo()
+            b_target.name = "b"
+            b_target.size = 5
+            target_tarball.addfile(b_target, BytesIO(b"YYYYY"))
+
+            a_target = tarfile.TarInfo()
+            a_target.name = "a"
+            a_target.type = tarfile.LNKTYPE
+            a_target.linkname = "b"
+            target_tarball.addfile(a_target)
+
+        source_tarball.close()
+        target_tarball.close()
+
+        return source_tarball_path, target_tarball_path
+
+    def test_link_count_2_order_ab(self):
+        # LP: #1444347 - a file with link count 2 (i.e. two hardlinks to the
+        # same inode) doesn't get both sources updated.
+        diff = ImageDiff(*self._make_tarballs("a->b"))
+        change_set = diff.compare_images()
+        self.assertEqual(change_set, {("a", "mod"), ("b", "mod")})
+
+    def test_unpack_ab(self):
+        # Ensure that the unpacked target tarball has a correct hardlink.
+        source_path, target_path = self._make_tarballs("a->b")
+        diff = ImageDiff(source_path, target_path)
+        diff_path = os.path.join(self.temp_directory, "diff.tar")
+        diff.generate_diff_tarball(diff_path)
+        # Unpack the source, then unpack the target over that.
+        unpack_path = os.path.join(self.temp_directory, "unpack")
+        os.mkdir(unpack_path)
+        with tarfile.open(source_path, "r:", encoding="utf-8") as tf:
+            tf.extractall(unpack_path)
+        # Before applying the diff, "b" contains the old "a" file's contents.
+        with open(os.path.join(unpack_path, "b"), "rb") as fp:
+            contents = fp.read()
+        self.assertEqual(contents, b"XXXX")
+        # Unpack the diff, which changes both the contents of 'a' and the
+        # hardlink 'b'.
+        with tarfile.open(diff_path, "r:", encoding="utf-8") as tf:
+            tf.extractall(unpack_path)
+        with open(os.path.join(unpack_path, "b"), "rb") as fp:
+            contents = fp.read()
+        self.assertEqual(contents, b"YYYYY")
+
+    def test_link_count_2_swap_roles(self):
+        # Like above but the source has regular file 'a' with hardlink 'b'
+        # pointing to it, while the target has regular file 'b' with the
+        # hardlink 'a' pointing to it.  Both must be properly updated.
+        diff = ImageDiff(*self._make_tarballs("b->a"))
+        change_set = diff.compare_images()
+        self.assertEqual(change_set, {("a", "mod"), ("b", "mod")})
+
+    def test_unpack_ab_swap_roles(self):
+        # Ensure that the unpacked target tarball has a correct hardlink.
+        source_path, target_path = self._make_tarballs("b->a")
+        diff = ImageDiff(source_path, target_path)
+        diff_path = os.path.join(self.temp_directory, "diff.tar")
+        diff.generate_diff_tarball(diff_path)
+        # Unpack the source, then unpack the target over that.
+        unpack_path = os.path.join(self.temp_directory, "unpack")
+        os.mkdir(unpack_path)
+        with tarfile.open(source_path, "r:", encoding="utf-8") as tf:
+            tf.extractall(unpack_path)
+        # Before applying the diff, "b" contains the old "a" file's contents.
+        with open(os.path.join(unpack_path, "b"), "rb") as fp:
+            contents = fp.read()
+        self.assertEqual(contents, b"XXXX")
+        # Unpack the diff, which changes both the contents of 'a' and the
+        # hardlink 'b'.
+        with tarfile.open(diff_path, "r:", encoding="utf-8") as tf:
+            tf.extractall(unpack_path)
+        with open(os.path.join(unpack_path, "b"), "rb") as fp:
+            contents = fp.read()
+        self.assertEqual(contents, b"YYYYY")

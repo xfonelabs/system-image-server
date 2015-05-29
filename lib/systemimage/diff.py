@@ -132,6 +132,17 @@ class ImageDiff:
                 change_type = "mod"
             changes.add((change.path, change_type))
 
+        # Do a second pass through the source and target sets, looking for any
+        # hardlinks that point to a file that's being modified in the target.
+        # These links must get also get modified or they'll end up pointing to
+        # the old inode.
+        for no_change in source_set.intersection(target_set):
+            if no_change.filetype == "file" and no_change.data.type == "1":
+                # This is a hardlink which exists in both the source and
+                # target, *and* points to the same link target (by virtue of
+                # the set intersection).
+                changes.add((no_change.path, "mod"))
+
         # Ignore files that only vary in mtime
         # (separate loop to run after de-dupe)
         for change in sorted(changes):
@@ -145,6 +156,7 @@ class ImageDiff:
                     continue
 
                 # Deal with switched hardlinks.
+                #
                 # stgraber says on 2015-05-27: this was trying to solve the
                 # case where the hardlink target would be placed *after* the
                 # hardlink in the tar archive, leading to a hardlink being
@@ -153,7 +165,7 @@ class ImageDiff:
                         fstat_source.mode == fstat_target.mode
                         and fstat_source.devmajor == fstat_target.devmajor
                         and fstat_source.devminor == fstat_target.devminor
-                        # "1" is the LNKTYPE, meaning symbolic or hard link.
+                        # "1" is the LNKTYPE, i.e. hard link.
                         and (fstat_source.type == "1" or
                              fstat_target.type == "1")
                         and fstat_source.uid == fstat_target.uid
@@ -173,9 +185,13 @@ class ImageDiff:
                 if fstat_source[0:7] == fstat_target[0:7]:
                     source_file = self.source_file.getmember(change_path)
                     target_file = self.target_file.getmember(change_path)
-                    # linkpath will be empty if the source is not a symbolic
-                    # or hard link.
-                    if (source_file.linkpath
+                    # Symlinks that point to the same file in both the source
+                    # and target can be ignored, however *hardlinks* cannot,
+                    # since the inode they point to may change out from
+                    # underneath them.
+                    if (
+                            source_file.type == "2"
+                            and target_file.type == "2"
                             and source_file.linkpath == target_file.linkpath):
                         changes.remove(change)
                         continue
