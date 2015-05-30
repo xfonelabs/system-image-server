@@ -387,6 +387,11 @@ class TestHardLinkTargetIsModified(unittest.TestCase):
         # Unpack the diff, which changes both the contents of 'a' and the
         # hardlink 'b'.
         with tarfile.open(diff_path, "r:", encoding="utf-8") as tf:
+            # process any file removals first
+            removed_list = tf.extractfile("removed")
+            for line in removed_list:
+                os.unlink(os.path.join(unpack_path,
+                                       line.decode("utf-8").rstrip()))
             tf.extractall(unpack_path)
         with open(os.path.join(unpack_path, "b"), "rb") as fp:
             contents = fp.read()
@@ -418,6 +423,11 @@ class TestHardLinkTargetIsModified(unittest.TestCase):
         # Unpack the diff, which changes both the contents of 'a' and the
         # hardlink 'b'.
         with tarfile.open(diff_path, "r:", encoding="utf-8") as tf:
+            # process any file removals first
+            removed_list = tf.extractfile("removed")
+            for line in removed_list:
+                os.unlink(os.path.join(unpack_path,
+                                       line.decode("utf-8").rstrip()))
             tf.extractall(unpack_path)
         with open(os.path.join(unpack_path, "b"), "rb") as fp:
             contents = fp.read()
