@@ -159,9 +159,9 @@ if __name__ == '__main__':
     delta_base = []
 
     # If channel not configured, use dest channel as a deltabase by default
-    conf_deltabase = [args.destination_channel]
-    if args.destination_channel in conf.channels:
-        conf_deltabase = conf.channels[args.destination_channel].deltabase
+    conf_deltabase = (conf.channels[args.destination_channel].deltabase
+                      if args.destination_channel in conf.channels
+                      else [args.destination_channel])
 
     for base_channel in conf_deltabase:
         # Skip missing channels
