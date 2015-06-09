@@ -158,32 +158,35 @@ if __name__ == '__main__':
     # Generate a list of required deltas
     delta_base = []
 
-    if args.destination_channel in conf.channels:
-        for base_channel in conf.channels[args.destination_channel].deltabase:
-            # Skip missing channels
-            if base_channel not in pub.list_channels():
-                continue
+    # If channel not configured, use dest channel as a deltabase by default
+    conf_deltabase = (conf.channels[args.destination_channel].deltabase
+                      if args.destination_channel in conf.channels
+                      else [args.destination_channel])
 
-            # Skip missing devices
-            if args.device not in (pub.list_channels()
-                                   [base_channel]['devices']):
-                continue
+    for base_channel in conf_deltabase:
+        # Skip missing channels
+        if base_channel not in pub.list_channels():
+            continue
 
-            # Extract the latest full image
-            base_device = pub.get_device(base_channel, args.device)
-            base_images = sorted([image
-                                  for image in base_device.list_images()
-                                  if image['type'] == "full"],
-                                 key=lambda image: image['version'])
+        # Skip missing devices
+        if args.device not in (pub.list_channels()
+                               [base_channel]['devices']):
+            continue
 
-            # Check if the version is valid and add it
-            if base_images and base_images[-1]['version'] in full_images:
-                if (full_images[base_images[-1]['version']]
-                        not in delta_base):
-                    delta_base.append(full_images
-                                      [base_images[-1]['version']])
-                    logging.debug("Source version for delta: %s" %
-                                  base_images[-1]['version'])
+        # Extract the latest full image
+        base_device = pub.get_device(base_channel, args.device)
+        base_images = sorted([image
+                              for image in base_device.list_images()
+                              if image['type'] == "full"],
+                             key=lambda image: image['version'])
+
+        # Check if the version is valid and add it
+        if base_images and base_images[-1]['version'] in full_images:
+            if full_images[base_images[-1]['version']] not in delta_base:
+                delta_base.append(full_images
+                                  [base_images[-1]['version']])
+                logging.debug("Source version for delta: %s" %
+                              base_images[-1]['version'])
 
     # Create new empty entries
     new_images = {'full': {'files': []}}
