@@ -441,10 +441,11 @@ public_https_port = 8443
                 None)
 
         # Working run
-        for device_arch, cdimage_arch, cdimage_product in (
-                ("generic_x86", "i386", "touch"),
-                ("generic_i386", "i386", "core"),
-                ("generic_amd64", "amd64", "core")):
+        for device_arch, cdimage_arch, cdimage_product, android_hacks in (
+                ("generic_x86", "i386", "touch", True),
+                ("generic_x86", "i386", "pd", True),
+                ("generic_i386", "i386", "core", False),
+                ("generic_amd64", "amd64", "core", False)):
             environment['device_name'] = device_arch
 
             for filename in ("SHA256SUMS",
@@ -506,6 +507,15 @@ public_https_port = 8443
                     environment),
                 os.path.join(self.config.publish_path, "pool",
                              "ubuntu-HASH.tar.xz"))
+
+            # Check that for touch and pd the android hacks are executed
+            target_obj = tarfile.open(
+                os.path.join(self.config.publish_path, "pool",
+                             "ubuntu-HASH.tar.xz"), "r:xz")
+            self.assertEqual(
+                "system/android" in target_obj.getnames(),
+                android_hacks)
+            target_obj.close()
 
             for entry in ("ubuntu-HASH.tar.xz", "ubuntu-HASH.tar.xz.asc",
                           "ubuntu-HASH.json", "ubuntu-HASH.json.asc"):
