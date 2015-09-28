@@ -485,6 +485,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
             entry.name = "system/%s" % entry.name
             target_tarball.addfile(entry, fileobj=fileptr)
 
+        # The touch and pd products are the same
         if options.get("product", "touch") in ("touch", "pd"):
             # FIXME: Will need to be done on the real rootfs
             # Add some symlinks and directories

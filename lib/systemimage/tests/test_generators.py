@@ -512,9 +512,8 @@ public_https_port = 8443
             target_obj = tarfile.open(
                 os.path.join(self.config.publish_path, "pool",
                              "ubuntu-HASH.tar.xz"), "r:xz")
-            self.assertEqual(
-                "system/android" in target_obj.getnames(),
-                android_hacks)
+            if android_hacks:
+                self.assertIn("system/android", target_obj.getnames())
             target_obj.close()
 
             for entry in ("ubuntu-HASH.tar.xz", "ubuntu-HASH.tar.xz.asc",
