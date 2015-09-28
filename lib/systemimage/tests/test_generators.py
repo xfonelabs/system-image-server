@@ -20,6 +20,7 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -388,6 +389,8 @@ public_https_port = 8443
                 os.path.join(self.config.publish_path, "pool",
                              "device-HASH.tar.xz"))
 
+    @unittest.skipUnless(sys.version_info >= (3,),
+                         'Python 2 does not support .xz tarfiles')
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_file_cdimage_ubuntu(self):
         environment = {}

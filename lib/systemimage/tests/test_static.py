@@ -90,8 +90,13 @@ class StaticTests(unittest.TestCase):
     @unittest.skipIf(not os.path.exists("/usr/bin/pep8"),
                      "Missing pep8, skipping test.")
     def test_pep8_clean(self):
+        # Ignore some dubious pep8 constraints which are incompatible this
+        # package's existing coding style:
+        # * E402 module level import not at top of file
+        # * W503 line break before binary operator
         subp = subprocess.Popen(
-            ["pep8"] + self.all_paths(),
+            ["pep8", "--ignore=E129,E402,W503", "--hang-closing"]
+            + self.all_paths(),
             stdout=subprocess.PIPE, universal_newlines=True)
         output = subp.communicate()[0].splitlines()
         for line in output:

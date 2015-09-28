@@ -921,9 +921,9 @@ class Device:
         with index_json(self.config, self.indexpath) as index:
             match = []
             for image in index['images']:
-                if (image['type'] == entry_type and image['version'] == version
-                        and (image['type'] == "full" or
-                             image['base'] == base)):
+                if (image['type'] == entry_type
+                    and image['version'] == version
+                    and (image['type'] == "full" or image['base'] == base)):
                     match.append(image)
 
             if len(match) != 1:
