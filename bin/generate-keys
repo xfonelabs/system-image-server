@@ -30,7 +30,7 @@ KEYS = {
     "image-master": ("{0} Image Master key", 0),
     "device-signing": ("{0} Device Signing key", "2y"),
     "image-signing": ("{0} Image Signing key", "2y")
-}
+    }
 
 
 def main():

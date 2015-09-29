@@ -33,6 +33,7 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from systemimage import config, generators, gpg, tools, tree
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
+from systemimage.tools import xz_uncompress
 
 
 class GeneratorsTests(unittest.TestCase):
@@ -508,13 +509,20 @@ public_https_port = 8443
                 os.path.join(self.config.publish_path, "pool",
                              "ubuntu-HASH.tar.xz"))
 
-            # Check that for touch and pd the android hacks are executed
-            target_obj = tarfile.open(
-                os.path.join(self.config.publish_path, "pool",
-                             "ubuntu-HASH.tar.xz"), "r:xz")
-            if android_hacks:
-                self.assertIn("system/android", target_obj.getnames())
-            target_obj.close()
+            # Check that for touch and pd the android hacks are executed.
+            # Python 2.7 does not support tar.xz, so do it another way.
+            xz_path = os.path.join(
+                self.config.publish_path, "pool",
+                "ubuntu-HASH.tar.xz")
+            unxz_path = os.path.join(self.temp_directory, "temp-unpack.tar")
+            try:
+                xz_uncompress(xz_path, unxz_path)
+                target_obj = tarfile.open(unxz_path, "r")
+                if android_hacks:
+                    self.assertIn("system/android", target_obj.getnames())
+            finally:
+                target_obj.close()
+                os.remove(unxz_path)
 
             for entry in ("ubuntu-HASH.tar.xz", "ubuntu-HASH.tar.xz.asc",
                           "ubuntu-HASH.json", "ubuntu-HASH.json.asc"):
