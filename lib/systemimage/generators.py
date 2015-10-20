@@ -203,6 +203,10 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
         boot_arch = "amd64"
         recovery_arch = "amd64"
         system_arch = "amd64"
+    elif environment['device_name'] == "generic_arm64":
+        boot_arch = "arm64"
+        recovery_arch = "arm64"
+        system_arch = "arm64"
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
@@ -389,6 +393,8 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         arch = "i386"
     elif environment['device_name'] in ("generic_amd64", "azure_amd64"):
         arch = "amd64"
+    elif environment['device_name'] == "generic_arm64":
+        arch = "arm64"
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
@@ -618,6 +624,8 @@ def generate_file_cdimage_custom(conf, arguments, environment):
         arch = "i386"
     elif environment['device_name'] in ("generic_amd64",):
         arch = "amd64"
+    elif environment['device_name'] == "generic_arm64":
+        arch = "arm64"
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
@@ -743,6 +751,8 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
         arch = "amd64"
     elif environment['device_name'] == "azure_amd64":
         arch = "amd64.azure"
+    elif environment['device_name'] == "generic_arm64":
+        arch = "arm64"
 
     # Check that the directory exists
     if not os.path.exists(cdimage_path):
