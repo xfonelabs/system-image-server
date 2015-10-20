@@ -100,6 +100,8 @@ suite on that distribution version::
 Note however that the Python 3 test suite will have failures on Precise due to
 other missing packages (e.g. `python3-gpgme`).  If it hurts, don't do it.
 
+The version of tox in trusty is also not compatible with our tox.ini.  It
+requires tox 1.8 or later.
 
 See also
 ========
