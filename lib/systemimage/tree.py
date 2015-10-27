@@ -1022,3 +1022,141 @@ class Device:
                         entry['phased-percentage'] = percentage
 
         return True
+
+    def create_tagged_image(self, version, tag):
+        """
+
+        """
+
+        if not tag:
+            raise ValueError("tag needs to be a non-empty string.")
+
+        with index_json(self.config, self.indexpath, True) as index:
+            versions = sorted({entry['version'] for entry in index['images']})
+
+            last_version = None
+            if versions:
+                last_version = versions[-1]
+
+            if version not in versions:
+                raise IndexError("Version doesn't exist: %s" % version)
+
+            if version != last_version:
+                raise Exception("Tags can only be set on the latest image")
+
+            for entry in index['images']:
+                if entry['version'] != version and entry['type'] != "full":
+                    continue
+
+                new_entry = copy.deepcopy(entry)
+
+                # Remove the current version tarball
+                version_detail = None
+                channel_name = None
+                device_name = None
+                version_index = len(new_entry['files'])
+                for fentry in new_entry['files']:
+                    if fentry['path'].endswith("version-%s.tar.xz" %
+                                               new_entry['version']):
+
+                        version_path = "%s/%s" % (
+                            self.config.publish_path, fentry['path'])
+
+                        if os.path.exists(
+                                version_path.replace(".tar.xz",
+                                                     ".json")):
+                            with open(
+                                    version_path.replace(
+                                        ".tar.xz", ".json")) as fd:
+                                metadata = json.loads(fd.read())
+                                if "channel.ini" in metadata:
+                                    version_detail = \
+                                        metadata['channel.ini'].get(
+                                            "version_detail", None)
+                                    channel_name = \
+                                        metadata['channel.ini'].get(
+                                            "channel", None)
+                                    device_name = \
+                                        metadata['channel.ini'].get(
+                                            "device", None)
+
+                        version_index = fentry['order']
+                        new_entry['files'].remove(fentry)
+                        break
+
+                # We rely on what's in channel.ini
+                if not version_detail or not channel_name or not device_name:
+                    raise Exception("Existing image to tag needs to have all "
+                                    "channel.ini data")
+
+                # Remove existing tags and version from the version_detail
+                indices = [i for i, item in enumerate(split_details) 
+                    if item.startswith("version=") or item.startswith("tag=")]
+                for i in tag_index:
+                    del split_details[i]
+                
+                # Add the new tag
+                split_details.append("tag=%s" % tag)
+
+                # Bump the version number
+                new_entry['version'] = new_entry['version'] + 1
+                split_details.append("version=%s" % new_entry['version'])
+
+                version_detail = ','.join(split_details)
+                new_entry['version_detail'] = version_detail
+
+                # Generate a new version file
+                path = os.path.join(self.path,
+                                    "version-%s.tar.xz" %
+                                    new_entry['version'])
+                abspath, relpath = tools.expand_path(path,
+                                                     self.pub_path)
+                if not os.path.exists(abspath):
+                    tools.generate_version_tarball(
+                        self.config, channel_name, device_name,
+                        str(new_entry['version']),
+                        abspath.replace(".xz", ""),
+                        version_detail=version_detail,
+                        channel_target=channel_name)
+                    tools.xz_compress(abspath.replace(".xz", ""))
+                    os.remove(abspath.replace(".xz", ""))
+                    gpg.sign_file(self.config, "image-signing",
+                                  abspath)
+
+                with open(abspath, "rb") as fd:
+                    checksum = sha256(fd.read()).hexdigest()
+
+                # Generate the new file entry
+                version = {}
+                version['order'] = version_index
+                version['path'] = "/%s" % "/".join(
+                    relpath.split(os.sep))
+                version['signature'] = "/%s.asc" % "/".join(
+                    relpath.split(os.sep))
+                version['checksum'] = checksum
+                version['size'] = int(os.stat(abspath).st_size)
+
+                # And add it
+                new_entry['files'].append(version)
+                index['images'].append(new_entry)
+
+                # Generate the metadata file
+                metadata = {}
+                metadata['generator'] = "version"
+                metadata['version'] = new_entry['version']
+                metadata['version_detail'] = version_detail
+                metadata['channel.ini'] = {}
+                metadata['channel.ini']['channel'] = channel_name
+                metadata['channel.ini']['device'] = device_name
+                metadata['channel.ini']['version'] = str(new_entry['version'])
+                metadata['channel.ini']['version_detail'] = version_detail
+
+                with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+                    fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                                 indent=4, separators=(",", ": ")))
+                gpg.sign_file(
+                    self.config, "image-signing", path.replace(".tar.xz", ".json")) 
+
+                break
+
+            # TODO: Set prev image phased-percentage 100%

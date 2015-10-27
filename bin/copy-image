@@ -38,6 +38,8 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--phased-percentage", type=int,
                         help="Set the phased percentage for the copied image",
                         default=100)
+    parser.add_argument("-t", "--tag", type=str,
+                        help="Set a version tag on the new image")
     parser.add_argument("--verbose", "-v", action="count", default=0)
 
     args = parser.parse_args()
@@ -107,6 +109,13 @@ if __name__ == '__main__':
 
     if "redirect" in pub.list_channels()[args.destination_channel]:
         parser.error("Destination channel is a redirect.")
+
+    if args.tag:
+        if len(args.tag) == 0:
+            parser.error("Image tag must be a non-empty string.")
+
+        if "," in args.tag:
+            parser.error("Image tag cannot include the character ','.")
 
     source_device = pub.get_device(args.source_channel, args.device)
     destination_device = pub.get_device(args.destination_channel, args.device)
@@ -223,6 +232,15 @@ if __name__ == '__main__':
                                      for entry in version_detail.split(",")
                                      if not entry.startswith("version=")]
     environment['new_files'] = new_images['full']['files']
+
+    # Add new tag if requested
+    if args.tag:
+        for detail in environment['version_detail']:
+            if detail.startswith("tag="):
+                environment['version_detail'].remove(detail)
+
+        environment['version_detail'].append("tag=%s" % args.tag)
+        logging.info("Setting tag for image to '%s'" % args.tag)
 
     logging.info("Generating new version tarball for '%s' (%s)"
                  % (new_version, ",".join(environment['version_detail'])))
