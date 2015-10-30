@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2013 Canonical Ltd.
-# Author: Stéphane Graber <stgraber@ubuntu.com>
+# Copyright (C) 2015 Canonical Ltd.
+# Author: Łukasz 'sil2100' Zemczak <lukasz.zemczak@ubuntu.com>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
