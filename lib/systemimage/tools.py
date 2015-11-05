@@ -401,3 +401,94 @@ def repack_recovery_keyring(conf, path, keyring_name):
     shutil.rmtree(tempdir)
 
     return True
+
+
+def get_required_deltas(conf, pub, channel, device_name):
+    """
+        Fetch the list of deltas for the selected channel and device
+    """
+    device = pub.get_device(channel, device_name)
+
+    full_images = {image['version']: image
+                   for image in device.list_images()
+                   if image['type'] == "full"}
+
+    delta_base = []
+
+    # If channel not configured, use dest channel as a deltabase by default
+    conf_deltabase = (conf.channels[channel].deltabase
+                      if channel in conf.channels
+                      else [channel])
+
+    for base_channel in conf_deltabase:
+        # Skip missing channels
+        if base_channel not in pub.list_channels():
+            continue
+
+        # Skip missing devices
+        if device_name not in (pub.list_channels()
+                               [base_channel]['devices']):
+            continue
+
+        # Extract the latest full image
+        base_device = pub.get_device(base_channel, device_name)
+        base_images = sorted([image
+                              for image in base_device.list_images()
+                              if image['type'] == "full"],
+                             key=lambda image: image['version'])
+
+        # Check if the version is valid and add it
+        if base_images and base_images[-1]['version'] in full_images:
+            if full_images[base_images[-1]['version']] not in delta_base:
+                delta_base.append(full_images
+                                  [base_images[-1]['version']])
+                logging.debug("Source version for delta: %s" %
+                              base_images[-1]['version'])
+
+    return delta_base
+
+
+def extract_files_and_version(conf, base_files, version, files):
+    """
+        Fill in the files array with all the files from the selected image
+        (copying the paths over) and return the version_detail extracted from
+        the version json file
+    """
+    version_detail = ""
+
+    # Fetch all files and the version_detail
+    for entry in base_files:
+        path = os.path.realpath("%s/%s" % (conf.publish_path, entry['path']))
+
+        filename = path.split("/")[-1]
+
+        # Look for version-X.tar.xz
+        if filename == "version-%s.tar.xz" % version:
+            # Extract the metadata
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+                    if "channel.ini" in metadata:
+                        version_detail = metadata['channel.ini'].get(
+                            "version_detail", None)
+        else:
+            files.append(path)
+
+    return version_detail
+
+
+def set_tag_on_version_detail(version_detail_list, tag):
+    """
+        Append a tag to the version_detail array
+    """
+    clean_tags_on_version_detail(version_detail_list)
+    version_detail_list.append("tag=%s" % tag)
+
+
+def clean_tags_on_version_detail(version_detail_list):
+    """
+        Remove all tags from the version_detail array
+    """
+    for detail in version_detail_list:
+        if detail.startswith("tag="):
+            version_detail_list.remove(detail)

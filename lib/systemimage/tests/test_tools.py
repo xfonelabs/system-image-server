@@ -355,3 +355,29 @@ version_detail: abcdef
             shutil.rmtree(extract_dir)
         self.assertEqual(mode, 0o775,
                          'got 0o{:o}, expected 0o775'.format(mode))
+
+    def test_set_tag_on_version_detail(self):
+        """Set a basic tag."""
+        version_detail_list = [
+            "device=20150821-736d127",
+            "custom=20150925-901-35-40-vivid",
+            "keyring=archive-master",
+            "version=6"]
+        set_tag_on_version_detail(version_detail_list, "OTA-x")
+        self.assertTrue("tag=OTA-x" in version_detail_list)
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertEqual(size, 1)
+
+    def test_set_tag_on_version_detail_rewrite(self):
+        """Make sure tags can be rewritten."""
+        version_detail_list = [
+            "device=20150821-736d127",
+            "custom=20150925-901-35-40-vivid",
+            "tag=something",
+            "keyring=archive-master",
+            "tag=different",
+            "version=6"]
+        set_tag_on_version_detail(version_detail_list, "OTA-x")
+        self.assertTrue("tag=OTA-x" in version_detail_list)
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertEqual(size, 1)
