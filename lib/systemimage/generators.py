@@ -391,7 +391,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     arch = "armhf"
     if environment['device_name'] in ("generic_x86", "generic_i386"):
         arch = "i386"
-    elif environment['device_name'] in ("generic_amd64", "azure_amd64"):
+    elif environment['device_name'] in ("generic_amd64", "azure_amd64", "plano"):
         arch = "amd64"
     elif environment['device_name'] == "generic_arm64":
         arch = "arm64"
@@ -747,7 +747,7 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
     arch = "armhf"
     if environment['device_name'] in ("generic_x86", "generic_i386"):
         arch = "i386"
-    elif environment['device_name'] in ("generic_amd64",):
+    elif environment['device_name'] in ("generic_amd64","plano",):
         arch = "amd64"
     elif environment['device_name'] == "azure_amd64":
         arch = "amd64.azure"
