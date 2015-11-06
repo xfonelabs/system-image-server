@@ -406,7 +406,7 @@ def repack_recovery_keyring(conf, path, keyring_name):
 
 def get_required_deltas(conf, pub, channel, device_name):
     """
-        Fetch the list of deltas for the selected channel and device
+        Fetch the list of deltas for the selected channel and device.
     """
     device = pub.get_device(channel, device_name)
 
@@ -451,9 +451,10 @@ def get_required_deltas(conf, pub, channel, device_name):
 
 def extract_files_and_version(conf, base_files, version, files):
     """
+        Helper function for scripts.
         Fill in the files array with all the files from the selected image
         (copying the paths over) and return the version_detail extracted from
-        the version json file
+        the version json file. base_files are to be in non-absolute paths.
     """
     version_detail = ""
 
@@ -482,9 +483,31 @@ def extract_files_and_version(conf, base_files, version, files):
     return version_detail
 
 
+def generate_version_metadata(config, version, channel, device, path, 
+                              version_detail=""):
+    """
+        Helper function that will take selected version info and create
+        the .json version file for the corresponding version tarball.
+    """
+    metadata = {}
+    metadata['generator'] = "version"
+    metadata['version'] = version
+    metadata['version_detail'] = "version=%s" % version
+    metadata['channel.ini'] = {}
+    metadata['channel.ini']['channel'] = channel
+    metadata['channel.ini']['device'] = device
+    metadata['channel.ini']['version'] = str(version)
+    metadata['channel.ini']['version_detail'] = version_detail
+
+    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                     indent=4, separators=(",", ": ")))
+    gpg.sign_file(config, "image-signing", path.replace(".tar.xz", ".json"))
+
+
 def set_tag_on_version_detail(version_detail_list, tag):
     """
-        Append a tag to the version_detail array
+        Append a tag to the version_detail array.
     """
     clean_tags_on_version_detail(version_detail_list)
     version_detail_list.append("tag=%s" % tag)
@@ -492,7 +515,7 @@ def set_tag_on_version_detail(version_detail_list, tag):
 
 def clean_tags_on_version_detail(version_detail_list):
     """
-        Remove all tags from the version_detail array
+        Remove all tags from the version_detail array.
     """
     for detail in version_detail_list:
         if detail.startswith("tag="):

@@ -386,27 +386,22 @@ version_detail: abcdef
 
     def test_extract_files_and_version(self):
         """Check if version_detail is correctly extracted"""
-        metadata = {}
-        metadata['generator'] = "version"
-        metadata['version'] = 12
-        metadata['version_detail'] = "device=1.2.3.4,version=12,tag=OTX-x"
-        metadata['channel.ini'] = {}
-        metadata['channel.ini']['channel'] = "some/channel"
-        metadata['channel.ini']['device'] = "testing"
-        metadata['channel.ini']['version'] = str(metadata['version'])
-        metadata['channel.ini']['version_detail'] = metadata['version_detail']
-
         os.mkdir(self.config.publish_path)
-        version_file = "version-%s.tar.xz" % metadata['version']
-        version_path = os.path.join(
-            self.config.publish_path, version_file.replace(".tar.xz", ".json"))
-        with open(version_path, "w+") as fd:
-            fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                         indent=4, separators=(",", ": ")))
-        print(version_path)
+
+        version = 12
+        version_detail = "device=1.2.3.4,version=12,tag=OTX-x"
+        version_path = "%s/version-%s.tar.xz" % (
+            self.config.publish_path, version)
+        generate_version_metadata(
+            self.config,
+            version,
+            "some/channel",
+            "testing",
+            path,
+            version_detail)
 
         files = [
-            {'path': version_file},
+            {'path': version_path},
             {'path': "some/file"},
             {'path': "some/other"}]
         new_files = []
@@ -414,10 +409,47 @@ version_detail: abcdef
             self.config.publish_path, f['path']) for f in files[1:]]
 
         returned_detail = tools.extract_files_and_version(
-            self.config, files, metadata['version'], new_files)
+            self.config, files, version, new_files)
 
-        self.assertEqual(returned_detail, metadata['version_detail'])
+        self.assertEqual(returned_detail, version_detail)
         six.assertCountEqual(self, expected_files, new_files)
+
+
+
+
+
+
+        # metadata = {}
+        # metadata['generator'] = "version"
+        # metadata['version'] = 12
+        # metadata['version_detail'] = "device=1.2.3.4,version=12,tag=OTX-x"
+        # metadata['channel.ini'] = {}
+        # metadata['channel.ini']['channel'] = "some/channel"
+        # metadata['channel.ini']['device'] = "testing"
+        # metadata['channel.ini']['version'] = str(metadata['version'])
+        # metadata['channel.ini']['version_detail'] = metadata['version_detail']
+
+        
+        # version_file = "version-%s.tar.xz" % metadata['version']
+        # version_path = os.path.join(
+        #     self.config.publish_path, version_file.replace(".tar.xz", ".json"))
+        # with open(version_path, "w+") as fd:
+        #     fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+        #                                  indent=4, separators=(",", ": ")))
+
+        # files = [
+        #     {'path': version_file},
+        #     {'path': "some/file"},
+        #     {'path': "some/other"}]
+        # new_files = []
+        # expected_files = [os.path.join(
+        #     self.config.publish_path, f['path']) for f in files[1:]]
+
+        # returned_detail = tools.extract_files_and_version(
+        #     self.config, files, metadata['version'], new_files)
+
+        # self.assertEqual(returned_detail, metadata['version_detail'])
+        # six.assertCountEqual(self, expected_files, new_files)
 
     @unittest.skip("Current deltabase handling is broken")
     def test_get_required_deltas(self):
