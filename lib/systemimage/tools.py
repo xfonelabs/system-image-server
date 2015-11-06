@@ -28,6 +28,7 @@ import json
 
 from io import BytesIO
 from systemimage.helpers import chdir
+from systemimage import gpg
 
 
 logger = logging.getLogger(__name__)

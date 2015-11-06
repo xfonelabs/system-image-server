@@ -1347,7 +1347,7 @@ def generate_file_version(conf, arguments, environment):
     gpg.sign_file(conf, "image-signing", path)
 
     # Generate the metadata file
-    generate_version_metadata(
+    tools.generate_version_metadata(
         conf,
         environment['version'],
         environment['channel_name'],
