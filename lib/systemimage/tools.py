@@ -24,6 +24,7 @@ import subprocess
 import tarfile
 import tempfile
 import time
+import json
 
 from io import BytesIO
 from systemimage.helpers import chdir
@@ -459,14 +460,18 @@ def extract_files_and_version(conf, base_files, version, files):
     # Fetch all files and the version_detail
     for entry in base_files:
         path = os.path.realpath("%s/%s" % (conf.publish_path, entry['path']))
+        print(path)
 
         filename = path.split("/")[-1]
 
         # Look for version-X.tar.xz
         if filename == "version-%s.tar.xz" % version:
+            print('a')
             # Extract the metadata
             if os.path.exists(path.replace(".tar.xz", ".json")):
+                print('b')
                 with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    print('c')
                     metadata = json.loads(fd.read())
                     if "channel.ini" in metadata:
                         version_detail = metadata['channel.ini'].get(

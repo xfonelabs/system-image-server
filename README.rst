@@ -31,6 +31,7 @@ Some additional dependencies are required for the test suite:
  - pyflakes (includes executables for both Python 2 and 3)
  - both pxz and xz-utils (for 100% coverage)
  - cpio
+ - python-six, python3-six
 
 The full test suite require you to pre-generate some GPG keys.  Actually, you
 can run the test suite without this, but many tests will be skipped.  To
