@@ -87,9 +87,6 @@ def main():
     if "redirect" in pub.list_channels()[args.channel]:
         parser.error("Channel is a redirect.")
 
-    if not args.tag:
-        parser.error("Image tag must be a non-empty string.")
-
     if "," in args.tag:
         parser.error("Image tag cannot include the character ','.")
 

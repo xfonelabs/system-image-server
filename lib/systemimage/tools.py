@@ -516,7 +516,9 @@ def set_tag_on_version_detail(version_detail_list, tag):
     """
 
     clean_tags_on_version_detail(version_detail_list)
-    version_detail_list.append("tag=%s" % tag)
+
+    if tag:
+        version_detail_list.append("tag=%s" % tag)
 
 
 def clean_tags_on_version_detail(version_detail_list):

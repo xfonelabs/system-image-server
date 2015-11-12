@@ -110,12 +110,8 @@ if __name__ == '__main__':
     if "redirect" in pub.list_channels()[args.destination_channel]:
         parser.error("Destination channel is a redirect.")
 
-    if args.tag:
-        if len(args.tag) == 0:
-            parser.error("Image tag must be a non-empty string.")
-
-        if "," in args.tag:
-            parser.error("Image tag cannot include the character ','.")
+    if args.tag and "," in args.tag:
+        parser.error("Image tag cannot include the character ','.")
 
     source_device = pub.get_device(args.source_channel, args.device)
     destination_device = pub.get_device(args.destination_channel, args.device)

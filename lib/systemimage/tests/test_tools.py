@@ -367,7 +367,7 @@ version_detail: abcdef
             "version=6"]
         tools.set_tag_on_version_detail(version_detail_list, "OTA-x")
         self.assertIn("tag=OTA-x", version_detail_list)
-        size = len(x for x in version_detail_list if x.startswith("tag="))
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
         self.assertEqual(size, 1)
 
     def test_set_tag_on_version_detail_rewrite(self):
@@ -381,8 +381,20 @@ version_detail: abcdef
             "version=6"]
         tools.set_tag_on_version_detail(version_detail_list, "OTA-x")
         self.assertIn("tag=OTA-x", version_detail_list)
-        size = len(x for x in version_detail_list if x.startswith("tag="))
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
         self.assertEqual(size, 1)
+
+    def test_set_tag_on_version_detail_clear(self):
+        """Clear the tag."""
+        version_detail_list = [
+            "device=20150821-736d127",
+            "custom=20150925-901-35-40-vivid",
+            "tag=OTA-x",
+            "keyring=archive-master"]
+        tools.set_tag_on_version_detail(version_detail_list, "")
+        self.assertNotIn("tag=OTA-x", version_detail_list)
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertEqual(size, 0)
 
     def test_extract_files_and_version(self):
         """Check if version_detail is correctly extracted"""
