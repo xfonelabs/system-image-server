@@ -366,8 +366,8 @@ version_detail: abcdef
             "keyring=archive-master",
             "version=6"]
         tools.set_tag_on_version_detail(version_detail_list, "OTA-x")
-        self.assertTrue("tag=OTA-x" in version_detail_list)
-        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertIn("tag=OTA-x", version_detail_list)
+        size = len(x for x in version_detail_list if x.startswith("tag="))
         self.assertEqual(size, 1)
 
     def test_set_tag_on_version_detail_rewrite(self):
@@ -380,8 +380,8 @@ version_detail: abcdef
             "tag=different",
             "version=6"]
         tools.set_tag_on_version_detail(version_detail_list, "OTA-x")
-        self.assertTrue("tag=OTA-x" in version_detail_list)
-        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertIn("tag=OTA-x", version_detail_list)
+        size = len(x for x in version_detail_list if x.startswith("tag="))
         self.assertEqual(size, 1)
 
     def test_extract_files_and_version(self):

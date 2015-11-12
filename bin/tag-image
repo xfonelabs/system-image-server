@@ -19,13 +19,14 @@
 import json
 import os
 import sys
-sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
-
-from systemimage import config, generators, tools, tree
-
 import argparse
 import fcntl
 import logging
+
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from operator import itemgetter
+from systemimage import config, generators, tools, tree
 
 
 def main():
@@ -98,7 +99,7 @@ def main():
     if not device_images:
         parser.error("No images in selected channel/device.")
 
-    sorted_images = sorted(device_images, key=lambda x: x['version'])
+    sorted_images = sorted(device_images, key=itemgetter('version'))
     if args.version != sorted_images[-1]['version']:
         parser.error("You can only tag the latest image.")
 

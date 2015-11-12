@@ -27,6 +27,7 @@ import time
 import json
 
 from io import BytesIO
+from operator import itemgetter
 from systemimage.helpers import chdir
 from systemimage import gpg
 
@@ -461,7 +462,7 @@ def get_required_deltas(conf, pub, channel, device_name):
         base_images = sorted([image
                               for image in base_device.list_images()
                               if image['type'] == "full"],
-                             key=lambda image: image['version'])
+                             key=itemgetter('version'))
 
         # Check if the version is valid and add it
         if base_images and base_images[-1]['version'] in full_images:
