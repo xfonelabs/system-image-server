@@ -360,7 +360,9 @@ public_https_port = 8443
                 ("generic_x86", "i386"),
                 ("generic_i386", "i386"),
                 ("generic_amd64", "amd64"),
-                ("azure_amd64", "amd64.azure")):
+                ("azure_amd64", "amd64.azure"),
+                ("plano", "amd64.plano"),
+                ("raspi2_armhf", "armhf.raspi2")):
             environment['device_name'] = device_arch
 
             for filename in (
