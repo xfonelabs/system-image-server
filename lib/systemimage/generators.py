@@ -747,10 +747,14 @@ def generate_file_cdimage_device_raw(conf, arguments, environment):
     arch = "armhf"
     if environment['device_name'] in ("generic_x86", "generic_i386"):
         arch = "i386"
-    elif environment['device_name'] in ("generic_amd64","plano",):
+    elif environment['device_name'] in ("generic_amd64",):
         arch = "amd64"
     elif environment['device_name'] == "azure_amd64":
         arch = "amd64.azure"
+    elif environment['device_name'] == "plano":
+        arch = "amd64.plano"
+    elif environment['device_name'] == "raspi2_armhf":
+        arch = "armhf.raspi2"
     elif environment['device_name'] == "generic_arm64":
         arch = "arm64"
 
