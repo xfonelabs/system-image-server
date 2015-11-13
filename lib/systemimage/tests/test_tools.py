@@ -22,8 +22,10 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+import json
+import six
 
-from systemimage import config, tools
+from systemimage import config, tools, tree, gpg
 from systemimage.helpers import chdir
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
@@ -355,3 +357,123 @@ version_detail: abcdef
             shutil.rmtree(extract_dir)
         self.assertEqual(mode, 0o775,
                          'got 0o{:o}, expected 0o775'.format(mode))
+
+    def test_set_tag_on_version_detail(self):
+        """Set a basic tag."""
+        version_detail_list = [
+            "device=20150821-736d127",
+            "custom=20150925-901-35-40-vivid",
+            "keyring=archive-master",
+            "version=6"]
+        tools.set_tag_on_version_detail(version_detail_list, "OTA-x")
+        self.assertIn("tag=OTA-x", version_detail_list)
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertEqual(size, 1)
+
+    def test_set_tag_on_version_detail_rewrite(self):
+        """Make sure tags can be rewritten."""
+        version_detail_list = [
+            "device=20150821-736d127",
+            "custom=20150925-901-35-40-vivid",
+            "tag=something",
+            "keyring=archive-master",
+            "tag=different",
+            "version=6"]
+        tools.set_tag_on_version_detail(version_detail_list, "OTA-x")
+        self.assertIn("tag=OTA-x", version_detail_list)
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertEqual(size, 1)
+
+    def test_set_tag_on_version_detail_clear(self):
+        """Clear the tag."""
+        version_detail_list = [
+            "device=20150821-736d127",
+            "custom=20150925-901-35-40-vivid",
+            "tag=OTA-x",
+            "keyring=archive-master"]
+        tools.set_tag_on_version_detail(version_detail_list, "")
+        self.assertNotIn("tag=OTA-x", version_detail_list)
+        size = len([x for x in version_detail_list if x.startswith("tag=")])
+        self.assertEqual(size, 0)
+
+    def test_extract_files_and_version(self):
+        """Check if version_detail is correctly extracted"""
+        os.mkdir(self.config.publish_path)
+
+        version = 12
+        version_detail = "device=1.2.3.4,version=12,tag=OTX-x"
+        version_file = "version-%s.tar.xz" % version
+        version_path = os.path.join(self.config.publish_path, version_file)
+        tools.generate_version_metadata(
+            self.config,
+            version,
+            "some/channel",
+            "testing",
+            version_path,
+            version_detail)
+
+        files = [
+            {'path': version_file},
+            {'path': "some/file"},
+            {'path': "some/other"}]
+        new_files = []
+        expected_files = [os.path.join(
+            self.config.publish_path, f['path']) for f in files[1:]]
+
+        returned_detail = tools.extract_files_and_version(
+            self.config, files, version, new_files)
+
+        self.assertEqual(returned_detail, version_detail)
+        six.assertCountEqual(self, expected_files, new_files)
+
+    @unittest.skip("Current deltabase handling is broken")
+    def test_get_required_deltas(self):
+        """Check if a proper list of valid deltabases is found."""
+        config_path = os.path.join(self.temp_directory, "etc", "config")
+        with open(config_path, "w+") as fd:
+            fd.write("""[global]
+base_path = %s
+gpg_key_path = %s
+channels = testing
+public_fqdn = system-image.example.net
+public_http_port = 880
+public_https_port = 8443
+
+[channel_testing]
+type = manual
+deltabase = base1, base2
+""" % (self.temp_directory, os.path.join(os.getcwd(), "tools", "keys")))
+        test_config = config.Config(config_path)
+        os.makedirs(test_config.publish_path)
+
+        test_tree = tree.Tree(test_config)
+        test_tree.create_channel("base1")
+        test_tree.create_device("base1", "test")
+        test_tree.create_channel("base2")
+        test_tree.create_device("base2", "test")
+        test_tree.create_channel("testing")
+        test_tree.create_device("testing", "test")
+
+        image_file = os.path.join(self.config.publish_path, "test_file")
+        open(image_file, "w+").close()
+        gpg.sign_file(test_config, "image-signing", image_file)
+
+        device = test_tree.get_device("base1", "test")
+        device.create_image("full", 1, "abc",
+                            [image_file])
+        base_image1 = device.get_image("full", 1)
+
+        device = test_tree.get_device("base2", "test")
+        device.create_image("full", 21, "abcd",
+                            [image_file])
+        base_image2 = device.get_image("full", 21)
+
+        device = test_tree.get_device("testing", "test")
+        device.create_image("full", 2, "abce",
+                            [image_file])
+
+        delta_base = tools.get_required_deltas(
+            test_config, test_tree, "testing", "test")
+
+        six.assertCountEqual(
+            self, [base_image1, base_image2], delta_base)

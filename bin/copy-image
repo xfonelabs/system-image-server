@@ -38,6 +38,8 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--phased-percentage", type=int,
                         help="Set the phased percentage for the copied image",
                         default=100)
+    parser.add_argument("-t", "--tag", type=str,
+                        help="Set a version tag on the new image")
     parser.add_argument("--verbose", "-v", action="count", default=0)
 
     args = parser.parse_args()
@@ -108,6 +110,9 @@ if __name__ == '__main__':
     if "redirect" in pub.list_channels()[args.destination_channel]:
         parser.error("Destination channel is a redirect.")
 
+    if args.tag and "," in args.tag:
+        parser.error("Image tag cannot include the character ','.")
+
     source_device = pub.get_device(args.source_channel, args.device)
     destination_device = pub.get_device(args.destination_channel, args.device)
 
@@ -156,37 +161,8 @@ if __name__ == '__main__':
                      "destination channel.")
 
     # Generate a list of required deltas
-    delta_base = []
-
-    # If channel not configured, use dest channel as a deltabase by default
-    conf_deltabase = (conf.channels[args.destination_channel].deltabase
-                      if args.destination_channel in conf.channels
-                      else [args.destination_channel])
-
-    for base_channel in conf_deltabase:
-        # Skip missing channels
-        if base_channel not in pub.list_channels():
-            continue
-
-        # Skip missing devices
-        if args.device not in (pub.list_channels()
-                               [base_channel]['devices']):
-            continue
-
-        # Extract the latest full image
-        base_device = pub.get_device(base_channel, args.device)
-        base_images = sorted([image
-                              for image in base_device.list_images()
-                              if image['type'] == "full"],
-                             key=lambda image: image['version'])
-
-        # Check if the version is valid and add it
-        if base_images and base_images[-1]['version'] in full_images:
-            if full_images[base_images[-1]['version']] not in delta_base:
-                delta_base.append(full_images
-                                  [base_images[-1]['version']])
-                logging.debug("Source version for delta: %s" %
-                              base_images[-1]['version'])
+    delta_base = tools.get_required_deltas(
+        conf, pub, args.destination_channel, args.device)
 
     # Create new empty entries
     new_images = {'full': {'files': []}}
@@ -194,24 +170,8 @@ if __name__ == '__main__':
         new_images['delta_%s' % delta['version']] = {'files': []}
 
     # Extract current version_detail and files
-    version_detail = ""
-    for entry in source_image['files']:
-        path = os.path.realpath("%s/%s" % (conf.publish_path, entry['path']))
-
-        filename = path.split("/")[-1]
-
-        # Look for version-X.tar.xz
-        if filename == "version-%s.tar.xz" % args.version:
-            # Extract the metadata
-            if os.path.exists(path.replace(".tar.xz", ".json")):
-                with open(path.replace(".tar.xz", ".json"), "r") as fd:
-                    metadata = json.loads(fd.read())
-                    if "channel.ini" in metadata:
-                        version_detail = metadata['channel.ini'].get(
-                            "version_detail", None)
-        else:
-            new_images['full']['files'].append(path)
-    logging.debug("Source version_detail is: %s" % version_detail)
+    version_detail = tools.extract_files_and_version(
+        conf, source_image['files'], args.version, new_images['full']['files'])
 
     # Generate new version tarball
     environment = {}
@@ -223,6 +183,12 @@ if __name__ == '__main__':
                                      for entry in version_detail.split(",")
                                      if not entry.startswith("version=")]
     environment['new_files'] = new_images['full']['files']
+
+    # Add new tag if requested
+    if args.tag:
+        tools.set_tag_on_version_detail(
+            environment['version_detail'], args.tag)
+        logging.info("Setting tag for image to '%s'" % args.tag)
 
     logging.info("Generating new version tarball for '%s' (%s)"
                  % (new_version, ",".join(environment['version_detail'])))

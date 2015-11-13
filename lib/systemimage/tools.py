@@ -24,9 +24,12 @@ import subprocess
 import tarfile
 import tempfile
 import time
+import json
 
 from io import BytesIO
+from operator import itemgetter
 from systemimage.helpers import chdir
+from systemimage import gpg
 
 
 logger = logging.getLogger(__name__)
@@ -155,6 +158,29 @@ build_number: %s
     tarball.addfile(channel_file)
 
     tarball.close()
+
+
+def generate_version_metadata(config, version, channel, device, path,
+                              version_detail=""):
+    """
+        Helper function that will take selected version info and create
+        the .json version file for the corresponding version tarball.
+    """
+
+    metadata = {}
+    metadata['generator'] = "version"
+    metadata['version'] = version
+    metadata['version_detail'] = "version=%s" % version
+    metadata['channel.ini'] = {}
+    metadata['channel.ini']['channel'] = channel
+    metadata['channel.ini']['device'] = device
+    metadata['channel.ini']['version'] = str(version)
+    metadata['channel.ini']['version_detail'] = version_detail
+
+    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                     indent=4, separators=(",", ": ")))
+    gpg.sign_file(config, "image-signing", path.replace(".tar.xz", ".json"))
 
 
 def gzip_compress(path, destination=None, level=9):
@@ -401,3 +427,105 @@ def repack_recovery_keyring(conf, path, keyring_name):
     shutil.rmtree(tempdir)
 
     return True
+
+
+def get_required_deltas(conf, pub, channel, device_name):
+    """
+        Fetch the list of deltas for the selected channel and device.
+    """
+
+    device = pub.get_device(channel, device_name)
+
+    full_images = {image['version']: image
+                   for image in device.list_images()
+                   if image['type'] == "full"}
+
+    delta_base = []
+
+    # If channel not configured, use dest channel as a deltabase by default
+    conf_deltabase = (conf.channels[channel].deltabase
+                      if channel in conf.channels
+                      else [channel])
+
+    for base_channel in conf_deltabase:
+        # Skip missing channels
+        if base_channel not in pub.list_channels():
+            continue
+
+        # Skip missing devices
+        if device_name not in (pub.list_channels()
+                               [base_channel]['devices']):
+            continue
+
+        # Extract the latest full image
+        base_device = pub.get_device(base_channel, device_name)
+        base_images = sorted([image
+                              for image in base_device.list_images()
+                              if image['type'] == "full"],
+                             key=itemgetter('version'))
+
+        # Check if the version is valid and add it
+        if base_images and base_images[-1]['version'] in full_images:
+            if full_images[base_images[-1]['version']] not in delta_base:
+                delta_base.append(full_images
+                                  [base_images[-1]['version']])
+                logging.debug("Source version for delta: %s" %
+                              base_images[-1]['version'])
+
+    return delta_base
+
+
+def extract_files_and_version(conf, base_files, version, files):
+    """
+        Helper function for scripts.
+        Fill in the files array with all the files from the selected image
+        (copying the paths over) and return the version_detail extracted from
+        the version json file. base_files are to be in non-absolute paths.
+    """
+
+    version_detail = ""
+
+    # Fetch all files and the version_detail
+    for entry in base_files:
+        path = os.path.realpath("%s/%s" % (conf.publish_path, entry['path']))
+        print(path)
+
+        filename = path.split("/")[-1]
+
+        # Look for version-X.tar.xz
+        if filename == "version-%s.tar.xz" % version:
+            print('a')
+            # Extract the metadata
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                print('b')
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    print('c')
+                    metadata = json.loads(fd.read())
+                    if "channel.ini" in metadata:
+                        version_detail = metadata['channel.ini'].get(
+                            "version_detail", None)
+        else:
+            files.append(path)
+
+    return version_detail
+
+
+def set_tag_on_version_detail(version_detail_list, tag):
+    """
+        Append a tag to the version_detail array.
+    """
+
+    clean_tags_on_version_detail(version_detail_list)
+
+    if tag:
+        version_detail_list.append("tag=%s" % tag)
+
+
+def clean_tags_on_version_detail(version_detail_list):
+    """
+        Remove all tags from the version_detail array.
+    """
+
+    for detail in version_detail_list:
+        if detail.startswith("tag="):
+            version_detail_list.remove(detail)

@@ -1351,20 +1351,13 @@ def generate_file_version(conf, arguments, environment):
     gpg.sign_file(conf, "image-signing", path)
 
     # Generate the metadata file
-    metadata = {}
-    metadata['generator'] = "version"
-    metadata['version'] = environment['version']
-    metadata['version_detail'] = "version=%s" % environment['version']
-    metadata['channel.ini'] = {}
-    metadata['channel.ini']['channel'] = environment['channel_name']
-    metadata['channel.ini']['device'] = environment['device_name']
-    metadata['channel.ini']['version'] = str(environment['version'])
-    metadata['channel.ini']['version_detail'] = version_detail
-
-    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
-        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
-                                     indent=4, separators=(",", ": ")))
-    gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
+    tools.generate_version_metadata(
+        conf,
+        environment['version'],
+        environment['channel_name'],
+        environment['device_name'],
+        path,
+        version_detail)
 
     # Cleanup
     shutil.rmtree(tempdir)
