@@ -494,12 +494,9 @@ def extract_files_and_version(conf, base_files, version, files):
 
         # Look for version-X.tar.xz
         if filename == "version-%s.tar.xz" % version:
-            print('a')
             # Extract the metadata
             if os.path.exists(path.replace(".tar.xz", ".json")):
-                print('b')
                 with open(path.replace(".tar.xz", ".json"), "r") as fd:
-                    print('c')
                     metadata = json.loads(fd.read())
                     if "channel.ini" in metadata:
                         version_detail = metadata['channel.ini'].get(
