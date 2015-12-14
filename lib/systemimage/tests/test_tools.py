@@ -22,7 +22,6 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
-import json
 import six
 
 from systemimage import config, tools, tree, gpg
@@ -263,10 +262,10 @@ version_detail: abcdef
         subprocess.call(["bin/generate-keyrings"], env=env)
 
         # Generate a fake recovery partition
-        os.makedirs("%s/initrd/etc/system-image/" % self.temp_directory)
-        open("%s/initrd/etc/system-image/archive-master.tar.xz" %
+        os.makedirs("%s/initrd/usr/share/system-image/" % self.temp_directory)
+        open("%s/initrd/usr/share/system-image/archive-master.tar.xz" %
              self.temp_directory, "w+").close()
-        open("%s/initrd/etc/system-image/archive-master.tar.xz.asc" %
+        open("%s/initrd/usr/share/system-image/archive-master.tar.xz.asc" %
              self.temp_directory, "w+").close()
 
         initrd_dir = os.path.join(self.temp_directory, "initrd")

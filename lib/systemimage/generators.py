@@ -391,7 +391,8 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     arch = "armhf"
     if environment['device_name'] in ("generic_x86", "generic_i386"):
         arch = "i386"
-    elif environment['device_name'] in ("generic_amd64", "azure_amd64", "plano"):
+    elif environment['device_name'] in ("generic_amd64", "azure_amd64",
+                                        "plano"):
         arch = "amd64"
     elif environment['device_name'] == "generic_arm64":
         arch = "arm64"
@@ -1071,10 +1072,12 @@ def generate_file_keyring(conf, arguments, environment):
     # Generate the tarball
     tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:")
     tarball.add("%s.tar.xz" % keyring_path,
-                arcname="/system/etc/system-image/archive-master.tar.xz",
+                arcname="/system/usr/share/system-image/"
+                        "archive-master.tar.xz",
                 filter=root_ownership)
     tarball.add("%s.tar.xz.asc" % keyring_path,
-                arcname="/system/etc/system-image/archive-master.tar.xz.asc",
+                arcname="/system/usr/share/system-image/"
+                        "archive-master.tar.xz.asc",
                 filter=root_ownership)
     tarball.close()
 

@@ -347,11 +347,11 @@ def repack_recovery_keyring(conf, path, keyring_name):
     keyring_path = os.path.join(conf.gpg_keyring_path, keyring_name)
 
     shutil.copy("%s.tar.xz" % keyring_path,
-                os.path.join(tempdir, "initrd", "etc", "system-image",
+                os.path.join(tempdir, "initrd", "usr", "share", "system-image",
                              "%s.tar.xz" % keyring_name))
 
     shutil.copy("%s.tar.xz.asc" % keyring_path,
-                os.path.join(tempdir, "initrd", "etc", "system-image",
+                os.path.join(tempdir, "initrd", "usr", "share", "system-image",
                              "%s.tar.xz.asc" % keyring_name))
 
     # Re-generate the initrd
