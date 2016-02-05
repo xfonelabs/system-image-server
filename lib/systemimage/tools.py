@@ -183,6 +183,27 @@ def generate_version_metadata(config, version, channel, device, path,
     gpg.sign_file(config, "image-signing", path.replace(".tar.xz", ".json"))
 
 
+def guess_file_compression(path):
+    """
+        Try to guess through the magic signature in the first bytes of the
+        file.
+    """
+
+    compressions = {
+        "\x1f\x8b\x08": "gzip",
+        "\xfd\x37\x7a\x58\x5a\x00": "xz",
+    }
+    length = max(len(x) for x in compressions)
+
+    with open(path, 'r') as f:
+        start = f.read(length)
+    for magic, compression in compressions.items():
+        if start.startswith(magic):
+            return compression
+
+    return None
+
+
 def gzip_compress(path, destination=None, level=9):
     """
         Compress a file (path) using gzip.
@@ -335,10 +356,19 @@ def repack_recovery_keyring(conf, path, keyring_name):
     state_path = os.path.join(tempdir, "fakeroot_state")
 
     with chdir(os.path.join(tempdir, "initrd")):
-        gzip_uncompress(os.path.join(tempdir, "img", "initrd.img"),
-                        os.path.join(tempdir, "img", "initrd"))
+        initrdimg_path = os.path.join(tempdir, "img", "initrd.img")
+        initrd_path = os.path.join(tempdir, "img", "initrd")
 
-        with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
+        # The initrd can be either compressed or uncompressed
+        compression = guess_file_compression(initrdimg_path)
+        if compression == "gzip":
+            gzip_uncompress(initrdimg_path, initrd_path)
+        elif compression == "xz":
+            xz_uncompress(initrdimg_path, initrd_path)
+        else:
+            shutil.copyfile(initrdimg_path, initrd_path)
+
+        with open(initrd_path, "rb") as fd:
             with open(os.path.devnull, "w") as devnull:
                 subprocess.call(["fakeroot", "-s", state_path, "cpio", "-i"],
                                 stdin=fd, stdout=devnull, stderr=devnull)
@@ -367,8 +397,13 @@ def repack_recovery_keyring(conf, path, keyring_name):
 
     os.rename(os.path.join(tempdir, "img", "initrd.img"),
               os.path.join(tempdir, "img", "initrd.img.bak"))
-    gzip_compress(os.path.join(tempdir, "img", "initrd"),
-                  os.path.join(tempdir, "img", "initrd.img"))
+
+    if compression == "gzip":
+        gzip_compress(initrd_path, initrdimg_path)
+    elif compression == "xz":
+        xz_compress(initrd_path, initrdimg_path)
+    else:
+        shutil.copyfile(initrd_path, initrdimg_path)
 
     # Rewrite bootimg.cfg
     content = ""
