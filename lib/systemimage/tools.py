@@ -190,12 +190,12 @@ def guess_file_compression(path):
     """
 
     compressions = {
-        "\x1f\x8b\x08": "gzip",
-        "\xfd\x37\x7a\x58\x5a\x00": "xz",
+        b"\x1f\x8b\x08": "gzip",
+        b"\xfd\x37\x7a\x58\x5a\x00": "xz"
     }
     length = max(len(x) for x in compressions)
 
-    with open(path, 'r') as f:
+    with open(path, 'rb') as f:
         start = f.read(length)
     for magic, compression in compressions.items():
         if start.startswith(magic):

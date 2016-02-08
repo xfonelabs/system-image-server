@@ -476,3 +476,25 @@ deltabase = base1, base2
 
         six.assertCountEqual(
             self, [base_image1, base_image2], delta_base)
+
+    def test_guess_file_compression(self):
+        """Check if we can correctly guess compression algorithms."""
+        test_string = "test-string"
+
+        # Simple compress/uncompress
+        test_file = os.path.join(self.temp_directory, "test.txt")
+        with open(test_file, "w+") as fd:
+            fd.write(test_string)
+
+        self.assertEqual(
+            tools.guess_file_compression(test_file), None)
+
+        xz_file = os.path.join(self.temp_directory, "test.xz")
+        tools.xz_compress(test_file, xz_file)
+        self.assertEqual(
+            tools.guess_file_compression(xz_file), "xz")
+
+        gzip_file = os.path.join(self.temp_directory, "test.gz")
+        tools.gzip_compress(test_file, gzip_file)
+        self.assertEqual(
+            tools.guess_file_compression(gzip_file), "gzip")
