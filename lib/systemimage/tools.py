@@ -328,8 +328,15 @@ def sync_mirrors(config):
                        mirror.ssh_key, mirror.ssh_command)
 
 
-def repack_recovery_keyring(conf, path, keyring_name):
+def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
     tempdir = tempfile.mkdtemp()
+
+    # In case of certain devices, special care of the recovery is needed
+    additional_header = False
+    if device_name in ("krillin", "vegetahd", "arale"):
+        logging.debug("Expecting additional header in recovery image.")
+        additional_header = True
+        read_buffer = 1024*1024
 
     xz_uncompress(path, os.path.join(tempdir, "input.tar"))
 
@@ -358,6 +365,18 @@ def repack_recovery_keyring(conf, path, keyring_name):
     with chdir(os.path.join(tempdir, "initrd")):
         initrdimg_path = os.path.join(tempdir, "img", "initrd.img")
         initrd_path = os.path.join(tempdir, "img", "initrd")
+
+        if additional_header:
+            # Remove the 512 header bytes before unpacking
+            tmp_path = os.path.join(tempdir, "img", "initrd.img.tmp")
+            with open(initrdimg_path, "rb") as source:
+                header_contents = source.read(512)
+                with open(tmp_path, "wb") as dest:
+                    data = source.read(read_buffer)
+                    while data:
+                        dest.write(data)
+                        data = source.read(read_buffer)
+            os.rename(tmp_path, initrdimg_path)
 
         # The initrd can be either compressed or uncompressed
         compression = guess_file_compression(initrdimg_path)
@@ -409,6 +428,18 @@ def repack_recovery_keyring(conf, path, keyring_name):
         xz_compress(initrd_path, initrdimg_path)
     else:
         shutil.copyfile(initrd_path, initrdimg_path)
+
+    if additional_header:
+        # Append the previously removed header
+        tmp_path = os.path.join(tempdir, "img", "initrd.img.tmp")
+        with open(tmp_path, "wb") as dest:
+            dest.write(header_contents)
+            with open(initrdimg_path, "rb") as source:
+                data = source.read(read_buffer)
+                while data:
+                    dest.write(data)
+                    data = source.read(read_buffer)
+        os.rename(tmp_path, initrdimg_path)
 
     # Rewrite bootimg.cfg
     content = ""
