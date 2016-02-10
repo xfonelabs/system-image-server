@@ -321,6 +321,32 @@ version_detail: abcdef
                                                    self.temp_directory,
                                       "archive-master")
 
+        tools.reattach_recovery_header(os.path.join(self.temp_directory,
+                                                    "initrd.gz"),
+                                       os.path.join(self.temp_directory,
+                                                    "initrd.header"),
+                                       bytearray(512))
+
+        with open(os.devnull, "w") as devnull:
+            subprocess.call(["abootimg", "--create",
+                             "%s/partitions/recovery.img" %
+                             self.temp_directory,
+                             "-k", "%s/kernel" % self.temp_directory,
+                             "-r", "%s/initrd.header" % self.temp_directory,
+                             "-f", "%s/bootimg.cfg" % self.temp_directory],
+                            stderr=devnull, stdout=devnull)
+
+            subprocess.call(["tar", "Jcf",
+                             "%s/recovery-spec.tar.xz" % self.temp_directory,
+                             "-C", self.temp_directory,
+                             "partitions/"], stderr=devnull, stdout=devnull)
+
+        # Try repacking in case of a recovery with a special header
+        tools.repack_recovery_keyring(self.config, "%s/recovery-spec.tar.xz" %
+                                                   self.temp_directory,
+                                      "archive-master", "krillin")
+
+
     def test_system_image_30_symlinks(self):
         # To support system-image 3.0, generate symlinks for config.d
         version_tarball = "%s/version.tar" % self.temp_directory

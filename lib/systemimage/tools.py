@@ -328,6 +328,29 @@ def sync_mirrors(config):
                        mirror.ssh_key, mirror.ssh_command)
 
 
+def strip_recovery_header(source_path, dest_path):
+    read_buffer = 1024*1024
+    with open(source_path, "rb") as source:
+        header_contents = source.read(512)
+        with open(dest_path, "wb") as dest:
+            data = source.read(read_buffer)
+            while data:
+                dest.write(data)
+                data = source.read(read_buffer)
+    return header_contents
+
+
+def reattach_recovery_header(source_path, dest_path, header_contents):
+    read_buffer = 1024*1024
+    with open(dest_path, "wb") as dest:
+        dest.write(header_contents)
+        with open(source_path, "rb") as source:
+            data = source.read(read_buffer)
+            while data:
+                dest.write(data)
+                data = source.read(read_buffer)
+
+
 def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
     tempdir = tempfile.mkdtemp()
 
@@ -369,13 +392,7 @@ def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
         if additional_header:
             # Remove the 512 header bytes before unpacking
             tmp_path = os.path.join(tempdir, "img", "initrd.img.tmp")
-            with open(initrdimg_path, "rb") as source:
-                header_contents = source.read(512)
-                with open(tmp_path, "wb") as dest:
-                    data = source.read(read_buffer)
-                    while data:
-                        dest.write(data)
-                        data = source.read(read_buffer)
+            header_contents = strip_recovery_header(initrdimg_path, tmp_path)
             os.rename(tmp_path, initrdimg_path)
 
         # The initrd can be either compressed or uncompressed
@@ -432,13 +449,7 @@ def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
     if additional_header:
         # Append the previously removed header
         tmp_path = os.path.join(tempdir, "img", "initrd.img.tmp")
-        with open(tmp_path, "wb") as dest:
-            dest.write(header_contents)
-            with open(initrdimg_path, "rb") as source:
-                data = source.read(read_buffer)
-                while data:
-                    dest.write(data)
-                    data = source.read(read_buffer)
+        reattach_recovery_header(initrdimg_path, tmp_path, header_contents)
         os.rename(tmp_path, initrdimg_path)
 
     # Rewrite bootimg.cfg
