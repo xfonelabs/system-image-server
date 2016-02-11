@@ -329,6 +329,12 @@ def sync_mirrors(config):
 
 
 def strip_recovery_header(source_path, dest_path):
+    """
+        Strip the first 512 bytes of the custom header from the source_path
+        file (initrd). Writes the stripped file to dest_path and returns the
+        header contents.
+    """
+
     read_buffer = 1024*1024
     with open(source_path, "rb") as source:
         header_contents = source.read(512)
@@ -341,6 +347,11 @@ def strip_recovery_header(source_path, dest_path):
 
 
 def reattach_recovery_header(source_path, dest_path, header_contents):
+    """
+        Reattach the stripped header (in header_contents) in front of the
+        source_path file contents. This writes the end file to dest_path.
+    """
+
     read_buffer = 1024*1024
     with open(dest_path, "wb") as dest:
         dest.write(header_contents)

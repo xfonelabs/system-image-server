@@ -254,6 +254,31 @@ version_detail: abcdef
         os.environ['PATH'] = bin_dir
         self.assertFalse(tools.find_on_path("program"))
 
+    def test_manipulate_recovery_header(self):
+        """Check if stripping and reattaching recovery headers works."""
+        source_path = os.path.join(self.temp_directory, "source")
+        stripped_path = os.path.join(self.temp_directory, "stripped")
+        reattached_path = os.path.join(self.temp_directory, "reattached")
+        
+        header = bytearray(512)
+        contents = b"RECOVERY"
+        for i in range(0, 64):
+            header[i] = i
+        with open(source_path, "wb+") as f:
+            f.write(header)
+            f.write(contents)
+
+        stripped = tools.strip_recovery_header(source_path, stripped_path)
+        self.assertEqual(header, bytes(stripped))
+        with open(stripped_path, "rb") as f:
+            self.assertEqual(f.read(), contents)
+
+        tools.reattach_recovery_header(stripped_path, reattached_path,
+                                       stripped)
+        with open(reattached_path, "rb") as f, open(source_path, "rb") as fs:
+            self.assertEqual(f.read(), fs.read())
+
+
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_repack_recovery_keyring(self):
         # Generate the keyring tarballs
