@@ -537,8 +537,7 @@ deltabase = base1, base2
         with open(test_file, "w+") as fd:
             fd.write(test_string)
 
-        self.assertEqual(
-            tools.guess_file_compression(test_file), None)
+        self.assertIsNone(tools.guess_file_compression(test_file))
 
         xz_file = os.path.join(self.temp_directory, "test.xz")
         tools.xz_compress(test_file, xz_file)

@@ -32,6 +32,8 @@ from systemimage.helpers import chdir
 from systemimage import gpg
 
 
+READ_SIZE = 1024*1024
+
 logger = logging.getLogger(__name__)
 
 
@@ -335,14 +337,13 @@ def strip_recovery_header(source_path, dest_path):
         header contents.
     """
 
-    read_buffer = 1024*1024
     with open(source_path, "rb") as source:
         header_contents = source.read(512)
         with open(dest_path, "wb") as dest:
-            data = source.read(read_buffer)
+            data = source.read(READ_SIZE)
             while data:
                 dest.write(data)
-                data = source.read(read_buffer)
+                data = source.read(READ_SIZE)
     return header_contents
 
 
@@ -352,14 +353,13 @@ def reattach_recovery_header(source_path, dest_path, header_contents):
         source_path file contents. This writes the end file to dest_path.
     """
 
-    read_buffer = 1024*1024
     with open(dest_path, "wb") as dest:
         dest.write(header_contents)
         with open(source_path, "rb") as source:
-            data = source.read(read_buffer)
+            data = source.read(READ_SIZE)
             while data:
                 dest.write(data)
-                data = source.read(read_buffer)
+                data = source.read(READ_SIZE)
 
 
 def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
@@ -370,7 +370,6 @@ def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
     if device_name in ("krillin", "vegetahd", "arale"):
         logging.debug("Expecting additional header in recovery image.")
         additional_header = True
-        read_buffer = 1024*1024
 
     xz_uncompress(path, os.path.join(tempdir, "input.tar"))
 
