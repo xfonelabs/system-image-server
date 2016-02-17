@@ -32,6 +32,8 @@ from systemimage.helpers import chdir
 from systemimage import gpg
 
 
+READ_SIZE = 1024*1024
+
 logger = logging.getLogger(__name__)
 
 
@@ -183,6 +185,27 @@ def generate_version_metadata(config, version, channel, device, path,
     gpg.sign_file(config, "image-signing", path.replace(".tar.xz", ".json"))
 
 
+def guess_file_compression(path):
+    """
+        Try to guess through the magic signature in the first bytes of the
+        file.
+    """
+
+    compressions = {
+        b"\x1f\x8b\x08": "gzip",
+        b"\xfd\x37\x7a\x58\x5a\x00": "xz"
+    }
+    length = max(len(x) for x in compressions)
+
+    with open(path, 'rb') as f:
+        start = f.read(length)
+    for magic, compression in compressions.items():
+        if start.startswith(magic):
+            return compression
+
+    return None
+
+
 def gzip_compress(path, destination=None, level=9):
     """
         Compress a file (path) using gzip.
@@ -307,8 +330,46 @@ def sync_mirrors(config):
                        mirror.ssh_key, mirror.ssh_command)
 
 
-def repack_recovery_keyring(conf, path, keyring_name):
+def strip_recovery_header(source_path, dest_path):
+    """
+        Strip the first 512 bytes of the custom header from the source_path
+        file (initrd). Writes the stripped file to dest_path and returns the
+        header contents.
+    """
+
+    with open(source_path, "rb") as source:
+        header_contents = source.read(512)
+        with open(dest_path, "wb") as dest:
+            data = source.read(READ_SIZE)
+            while data:
+                dest.write(data)
+                data = source.read(READ_SIZE)
+    return header_contents
+
+
+def reattach_recovery_header(source_path, dest_path, header_contents):
+    """
+        Reattach the stripped header (in header_contents) in front of the
+        source_path file contents. This writes the end file to dest_path.
+    """
+
+    with open(dest_path, "wb") as dest:
+        dest.write(header_contents)
+        with open(source_path, "rb") as source:
+            data = source.read(READ_SIZE)
+            while data:
+                dest.write(data)
+                data = source.read(READ_SIZE)
+
+
+def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
     tempdir = tempfile.mkdtemp()
+
+    # In case of certain devices, special care of the recovery is needed
+    additional_header = False
+    if device_name in ("krillin", "vegetahd", "arale"):
+        logging.debug("Expecting additional header in recovery image.")
+        additional_header = True
 
     xz_uncompress(path, os.path.join(tempdir, "input.tar"))
 
@@ -335,10 +396,25 @@ def repack_recovery_keyring(conf, path, keyring_name):
     state_path = os.path.join(tempdir, "fakeroot_state")
 
     with chdir(os.path.join(tempdir, "initrd")):
-        gzip_uncompress(os.path.join(tempdir, "img", "initrd.img"),
-                        os.path.join(tempdir, "img", "initrd"))
+        initrdimg_path = os.path.join(tempdir, "img", "initrd.img")
+        initrd_path = os.path.join(tempdir, "img", "initrd")
 
-        with open(os.path.join(tempdir, "img", "initrd"), "rb") as fd:
+        if additional_header:
+            # Remove the 512 header bytes before unpacking
+            tmp_path = os.path.join(tempdir, "img", "initrd.img.tmp")
+            header_contents = strip_recovery_header(initrdimg_path, tmp_path)
+            os.rename(tmp_path, initrdimg_path)
+
+        # The initrd can be either compressed or uncompressed
+        compression = guess_file_compression(initrdimg_path)
+        if compression == "gzip":
+            gzip_uncompress(initrdimg_path, initrd_path)
+        elif compression == "xz":
+            xz_uncompress(initrdimg_path, initrd_path)
+        else:
+            shutil.copyfile(initrdimg_path, initrd_path)
+
+        with open(initrd_path, "rb") as fd:
             with open(os.path.devnull, "w") as devnull:
                 subprocess.call(["fakeroot", "-s", state_path, "cpio", "-i"],
                                 stdin=fd, stdout=devnull, stderr=devnull)
@@ -346,13 +422,18 @@ def repack_recovery_keyring(conf, path, keyring_name):
     # Swap the files
     keyring_path = os.path.join(conf.gpg_keyring_path, keyring_name)
 
+    # Handle two different keyring paths in the recovery
+    dest_keyring_path = os.path.join(tempdir, "initrd", "usr", "share",
+                                     "system-image", keyring_name)
+    if not os.path.exists("%s.tar.xz" % dest_keyring_path):
+        dest_keyring_path = os.path.join(tempdir, "initrd", "etc",
+                                         "system-image", keyring_name)
+
     shutil.copy("%s.tar.xz" % keyring_path,
-                os.path.join(tempdir, "initrd", "usr", "share", "system-image",
-                             "%s.tar.xz" % keyring_name))
+                "%s.tar.xz" % dest_keyring_path)
 
     shutil.copy("%s.tar.xz.asc" % keyring_path,
-                os.path.join(tempdir, "initrd", "usr", "share", "system-image",
-                             "%s.tar.xz.asc" % keyring_name))
+                "%s.tar.xz.asc" % dest_keyring_path)
 
     # Re-generate the initrd
     with chdir(os.path.join(tempdir, "initrd")):
@@ -367,8 +448,19 @@ def repack_recovery_keyring(conf, path, keyring_name):
 
     os.rename(os.path.join(tempdir, "img", "initrd.img"),
               os.path.join(tempdir, "img", "initrd.img.bak"))
-    gzip_compress(os.path.join(tempdir, "img", "initrd"),
-                  os.path.join(tempdir, "img", "initrd.img"))
+
+    if compression == "gzip":
+        gzip_compress(initrd_path, initrdimg_path)
+    elif compression == "xz":
+        xz_compress(initrd_path, initrdimg_path)
+    else:
+        shutil.copyfile(initrd_path, initrdimg_path)
+
+    if additional_header:
+        # Append the previously removed header
+        tmp_path = os.path.join(tempdir, "img", "initrd.img.tmp")
+        reattach_recovery_header(initrdimg_path, tmp_path, header_contents)
+        os.rename(tmp_path, initrdimg_path)
 
     # Rewrite bootimg.cfg
     content = ""

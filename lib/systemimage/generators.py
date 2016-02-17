@@ -1217,7 +1217,8 @@ def generate_file_remote_system_image(conf, arguments, environment):
 
             if "keyring" in options:
                 if not tools.repack_recovery_keyring(conf, path,
-                                                     options['keyring']):
+                                                     options['keyring'],
+                                                     device_name):
                     if os.path.exists(path):
                         os.remove(path)
                     return None
