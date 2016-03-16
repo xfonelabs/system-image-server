@@ -86,10 +86,11 @@ def generate_version_tarball(config, channel, device, version, path,
     """
 
     tarball = tarfile.open(path, 'w:')
+    now_mtime = int(time.time())
 
     version_file = tarfile.TarInfo()
     version_file.size = len(version) + 1
-    version_file.mtime = int(time.strftime("%s", time.localtime()))
+    version_file.mtime = now_mtime
     version_file.name = build_path
 
     # Append a line break
@@ -124,7 +125,7 @@ build_number: %s
 
     channel_file = tarfile.TarInfo()
     channel_file.size = len(channel)
-    channel_file.mtime = int(time.strftime("%s", time.localtime()))
+    channel_file.mtime = now_mtime
     channel_file.name = channel_path
 
     tarball.addfile(channel_file, BytesIO(channel.encode("utf-8")))
@@ -142,6 +143,7 @@ build_number: %s
     directory = tarfile.TarInfo(config_d)
     directory.type = tarfile.DIRTYPE
     directory.mode = 0o775
+    directory.mtime = now_mtime
     tarball.addfile(directory)
 
     path_00_default = os.path.join(config_d, "00_default.ini")
@@ -149,6 +151,7 @@ build_number: %s
     default_file.name = path_00_default
     default_file.type = tarfile.SYMTYPE
     default_file.linkname = "../client.ini"
+    default_file.mtime = now_mtime
     tarball.addfile(default_file)
 
     path_01_channel = os.path.join(config_d, "01_channel.ini")
@@ -157,6 +160,7 @@ build_number: %s
     channel_file.type = tarfile.SYMTYPE
     channel_file.linkname = os.path.join(
         "..", os.path.basename(channel_path))
+    channel_file.mtime = now_mtime
     tarball.addfile(channel_file)
 
     tarball.close()

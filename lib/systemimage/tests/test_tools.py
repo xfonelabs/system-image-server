@@ -24,6 +24,8 @@ import tempfile
 import unittest
 import six
 
+from datetime import datetime
+from glob import glob
 from systemimage import config, tools, tree, gpg
 from systemimage.helpers import chdir
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
@@ -418,9 +420,15 @@ version_detail: abcdef
         safe_extract(version_tarball, extract_dir)
         config_d = os.path.join(
             extract_dir, "system", "etc", "system-image", "config.d")
-        mode = stat.S_IMODE(os.stat(config_d).st_mode)
-        self.assertEqual(mode, 0o775,
-                         'got 0o{:o}, expected 0o775'.format(mode))
+        epoch = datetime(1970, 1, 1)
+        self.assertGreater(datetime.fromtimestamp(os.stat(config_d).st_mtime),
+                           epoch)
+        ini_files = glob(os.path.join(config_d, '*.ini'))
+        # Future-proof: at least two ini files.
+        self.assertGreaterEqual(len(ini_files), 2)
+        for ini_file in ini_files:
+            mtime = os.lstat(ini_file).st_mtime
+            self.assertGreater(datetime.fromtimestamp(mtime), epoch)
 
     def test_set_tag_on_version_detail(self):
         """Set a basic tag."""
