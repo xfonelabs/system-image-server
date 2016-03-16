@@ -396,13 +396,29 @@ version_detail: abcdef
         # Extract the tarfile to another temp directory, so that we can
         # exactly compare extracted directory modes.
         extract_dir = tempfile.mkdtemp()
-        try:
-            safe_extract(version_tarball, extract_dir)
-            config_d = os.path.join(
-                extract_dir, "system", "etc", "system-image", "config.d")
-            mode = stat.S_IMODE(os.stat(config_d).st_mode)
-        finally:
-            shutil.rmtree(extract_dir)
+        self.addCleanup(shutil.rmtree, extract_dir)
+        safe_extract(version_tarball, extract_dir)
+        config_d = os.path.join(
+            extract_dir, "system", "etc", "system-image", "config.d")
+        mode = stat.S_IMODE(os.stat(config_d).st_mode)
+        self.assertEqual(mode, 0o775,
+                         'got 0o{:o}, expected 0o775'.format(mode))
+
+    def test_system_image_30_mtimes(self):
+        # The etc/system-image/config.d directory and the 00_default.ini,
+        # 01_channel.ini symlinks should have proper mtimes.  LP: #1558190
+        version_tarball = "%s/version.tar" % self.temp_directory
+        tools.generate_version_tarball(self.config, "testing", "test",
+                                       "1.2.3.4",
+                                       version_tarball)
+        # Extract the tarfile to another temp directory, so that we can
+        # exactly check mtimes.
+        extract_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, extract_dir)
+        safe_extract(version_tarball, extract_dir)
+        config_d = os.path.join(
+            extract_dir, "system", "etc", "system-image", "config.d")
+        mode = stat.S_IMODE(os.stat(config_d).st_mode)
         self.assertEqual(mode, 0o775,
                          'got 0o{:o}, expected 0o775'.format(mode))
 
