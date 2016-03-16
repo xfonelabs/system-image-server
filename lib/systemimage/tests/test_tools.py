@@ -24,6 +24,8 @@ import tempfile
 import unittest
 import six
 
+from datetime import datetime
+from glob import glob
 from systemimage import config, tools, tree, gpg
 from systemimage.helpers import chdir
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
@@ -259,7 +261,7 @@ version_detail: abcdef
         source_path = os.path.join(self.temp_directory, "source")
         stripped_path = os.path.join(self.temp_directory, "stripped")
         reattached_path = os.path.join(self.temp_directory, "reattached")
-        
+
         header = bytearray(512)
         contents = b"RECOVERY"
         for i in range(0, 64):
@@ -277,7 +279,6 @@ version_detail: abcdef
                                        stripped)
         with open(reattached_path, "rb") as f, open(source_path, "rb") as fs:
             self.assertEqual(f.read(), fs.read())
-
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_repack_recovery_keyring(self):
@@ -371,7 +372,6 @@ version_detail: abcdef
                                                    self.temp_directory,
                                       "archive-master", "krillin")
 
-
     def test_system_image_30_symlinks(self):
         # To support system-image 3.0, generate symlinks for config.d
         version_tarball = "%s/version.tar" % self.temp_directory
@@ -398,15 +398,37 @@ version_detail: abcdef
         # Extract the tarfile to another temp directory, so that we can
         # exactly compare extracted directory modes.
         extract_dir = tempfile.mkdtemp()
-        try:
-            safe_extract(version_tarball, extract_dir)
-            config_d = os.path.join(
-                extract_dir, "system", "etc", "system-image", "config.d")
-            mode = stat.S_IMODE(os.stat(config_d).st_mode)
-        finally:
-            shutil.rmtree(extract_dir)
+        self.addCleanup(shutil.rmtree, extract_dir)
+        safe_extract(version_tarball, extract_dir)
+        config_d = os.path.join(
+            extract_dir, "system", "etc", "system-image", "config.d")
+        mode = stat.S_IMODE(os.stat(config_d).st_mode)
         self.assertEqual(mode, 0o775,
                          'got 0o{:o}, expected 0o775'.format(mode))
+
+    def test_system_image_30_mtimes(self):
+        # The etc/system-image/config.d directory and the 00_default.ini,
+        # 01_channel.ini symlinks should have proper mtimes.  LP: #1558190
+        version_tarball = "%s/version.tar" % self.temp_directory
+        tools.generate_version_tarball(self.config, "testing", "test",
+                                       "1.2.3.4",
+                                       version_tarball)
+        # Extract the tarfile to another temp directory, so that we can
+        # exactly check mtimes.
+        extract_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, extract_dir)
+        safe_extract(version_tarball, extract_dir)
+        config_d = os.path.join(
+            extract_dir, "system", "etc", "system-image", "config.d")
+        epoch = datetime(1970, 1, 1)
+        self.assertGreater(datetime.fromtimestamp(os.stat(config_d).st_mtime),
+                           epoch)
+        ini_files = glob(os.path.join(config_d, '*.ini'))
+        # Future-proof: at least two ini files.
+        self.assertGreaterEqual(len(ini_files), 2)
+        for ini_file in ini_files:
+            mtime = os.lstat(ini_file).st_mtime
+            self.assertGreater(datetime.fromtimestamp(mtime), epoch)
 
     def test_set_tag_on_version_detail(self):
         """Set a basic tag."""
