@@ -32,7 +32,7 @@ from systemimage.helpers import chdir
 from systemimage import gpg
 
 
-READ_SIZE = 1024*1024
+READ_SIZE = 1024 * 1024
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +194,7 @@ def guess_file_compression(path):
     compressions = {
         b"\x1f\x8b\x08": "gzip",
         b"\xfd\x37\x7a\x58\x5a\x00": "xz"
-    }
+        }
     length = max(len(x) for x in compressions)
 
     with open(path, 'rb') as f:

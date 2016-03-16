@@ -989,7 +989,8 @@ public_https_port = 8443
                 fd.write(url)
         mock_urlretrieve.side_effect = urlretrieve_side_effect
 
-        def repack_recovery_keyring_effect(conf, path, keyring):
+        def repack_recovery_keyring_effect(conf, path, keyring,
+                                           device_name=None):
             if keyring == "fail":
                 return False
 

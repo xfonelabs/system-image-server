@@ -101,7 +101,7 @@ class StaticTests(unittest.TestCase):
         output = subp.communicate()[0].splitlines()
         for line in output:
             print(line)
-        self.assertEqual(0, len(output))
+        self.assertEqual(0, len(output), output)
 
     @unittest.skipIf(pyflakes is None, "Missing pyflakes, skipping test.")
     def test_pyflakes_clean(self):

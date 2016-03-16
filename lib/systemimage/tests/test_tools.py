@@ -259,7 +259,7 @@ version_detail: abcdef
         source_path = os.path.join(self.temp_directory, "source")
         stripped_path = os.path.join(self.temp_directory, "stripped")
         reattached_path = os.path.join(self.temp_directory, "reattached")
-        
+
         header = bytearray(512)
         contents = b"RECOVERY"
         for i in range(0, 64):
@@ -277,7 +277,6 @@ version_detail: abcdef
                                        stripped)
         with open(reattached_path, "rb") as f, open(source_path, "rb") as fs:
             self.assertEqual(f.read(), fs.read())
-
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_repack_recovery_keyring(self):
@@ -370,7 +369,6 @@ version_detail: abcdef
         tools.repack_recovery_keyring(self.config, "%s/recovery-spec.tar.xz" %
                                                    self.temp_directory,
                                       "archive-master", "krillin")
-
 
     def test_system_image_30_symlinks(self):
         # To support system-image 3.0, generate symlinks for config.d
