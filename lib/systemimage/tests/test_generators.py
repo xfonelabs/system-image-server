@@ -62,6 +62,20 @@ public_https_port = 8443
     def tearDown(self):
         shutil.rmtree(self.temp_directory)
 
+    def _publish_dummy_to_channel(self, device):
+        """Helper function used to publish a dummy image for selected device"""
+        open(os.path.join(self.config.publish_path, "file-1.tar.xz"),
+             "w+").close()
+
+        with open(os.path.join(self.config.publish_path, "file-1.json"),
+                  "w+") as fd:
+            fd.write(json.dumps({'version_detail': "abcd"}))
+
+        gpg.sign_file(self.config, "image-signing",
+                      os.path.join(self.config.publish_path, "file-1.tar.xz"))
+        device.create_image("full", 1234, "abc", ["file-1.tar.xz"],
+                            minversion=1233, bootme=True)
+
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_unpack_arguments(self):
         self.assertEqual(generators.unpack_arguments("a=1,b=2"),
@@ -844,7 +858,7 @@ public_https_port = 8443
         self.assertEqual(
             generators.generate_file_system_image(self.config,
                                                   ['invalid', 'file'],
-                                                  {}),
+                                                  environment),
             None)
 
         # Check for device name
@@ -864,17 +878,7 @@ public_https_port = 8443
             None)
 
         # Publish some random stuff
-        open(os.path.join(self.config.publish_path, "file-1.tar.xz"),
-             "w+").close()
-
-        with open(os.path.join(self.config.publish_path, "file-1.json"),
-                  "w+") as fd:
-            fd.write(json.dumps({'version_detail': "abcd"}))
-
-        gpg.sign_file(self.config, "image-signing",
-                      os.path.join(self.config.publish_path, "file-1.tar.xz"))
-        self.device.create_image("full", 1234, "abc", ["file-1.tar.xz"],
-                                 minversion=1233, bootme=True)
+        self._publish_dummy_to_channel(self.device)
 
         # Invalid filename
         self.assertEqual(
@@ -887,6 +891,44 @@ public_https_port = 8443
         self.assertEqual(
             generators.generate_file(self.config, "system-image",
                                                   ['test', 'file'],
+                                                  environment),
+            os.path.join(self.config.publish_path, "file-1.tar.xz"))
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_generate_file_system_image_different_device(self):
+        """Test the system-image generator for a different source device."""
+        environment = {}
+        environment['channel_name'] = "test"
+        environment['device'] = self.device
+        environment['device_name'] = "test"
+        environment['new_files'] = []
+        environment['version'] = 1234
+        environment['version_detail'] = []
+
+        self.tree.create_device("test", "source")
+        source_device = self.tree.get_device("test", "source")
+
+        # Invalid device
+        self.assertEqual(
+            generators.generate_file(self.config, "system-image",
+                                                  ['test', 'file', 'invalid'],
+                                                  environment),
+            None)
+
+        # Empty channel in correct device
+        self.assertEqual(
+            generators.generate_file(self.config, "system-image",
+                                                  ['test', 'file', 'source'],
+                                                  environment),
+            None)
+
+        # Publish some random stuff
+        self._publish_dummy_to_channel(source_device)
+
+        # Normal run
+        self.assertEqual(
+            generators.generate_file(self.config, "system-image",
+                                                  ['test', 'file', 'source'],
                                                   environment),
             os.path.join(self.config.publish_path, "file-1.tar.xz"))
 

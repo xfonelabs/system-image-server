@@ -1267,24 +1267,28 @@ def generate_file_system_image(conf, arguments, environment):
     channel_name = arguments[0]
     prefix = arguments[1]
 
+    # We also support an optional device argument to use a different source
+    device_name = arguments[2] if len(arguments) > 2 else \
+        environment['device_name']
+
     # Run some checks
     pub = tree.Tree(conf)
     if channel_name not in pub.list_channels():
         logger.debug("Channel not in the published list: %s" % channel_name)
         return None
 
-    if (not environment['device_name'] in
+    if (device_name not in
             pub.list_channels()[channel_name]['devices']):
         logger.debug("Device not in the channel list")
         return None
 
     # Try to find the file
-    device = pub.get_device(channel_name, environment['device_name'])
+    device = pub.get_device(channel_name, device_name)
 
     full_images = sorted([image for image in device.list_images()
                           if image['type'] == "full"],
                          key=lambda image: image['version'])
-    logger.debug("List of full images founds %s" % full_images)
+    logger.debug("List of full images found %s" % full_images)
 
     # No images
     if not full_images:
