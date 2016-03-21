@@ -911,15 +911,15 @@ public_https_port = 8443
         # Invalid device
         self.assertEqual(
             generators.generate_file(self.config, "system-image",
-                                                  ['test', 'file', 'invalid'],
-                                                  environment),
+                                     ['test', 'file', 'device=invalid'],
+                                     environment),
             None)
 
         # Empty channel in correct device
         self.assertEqual(
             generators.generate_file(self.config, "system-image",
-                                                  ['test', 'file', 'source'],
-                                                  environment),
+                                     ['test', 'file', 'device=source'],
+                                     environment),
             None)
 
         # Publish some random stuff
@@ -928,8 +928,8 @@ public_https_port = 8443
         # Normal run
         self.assertEqual(
             generators.generate_file(self.config, "system-image",
-                                                  ['test', 'file', 'source'],
-                                                  environment),
+                                     ['test', 'file', 'device=source'],
+                                     environment),
             os.path.join(self.config.publish_path, "file-1.tar.xz"))
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)

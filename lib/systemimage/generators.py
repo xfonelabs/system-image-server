@@ -1267,9 +1267,14 @@ def generate_file_system_image(conf, arguments, environment):
     channel_name = arguments[0]
     prefix = arguments[1]
 
-    # We also support an optional device argument to use a different source
-    device_name = arguments[2] if len(arguments) > 2 else \
-        environment['device_name']
+    options = {}
+    if len(arguments) > 2:
+        options = unpack_arguments(arguments[2])
+
+    # We also support an optional argument to use a different source device
+    device_name = environment['device_name']
+    if 'device' in options:
+        device_name = options['device']
 
     # Run some checks
     pub = tree.Tree(conf)
