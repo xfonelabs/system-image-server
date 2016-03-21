@@ -89,7 +89,8 @@ def sign_file(config, key, path, destination=None, detach=True, armor=True):
     # Create a GPG context, assuming no passphrase
     ctx = gpgme.Context()
     ctx.armor = armor
-    [key] = ctx.keylist()
+    [key] = ctx.keylist()[0] # XXX: This is a temporary workaround until the
+                             #  key situation is explained
     ctx.signers = [key]
 
     logger.debug("Signing file: %s" % destination)
