@@ -909,18 +909,16 @@ public_https_port = 8443
         source_device = self.tree.get_device("test", "source")
 
         # Invalid device
-        self.assertEqual(
+        self.assertIsNone(
             generators.generate_file(self.config, "system-image",
                                      ['test', 'file', 'device=invalid'],
-                                     environment),
-            None)
+                                     environment))
 
         # Empty channel in correct device
-        self.assertEqual(
+        self.assertIsNone(
             generators.generate_file(self.config, "system-image",
                                      ['test', 'file', 'device=source'],
-                                     environment),
-            None)
+                                     environment))
 
         # Publish some random stuff
         self._publish_dummy_to_channel(source_device)
