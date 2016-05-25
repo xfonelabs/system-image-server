@@ -67,41 +67,46 @@ if __name__ == '__main__':
             device = pub.get_device(channel, device)
             images = device.list_images()
 
-            latest_version = images[-1]['version']
-            for image in reversed(images):
-                # Only re-sign all entries for the latest image
-                # (full and deltas)
-                if image['version'] != latest_version:
-                    break
-
-                for f in image['files']:
-                    # Re-sign the tarball and .json files with the new keys
-                    tar_path = "%s%s" % (conf.publish_path, f['path'])
-                    tar_sign_path = "%s%s" % (conf.publish_path,
-                                              f['signature'])
-                    json_path = tar_path.replace(".tar.xz", ".json")
-                    json_sign_path = tar_sign_path.replace(".tar.xz", ".json")
-
-                    if tar_path not in done:
-                        # No need to re-sign already handled files
-                        logging.info("Re-signing %s..." % tar_path)
-                        new_path = "%s.new" % tar_sign_path
-                        gpg.sign_file(
-                            conf, "image-signing", tar_path, new_path)
-                        os.rename(new_path, tar_sign_path)
-
-                        logging.info("Re-signing %s..." % json_path)
-                        new_path = "%s.new" % json_sign_path
-                        gpg.sign_file(
-                            conf, "image-signing", json_path, new_path)
-                        os.rename(new_path, json_sign_path)
-
-                        done.add(tar_path)
-
-            # Now re-sign the index.json file as well
-            logging.info("Re-signing the device index file: %s..." % device.indexpath)
+            # Re-sign the index.json file as well
+            logging.info(
+                "Re-signing the device index file: %s..." % device.indexpath)
             index_sign_path = "%s.asc" % device.indexpath
             new_path = "%s.new" % index_sign_path
             gpg.sign_file(
                 conf, "image-signing", device.indexpath, new_path)
             os.rename(new_path, index_sign_path)
+
+            if len(images) > 0:
+                latest_version = images[-1]['version']
+                for image in reversed(images):
+                    # Only re-sign all entries for the latest image
+                    # (full and deltas)
+                    if image['version'] != latest_version:
+                        break
+
+                    for f in image['files']:
+                        # Re-sign the tarball and .json files with the new keys
+                        tar_path = "%s%s" % (conf.publish_path, f['path'])
+                        tar_sign_path = "%s%s" % (conf.publish_path,
+                                                  f['signature'])
+                        json_path = tar_path.replace(".tar.xz", ".json")
+                        json_sign_path = tar_sign_path.replace(
+                            ".tar.xz", ".json")
+
+                        if tar_path not in done:
+                            # No need to re-sign already handled files
+                            logging.info("Re-signing %s..." % tar_path)
+                            new_path = "%s.new" % tar_sign_path
+                            gpg.sign_file(
+                                conf, "image-signing", tar_path, new_path)
+                            os.rename(new_path, tar_sign_path)
+
+                            logging.info("Re-signing %s..." % json_path)
+                            new_path = "%s.new" % json_sign_path
+                            gpg.sign_file(
+                                conf, "image-signing", json_path, new_path)
+                            os.rename(new_path, json_sign_path)
+
+                            done.add(tar_path)
+            else:
+                logging.info("No images in channel.")
