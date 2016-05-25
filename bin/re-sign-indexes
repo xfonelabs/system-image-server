@@ -101,16 +101,18 @@ if __name__ == '__main__':
                         if tar_path not in done:
                             # No need to re-sign already handled files
                             logging.info("Re-signing %s..." % tar_path)
-                            new_path = "%s.new" % tar_sign_path
-                            gpg.sign_file(
-                                conf, "image-signing", tar_path, new_path)
-                            os.rename(new_path, tar_sign_path)
+                            if os.path.exists(tar_path):
+                                new_path = "%s.new" % tar_sign_path
+                                gpg.sign_file(
+                                    conf, "image-signing", tar_path, new_path)
+                                os.rename(new_path, tar_sign_path)
 
-                            logging.info("Re-signing %s..." % json_path)
-                            new_path = "%s.new" % json_sign_path
-                            gpg.sign_file(
-                                conf, "image-signing", json_path, new_path)
-                            os.rename(new_path, json_sign_path)
+                            if os.path.exists(json_path):
+                                logging.info("Re-signing %s..." % json_path)
+                                new_path = "%s.new" % json_sign_path
+                                gpg.sign_file(
+                                    conf, "image-signing", json_path, new_path)
+                                os.rename(new_path, json_sign_path)
 
                             done.add(tar_path)
             else:
