@@ -61,7 +61,12 @@ if __name__ == '__main__':
     # List of files that we have re-signed already
     done = set()
 
-    for channel in pub.list_channels():
+    channels = pub.list_channels()
+    for channel in channels:
+        if "redirect" in channels[channel]:
+            logging.info("Skipping %s, channel redirect." % channel)
+            continue
+
         for device in pub.list_devices(channel):
             logging.info("Looking at %s/%s." % (channel, device))
             device = pub.get_device(channel, device)
