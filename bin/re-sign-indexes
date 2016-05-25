@@ -97,3 +97,11 @@ if __name__ == '__main__':
                         os.rename(new_path, json_sign_path)
 
                         done.add(tar_path)
+
+            # Now re-sign the index.json file as well
+            logging.info("Re-signing the device index file: %s..." % device.indexpath)
+            index_sign_path = "%s.asc" % device.indexpath
+            new_path = "%s.new" % index_sign_path
+            gpg.sign_file(
+                conf, "image-signing", device.indexpath, new_path)
+            os.rename(new_path, index_sign_path)
