@@ -16,15 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import argparse
 import logging
 import os
 import sys
-sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 
 from systemimage import config, tree, gpg
-from systemimage.tree import index_json
 
-import argparse
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+
+def resign_and_replace(conf, path, sign_path):
+    '''Helper function for re-signing files.'''
+    new_path = "%s.new" % sign_path
+    gpg.sign_file(
+        conf, "image-signing", path, new_path)
+    os.rename(new_path, sign_path)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -63,6 +71,7 @@ if __name__ == '__main__':
 
     channels = pub.list_channels()
     for channel in channels:
+        # Ignore redirects as the target channels will already be handled
         if "redirect" in channels[channel]:
             logging.info("Skipping %s, channel redirect." % channel)
             continue
@@ -76,15 +85,12 @@ if __name__ == '__main__':
             logging.info(
                 "Re-signing the device index file: %s..." % device.indexpath)
             index_sign_path = "%s.asc" % device.indexpath
-            new_path = "%s.new" % index_sign_path
-            gpg.sign_file(
-                conf, "image-signing", device.indexpath, new_path)
-            os.rename(new_path, index_sign_path)
+            resign_and_replace(conf, device.indexpath, index_sign_path)
 
             if len(images) > 0:
                 latest_version = images[-1]['version']
                 for image in reversed(images):
-                    # Only re-sign all entries for the latest image
+                    # Only re-sign all files for the latest image
                     # (full and deltas)
                     if image['version'] != latest_version:
                         break
@@ -99,21 +105,18 @@ if __name__ == '__main__':
                             ".tar.xz", ".json")
 
                         if tar_path not in done:
-                            # No need to re-sign already handled files
-                            logging.info("Re-signing %s..." % tar_path)
                             if os.path.exists(tar_path):
-                                new_path = "%s.new" % tar_sign_path
-                                gpg.sign_file(
-                                    conf, "image-signing", tar_path, new_path)
-                                os.rename(new_path, tar_sign_path)
+                                logging.info("Re-signing %s..." % tar_path)
+                                resign_and_replace(
+                                    conf, tar_path, tar_sign_path)
 
                             if os.path.exists(json_path):
                                 logging.info("Re-signing %s..." % json_path)
-                                new_path = "%s.new" % json_sign_path
-                                gpg.sign_file(
-                                    conf, "image-signing", json_path, new_path)
-                                os.rename(new_path, json_sign_path)
+                                resign_and_replace(
+                                    conf, json_path, json_sign_path)
 
+                            # Mark the file as done in case more than one index
+                            # points to it
                             done.add(tar_path)
             else:
                 logging.info("No images in channel.")
