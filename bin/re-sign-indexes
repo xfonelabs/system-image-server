@@ -121,5 +121,6 @@ def main():
             else:
                 logging.info("No images in channel.")
 
+
 if __name__ == '__main__':
     sys.exit(main())
