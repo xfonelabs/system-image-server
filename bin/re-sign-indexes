@@ -21,9 +21,9 @@ import logging
 import os
 import sys
 
-from systemimage import config, tree, gpg
-
 sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+
+from systemimage import config, tree, gpg
 
 
 def resign_and_replace(conf, path, sign_path):
@@ -34,7 +34,7 @@ def resign_and_replace(conf, path, sign_path):
     os.rename(new_path, sign_path)
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         description="Helper script for re-signing all indexes and their "
                     "latest images with the new image-signing key in the "
@@ -120,3 +120,6 @@ if __name__ == '__main__':
                             done.add(tar_path)
             else:
                 logging.info("No images in channel.")
+
+if __name__ == '__main__':
+    sys.exit(main())
