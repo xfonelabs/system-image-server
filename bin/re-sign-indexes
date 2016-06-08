@@ -69,6 +69,12 @@ def main():
     # List of files that we have re-signed already
     done = set()
 
+    # Also re-sign the channel.json file
+    logging.info(
+        "Re-signing the channels index file: %s..." % pub.indexpath)
+    channels_sign_path = "%s.asc" % pub.indexpath
+    resign_and_replace(conf, pub.indexpath, channels_sign_path)
+
     channels = pub.list_channels()
     for channel in channels:
         # Ignore redirects as the target channels will already be handled
