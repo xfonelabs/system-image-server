@@ -306,6 +306,37 @@ class Tree:
 
         return True
 
+    def create_per_device_channel_redirect(self, device_name, channel_name, 
+                                           target_name):
+        """
+            Creates a device-specific channel redirect, redirecting that device
+            to point to a different channel.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+            if device_name in channels[channel_name]['devices']:
+                raise KeyError("Device already exists: %s" % device_name)
+
+            if target_name not in channels:
+                raise KeyError("Couldn't find target channel: %s" %
+                               target_name)
+
+            if device_name not in channels[target_name]['devices']:
+                raise KeyError("Couldn't find device on target channel: "
+                               "%s, %s" %
+                               (target_name, device_name))
+
+            channels[channel_name]['devices'][device_name] = \
+                dict(channels[target_name]['devices'][device_name])
+
+            channels[channel_name]['devices'][device_name]['redirect'] = \
+                target_name
+
+        return True
+
     def create_device(self, channel_name, device_name, keyring_path=None):
         """
             Creates a new device entry in the tree.

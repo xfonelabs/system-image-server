@@ -389,6 +389,100 @@ public_https_port = 443
         self.assertEqual(device.list_images(), target.list_images())
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_per_device_redirect(self):
+        """ """
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels
+        test_tree.create_channel("parent")
+        test_tree.create_channel("redirect")
+
+        # Create the required devices
+        test_tree.create_device("parent", "device")
+        test_tree.create_device("parent", "other")
+        test_tree.create_device("redirect", "other")
+
+        # Test standard failure cases
+        self.assertRaises(KeyError, 
+                          test_tree.create_per_device_channel_redirect,
+                          "device", "redirect1", "parent")
+        self.assertRaises(KeyError, 
+                          test_tree.create_per_device_channel_redirect,
+                          "other", "redirect", "parent")
+        self.assertRaises(KeyError,
+                          test_tree.create_per_device_channel_redirect,
+                          "device", "redirect", "parent1")
+        self.assertRaises(KeyError, 
+                          test_tree.create_per_device_channel_redirect,
+                          "device2", "redirect", "parent")
+        #self.assertRaises(KeyError, test_tree.sync_redirects, "parent1")
+
+        # Create the device channel redirect
+        test_tree.create_per_device_channel_redirect(
+            "device", "redirect", "parent")
+
+        # Publish an image
+
+        # # First file
+        first = os.path.join(self.config.publish_path, "parent/device/full")
+        open(first, "w+").close()
+        gpg.sign_file(self.config, "image-signing", first)
+
+        # # Second file
+        second = os.path.join(self.config.publish_path,
+                              "parent/device/version-1234.tar.xz")
+
+        tools.generate_version_tarball(self.config, "parent", "test", "1234",
+                                       second.replace(".xz", ""))
+        tools.xz_compress(second.replace(".xz", ""))
+        os.remove(second.replace(".xz", ""))
+        gpg.sign_file(self.config, "image-signing", second)
+
+        with open(second.replace(".tar.xz", ".json"), "w+") as fd:
+            metadata = {}
+            metadata['channel.ini'] = {}
+            metadata['channel.ini']['version_detail'] = "test"
+            fd.write(json.dumps(metadata))
+        gpg.sign_file(self.config, "image-signing",
+                      second.replace(".tar.xz", ".json"))
+
+        # # Adding the entry
+        device = test_tree.get_device("parent", "device")
+        device.create_image("full", 1234, "abc",
+                            ["parent/device/full",
+                             "parent/device/version-1234.tar.xz"])
+        device.set_phased_percentage(1234, 50)
+
+        # # Sync the redirects
+        # test_tree.sync_redirects("parent")
+
+        # # Get the target
+        target = test_tree.get_device("redirect", "device")
+
+        # Confirm the fs layout
+        self.assertTrue(os.path.exists(os.path.join(
+            self.config.publish_path, "redirect")))
+        self.assertFalse(os.path.exists(os.path.join(
+            self.config.publish_path, "redirect", "device")))
+        self.assertTrue(os.path.exists(os.path.join(
+            self.config.publish_path, "parent", "device")))
+        self.assertEqual(device.list_images(), target.list_images())
+
+        # Check the channels index
+        channels = test_tree.list_channels()
+        self.assertIn("other", channels['redirect']['devices'])
+        self.assertEqual(
+            channels['redirect']['devices']['other']['index'],
+            "/redirect/other/index.json")
+        self.assertIn("device", channels['redirect']['devices'])
+        self.assertEqual(
+            channels['redirect']['devices']['device']['index'],
+            "/parent/device/index.json")
+        self.assertIn(
+            "redirect",
+            channels['redirect']['devices']['device'])
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_redirect_alias(self):
         # LP: #1455119 - a channel which is both an alias and a redirect is
         # culled from sync_aliases().
