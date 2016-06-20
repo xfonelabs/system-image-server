@@ -552,7 +552,6 @@ public_https_port = 443
         channels = test_tree.list_channels()
         self.assertNotIn("other", channels['redirect2']['devices'])
 
-
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_rename(self):
         test_tree = tree.Tree(self.config)
@@ -612,6 +611,33 @@ public_https_port = 443
         self.assertEqual(
             test_tree.list_channels()['test/new'],
             {'devices': {'device': {'index': '/test/new/device/index.json'}}})
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_rename_with_redirects(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels
+        test_tree.create_channel("old")
+        test_tree.create_channel("redirect")
+
+        # Create basic devices
+        test_tree.create_device("old", "device")
+        test_tree.create_device("redirect", "other")
+
+        # Create a redirect
+        test_tree.create_per_device_channel_redirect(
+            "device", "redirect", "old")
+
+        # Rename
+        self.assertTrue(test_tree.rename_channel("old", "new"))
+
+        channels = test_tree.list_channels()
+        self.assertIn("device", channels['redirect']['devices'])
+        self.assertIn("other", channels['redirect']['devices'])
+        device = channels['redirect']['devices']['device']
+        self.assertIn("redirect", device)
+        self.assertEqual(device['redirect'], "new")
+        self.assertEqual(device['index'], "/new/device/index.json")
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_index(self):

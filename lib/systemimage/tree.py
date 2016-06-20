@@ -562,9 +562,13 @@ class Tree:
             if device_name not in channels[channel_name]['devices']:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
-            device_path = os.path.join(self.path, channel_name, device_name)
-            if os.path.exists(device_path):
-                shutil.rmtree(device_path)
+            # Do not remove the device files for per-device redirects
+            device = channels[channel_name]['devices'][device_name]
+            if "redirect" not in device:
+                device_path = os.path.join(
+                    self.path, channel_name, device_name)
+                if os.path.exists(device_path):
+                    shutil.rmtree(device_path)
             channels[channel_name]['devices'].pop(device_name)
 
         self.sync_aliases(channel_name)
@@ -617,6 +621,15 @@ class Tree:
                                 entry['signature'] = entry['signature'] \
                                     .replace("/%s/" % old_name,
                                              "/%s/" % new_name)
+
+            # Handle any device-specific channel redirects
+            for channel_name, channel in channels.items():
+                for device_name, device in channel['devices'].items():
+                    if "redirect" in device and device['redirect'] == old_name:
+                        index_path = "/%s/%s/index.json" % (new_name,
+                                                            device_name)
+                        device['redirect'] = new_name
+                        device['index'] = index_path
 
             channels.pop(old_name)
 
