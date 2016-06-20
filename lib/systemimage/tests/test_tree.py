@@ -478,6 +478,13 @@ public_https_port = 443
             "redirect",
             channels['redirect']['devices']['device'])
 
+        # Try removing a per-channel redirect
+        self.assertTrue(test_tree.remove_device("redirect", "device"))
+
+        # Confirm files are not removed
+        self.assertTrue(os.path.exists(os.path.join(
+            self.config.publish_path, "parent", "device", "index.json")))
+
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_redirect_alias(self):
         # LP: #1455119 - a channel which is both an alias and a redirect is
