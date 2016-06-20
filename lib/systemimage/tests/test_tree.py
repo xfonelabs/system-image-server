@@ -415,7 +415,6 @@ public_https_port = 443
         self.assertRaises(KeyError, 
                           test_tree.create_per_device_channel_redirect,
                           "device2", "redirect", "parent")
-        #self.assertRaises(KeyError, test_tree.sync_redirects, "parent1")
 
         # Create the device channel redirect
         test_tree.create_per_device_channel_redirect(
@@ -452,9 +451,6 @@ public_https_port = 443
                             ["parent/device/full",
                              "parent/device/version-1234.tar.xz"])
         device.set_phased_percentage(1234, 50)
-
-        # # Sync the redirects
-        # test_tree.sync_redirects("parent")
 
         # # Get the target
         target = test_tree.get_device("redirect", "device")
@@ -504,6 +500,58 @@ public_https_port = 443
         with patch.object(test_tree, 'sync_alias') as mock:
             test_tree.sync_aliases("redirect")
         self.assertFalse(mock.called)
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_cleanup_device_redirects(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels and devices
+        test_tree.create_channel("parent")
+        test_tree.create_channel("redirect1")
+        test_tree.create_channel("redirect2")
+        test_tree.create_channel("ignore")
+
+        test_tree.create_device("parent", "device")
+        test_tree.create_device("parent", "other")
+        test_tree.create_device("parent", "ignore")
+
+        test_tree.create_device("redirect1", "other")
+        
+        # Create per-device redirects
+        test_tree.create_per_device_channel_redirect(
+            "device", "redirect1", "parent")
+        test_tree.create_per_device_channel_redirect(
+            "other", "redirect2", "parent")
+
+        # Check if removal of an unrelated channel does nothing
+        channels = test_tree.list_channels()
+        devices_before1 = dict(channels['redirect1']['devices'])
+        devices_before2 = dict(channels['redirect2']['devices'])
+        test_tree.remove_channel("ignore")
+        channels = test_tree.list_channels()
+        self.assertEqual(devices_before1, channels['redirect1']['devices'])
+        self.assertEqual(devices_before2, channels['redirect2']['devices'])
+
+        # Check if removal of an unrelated device does nothing
+        channels = test_tree.list_channels()
+        devices_before1 = dict(channels['redirect1']['devices'])
+        devices_before2 = dict(channels['redirect2']['devices'])
+        test_tree.remove_device("parent", "ignore")
+        channels = test_tree.list_channels()
+        self.assertEqual(devices_before1, channels['redirect1']['devices'])
+        self.assertEqual(devices_before2, channels['redirect2']['devices'])
+
+        # Check cleanup after single device removal
+        test_tree.remove_device("parent", "device")
+        channels = test_tree.list_channels()
+        self.assertNotIn("device", channels['redirect1']['devices'])
+        self.assertIn("other", channels['redirect1']['devices'])
+
+        # Check cleanup after whole channel removal
+        test_tree.remove_channel("parent")
+        channels = test_tree.list_channels()
+        self.assertNotIn("other", channels['redirect2']['devices'])
+
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_rename(self):

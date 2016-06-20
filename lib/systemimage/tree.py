@@ -545,6 +545,9 @@ class Tree:
                 shutil.rmtree(channel_path)
             channels.pop(channel_name)
 
+        # Remove all redirect device channels pointing at this channel
+        self.cleanup_device_redirects(channel_name)
+
         return True
 
     def remove_device(self, channel_name, device_name):
@@ -566,6 +569,9 @@ class Tree:
 
         self.sync_aliases(channel_name)
         self.sync_redirects(channel_name)
+
+        # Remove all redirect channels pointing at this device
+        self.cleanup_device_redirects(channel_name, device_name)
 
         return True
 
@@ -832,6 +838,24 @@ class Tree:
         for redirect_name in redirect_channels:
             self.remove_channel(redirect_name)
             self.create_channel_redirect(redirect_name, channel_name)
+
+        return True
+
+    def cleanup_device_redirects(self, channel_name,
+                                 redirect_device_name=None):
+        """
+            Cleanup any dangling device-specific channel redirects.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            for target_name, channel in channels.items():
+                devices = dict(channel['devices'])
+                for device_name, device in devices.items():
+                    if ("redirect" in device and 
+                         device['redirect'] == channel_name and
+                         (not redirect_device_name or 
+                          redirect_device_name == device_name)):
+                        channels[target_name]['devices'].pop(device_name)
 
         return True
 
