@@ -389,6 +389,103 @@ public_https_port = 443
         self.assertEqual(device.list_images(), target.list_images())
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_per_device_redirect(self):
+        """ """
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels
+        test_tree.create_channel("parent")
+        test_tree.create_channel("redirect")
+
+        # Create the required devices
+        test_tree.create_device("parent", "device")
+        test_tree.create_device("parent", "other")
+        test_tree.create_device("redirect", "other")
+
+        # Test standard failure cases
+        self.assertRaises(KeyError, 
+                          test_tree.create_per_device_channel_redirect,
+                          "device", "redirect1", "parent")
+        self.assertRaises(KeyError, 
+                          test_tree.create_per_device_channel_redirect,
+                          "other", "redirect", "parent")
+        self.assertRaises(KeyError,
+                          test_tree.create_per_device_channel_redirect,
+                          "device", "redirect", "parent1")
+        self.assertRaises(KeyError, 
+                          test_tree.create_per_device_channel_redirect,
+                          "device2", "redirect", "parent")
+
+        # Create the device channel redirect
+        test_tree.create_per_device_channel_redirect(
+            "device", "redirect", "parent")
+
+        # Publish an image
+
+        # # First file
+        first = os.path.join(self.config.publish_path, "parent/device/full")
+        open(first, "w+").close()
+        gpg.sign_file(self.config, "image-signing", first)
+
+        # # Second file
+        second = os.path.join(self.config.publish_path,
+                              "parent/device/version-1234.tar.xz")
+
+        tools.generate_version_tarball(self.config, "parent", "test", "1234",
+                                       second.replace(".xz", ""))
+        tools.xz_compress(second.replace(".xz", ""))
+        os.remove(second.replace(".xz", ""))
+        gpg.sign_file(self.config, "image-signing", second)
+
+        with open(second.replace(".tar.xz", ".json"), "w+") as fd:
+            metadata = {}
+            metadata['channel.ini'] = {}
+            metadata['channel.ini']['version_detail'] = "test"
+            fd.write(json.dumps(metadata))
+        gpg.sign_file(self.config, "image-signing",
+                      second.replace(".tar.xz", ".json"))
+
+        # # Adding the entry
+        device = test_tree.get_device("parent", "device")
+        device.create_image("full", 1234, "abc",
+                            ["parent/device/full",
+                             "parent/device/version-1234.tar.xz"])
+        device.set_phased_percentage(1234, 50)
+
+        # # Get the target
+        target = test_tree.get_device("redirect", "device")
+
+        # Confirm the fs layout
+        self.assertTrue(os.path.exists(os.path.join(
+            self.config.publish_path, "redirect")))
+        self.assertFalse(os.path.exists(os.path.join(
+            self.config.publish_path, "redirect", "device")))
+        self.assertTrue(os.path.exists(os.path.join(
+            self.config.publish_path, "parent", "device")))
+        self.assertEqual(device.list_images(), target.list_images())
+
+        # Check the channels index
+        channels = test_tree.list_channels()
+        self.assertIn("other", channels['redirect']['devices'])
+        self.assertEqual(
+            channels['redirect']['devices']['other']['index'],
+            "/redirect/other/index.json")
+        self.assertIn("device", channels['redirect']['devices'])
+        self.assertEqual(
+            channels['redirect']['devices']['device']['index'],
+            "/parent/device/index.json")
+        self.assertIn(
+            "redirect",
+            channels['redirect']['devices']['device'])
+
+        # Try removing a per-channel redirect
+        self.assertTrue(test_tree.remove_device("redirect", "device"))
+
+        # Confirm files are not removed
+        self.assertTrue(os.path.exists(os.path.join(
+            self.config.publish_path, "parent", "device", "index.json")))
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_redirect_alias(self):
         # LP: #1455119 - a channel which is both an alias and a redirect is
         # culled from sync_aliases().
@@ -410,6 +507,57 @@ public_https_port = 443
         with patch.object(test_tree, 'sync_alias') as mock:
             test_tree.sync_aliases("redirect")
         self.assertFalse(mock.called)
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_cleanup_device_redirects(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels and devices
+        test_tree.create_channel("parent")
+        test_tree.create_channel("redirect1")
+        test_tree.create_channel("redirect2")
+        test_tree.create_channel("ignore")
+
+        test_tree.create_device("parent", "device")
+        test_tree.create_device("parent", "other")
+        test_tree.create_device("parent", "ignore")
+
+        test_tree.create_device("redirect1", "other")
+        
+        # Create per-device redirects
+        test_tree.create_per_device_channel_redirect(
+            "device", "redirect1", "parent")
+        test_tree.create_per_device_channel_redirect(
+            "other", "redirect2", "parent")
+
+        # Check if removal of an unrelated channel does nothing
+        channels = test_tree.list_channels()
+        devices_before1 = dict(channels['redirect1']['devices'])
+        devices_before2 = dict(channels['redirect2']['devices'])
+        test_tree.remove_channel("ignore")
+        channels = test_tree.list_channels()
+        self.assertEqual(devices_before1, channels['redirect1']['devices'])
+        self.assertEqual(devices_before2, channels['redirect2']['devices'])
+
+        # Check if removal of an unrelated device does nothing
+        channels = test_tree.list_channels()
+        devices_before1 = dict(channels['redirect1']['devices'])
+        devices_before2 = dict(channels['redirect2']['devices'])
+        test_tree.remove_device("parent", "ignore")
+        channels = test_tree.list_channels()
+        self.assertEqual(devices_before1, channels['redirect1']['devices'])
+        self.assertEqual(devices_before2, channels['redirect2']['devices'])
+
+        # Check cleanup after single device removal
+        test_tree.remove_device("parent", "device")
+        channels = test_tree.list_channels()
+        self.assertNotIn("device", channels['redirect1']['devices'])
+        self.assertIn("other", channels['redirect1']['devices'])
+
+        # Check cleanup after whole channel removal
+        test_tree.remove_channel("parent")
+        channels = test_tree.list_channels()
+        self.assertNotIn("other", channels['redirect2']['devices'])
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_rename(self):
@@ -470,6 +618,33 @@ public_https_port = 443
         self.assertEqual(
             test_tree.list_channels()['test/new'],
             {'devices': {'device': {'index': '/test/new/device/index.json'}}})
+
+    @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
+    def test_rename_with_redirects(self):
+        test_tree = tree.Tree(self.config)
+
+        # Create some channels
+        test_tree.create_channel("old")
+        test_tree.create_channel("redirect")
+
+        # Create basic devices
+        test_tree.create_device("old", "device")
+        test_tree.create_device("redirect", "other")
+
+        # Create a redirect
+        test_tree.create_per_device_channel_redirect(
+            "device", "redirect", "old")
+
+        # Rename
+        self.assertTrue(test_tree.rename_channel("old", "new"))
+
+        channels = test_tree.list_channels()
+        self.assertIn("device", channels['redirect']['devices'])
+        self.assertIn("other", channels['redirect']['devices'])
+        device = channels['redirect']['devices']['device']
+        self.assertIn("redirect", device)
+        self.assertEqual(device['redirect'], "new")
+        self.assertEqual(device['index'], "/new/device/index.json")
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_index(self):

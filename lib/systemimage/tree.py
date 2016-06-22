@@ -306,6 +306,37 @@ class Tree:
 
         return True
 
+    def create_per_device_channel_redirect(self, device_name, channel_name, 
+                                           target_name):
+        """
+            Creates a device-specific channel redirect, redirecting that device
+            to point to a different channel.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            if channel_name not in channels:
+                raise KeyError("Couldn't find channel: %s" % channel_name)
+
+            if device_name in channels[channel_name]['devices']:
+                raise KeyError("Device already exists: %s" % device_name)
+
+            if target_name not in channels:
+                raise KeyError("Couldn't find target channel: %s" %
+                               target_name)
+
+            if device_name not in channels[target_name]['devices']:
+                raise KeyError("Couldn't find device on target channel: "
+                               "%s, %s" %
+                               (target_name, device_name))
+
+            channels[channel_name]['devices'][device_name] = \
+                dict(channels[target_name]['devices'][device_name])
+
+            channels[channel_name]['devices'][device_name]['redirect'] = \
+                target_name
+
+        return True
+
     def create_device(self, channel_name, device_name, keyring_path=None):
         """
             Creates a new device entry in the tree.
@@ -514,6 +545,9 @@ class Tree:
                 shutil.rmtree(channel_path)
             channels.pop(channel_name)
 
+        # Remove all redirect device channels pointing at this channel
+        self.cleanup_device_redirects(channel_name)
+
         return True
 
     def remove_device(self, channel_name, device_name):
@@ -528,13 +562,20 @@ class Tree:
             if device_name not in channels[channel_name]['devices']:
                 raise KeyError("Couldn't find device: %s" % device_name)
 
-            device_path = os.path.join(self.path, channel_name, device_name)
-            if os.path.exists(device_path):
-                shutil.rmtree(device_path)
+            # Do not remove the device files for per-device redirects
+            device = channels[channel_name]['devices'][device_name]
+            if "redirect" not in device:
+                device_path = os.path.join(
+                    self.path, channel_name, device_name)
+                if os.path.exists(device_path):
+                    shutil.rmtree(device_path)
             channels[channel_name]['devices'].pop(device_name)
 
         self.sync_aliases(channel_name)
         self.sync_redirects(channel_name)
+
+        # Remove all redirect channels pointing at this device
+        self.cleanup_device_redirects(channel_name, device_name)
 
         return True
 
@@ -580,6 +621,15 @@ class Tree:
                                 entry['signature'] = entry['signature'] \
                                     .replace("/%s/" % old_name,
                                              "/%s/" % new_name)
+
+            # Handle any device-specific channel redirects
+            for channel_name, channel in channels.items():
+                for device_name, device in channel['devices'].items():
+                    if "redirect" in device and device['redirect'] == old_name:
+                        index_path = "/%s/%s/index.json" % (new_name,
+                                                            device_name)
+                        device['redirect'] = new_name
+                        device['index'] = index_path
 
             channels.pop(old_name)
 
@@ -801,6 +851,24 @@ class Tree:
         for redirect_name in redirect_channels:
             self.remove_channel(redirect_name)
             self.create_channel_redirect(redirect_name, channel_name)
+
+        return True
+
+    def cleanup_device_redirects(self, channel_name,
+                                 redirect_device_name=None):
+        """
+            Cleanup any dangling device-specific channel redirects.
+        """
+
+        with channels_json(self.config, self.indexpath, True) as channels:
+            for target_name, channel in channels.items():
+                devices = dict(channel['devices'])
+                for device_name, device in devices.items():
+                    if ("redirect" in device and 
+                         device['redirect'] == channel_name and
+                         (not redirect_device_name or 
+                          redirect_device_name == device_name)):
+                        channels[target_name]['devices'].pop(device_name)
 
         return True
 
