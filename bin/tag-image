@@ -73,19 +73,25 @@ def main():
     pub = tree.Tree(conf)
 
     # Do some checks
-    if args.channel not in pub.list_channels():
+    channels = pub.list_channels()
+    if args.channel not in channels:
         parser.error("Invalid channel: %s" % args.channel)
 
-    if args.device not in pub.list_channels()[args.channel]['devices']:
+    if args.device not in channels[args.channel]['devices']:
         parser.error("Invalid device for channel: %s" % args.device)
 
-    if "alias" in pub.list_channels()[args.channel] and \
-            pub.list_channels()[args.channel]['alias'] \
+    if "alias" in channels[args.channel] and \
+            channels[args.channel]['alias'] \
             != args.channel:
         parser.error("Channel is an alias.")
 
-    if "redirect" in pub.list_channels()[args.channel]:
+    if "redirect" in channels[args.channel]:
         parser.error("Channel is a redirect.")
+
+    target_device = channels[args.channel]['devices'][args.device]
+    if "redirect" in target_device:
+        parser.error("Target device is a redirect. Use original channel "
+                     "instead: %s" % target_device['redirect'])
 
     if "," in args.tag:
         parser.error("Image tag cannot include the character ','.")
