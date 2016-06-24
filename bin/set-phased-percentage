@@ -77,6 +77,11 @@ if __name__ == '__main__':
     if "redirect" in channels[args.channel]:
         parser.error("Channel is a redirect.")
 
+    target_device = channels[args.channel]['devices'][args.device]
+    if "redirect" in target_device:
+        parser.error("Target device is a redirect. Use original channel "
+                     "%s instead." % target_device['redirect'])
+
     dev = pub.get_device(args.channel, args.device)
     logging.info("Setting phased-percentage of '%s' to %s%%" %
                  (args.version, args.percentage))

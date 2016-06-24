@@ -82,6 +82,12 @@ if __name__ == '__main__':
         for device_name in pub.list_channels()[channel_name]['devices']:
             logging.info("Processing device: %s" % device_name)
 
+            device_entry = \
+                pub.list_channels()[channel_name]['devices'][device_name]
+            if "redirect" in device_entry:
+                logging.info("Device is a redirect, not considering.")
+                continue
+
             device = pub.get_device(channel_name, device_name)
 
             # Extract last full version

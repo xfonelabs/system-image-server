@@ -111,6 +111,16 @@ if __name__ == '__main__':
     if "redirect" in channels[args.destination_channel]:
         parser.error("Destination channel is a redirect.")
 
+    src_device = channels[args.source_channel]['devices'][args.device]
+    if "redirect" in src_device:
+        parser.error("Source device is a redirect. Use original channel "
+                     "%s instead." % src_device['redirect'])
+
+    dest_device = channels[args.destination_channel]['devices'][args.device]
+    if "redirect" in dest_device:
+        parser.error("Destination device is a redirect. Use original channel "
+                     "%s instead." % dest_device['redirect'])
+
     if args.tag and "," in args.tag:
         parser.error("Image tag cannot include the character ','.")
 
