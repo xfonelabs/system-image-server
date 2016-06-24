@@ -90,7 +90,7 @@ def sign_file(config, key, path, destination=None, detach=True, armor=True):
     ctx = gpgme.Context()
     ctx.armor = armor
     # XXX: This is a temporary workaround until the key situation is explained
-    key = [key for key in ctx.keylist()][0]
+    key = [gpg_key for gpg_key in ctx.keylist()][0]
     ctx.signers = [key]
 
     logger.debug("Signing file: %s" % destination)
