@@ -78,36 +78,37 @@ if __name__ == '__main__':
     pub = tree.Tree(conf)
 
     # Do some checks
-    if args.source_channel not in pub.list_channels():
+    channels = pub.list_channels()
+    if args.source_channel not in channels:
         parser.error("Invalid source channel: %s" % args.source_channel)
 
-    if args.destination_channel not in pub.list_channels():
+    if args.destination_channel not in channels:
         parser.error("Invalid destination channel: %s" %
                      args.destination_channel)
 
-    if args.device not in pub.list_channels()[args.source_channel]['devices']:
+    if args.device not in channels[args.source_channel]['devices']:
         parser.error("Invalid device for source channel: %s" %
                      args.device)
 
     if args.device not in \
-            pub.list_channels()[args.destination_channel]['devices']:
+            channels[args.destination_channel]['devices']:
         parser.error("Invalid device for destination channel: %s" %
                      args.device)
 
-    if "alias" in pub.list_channels()[args.source_channel] and \
-            pub.list_channels()[args.source_channel]['alias'] \
+    if "alias" in channels[args.source_channel] and \
+            channels[args.source_channel]['alias'] \
             != args.source_channel:
         parser.error("Source channel is an alias.")
 
-    if "alias" in pub.list_channels()[args.destination_channel] and \
-            pub.list_channels()[args.destination_channel]['alias'] \
+    if "alias" in channels[args.destination_channel] and \
+            channels[args.destination_channel]['alias'] \
             != args.destination_channel:
         parser.error("Destination channel is an alias.")
 
-    if "redirect" in pub.list_channels()[args.source_channel]:
+    if "redirect" in channels[args.source_channel]:
         parser.error("Source channel is a redirect.")
 
-    if "redirect" in pub.list_channels()[args.destination_channel]:
+    if "redirect" in channels[args.destination_channel]:
         parser.error("Destination channel is a redirect.")
 
     if args.tag and "," in args.tag:
