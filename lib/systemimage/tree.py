@@ -306,7 +306,7 @@ class Tree:
 
         return True
 
-    def create_per_device_channel_redirect(self, device_name, channel_name, 
+    def create_per_device_channel_redirect(self, device_name, channel_name,
                                            target_name):
         """
             Creates a device-specific channel redirect, redirecting that device
@@ -864,10 +864,10 @@ class Tree:
             for target_name, channel in channels.items():
                 devices = dict(channel['devices'])
                 for device_name, device in devices.items():
-                    if ("redirect" in device and 
-                         device['redirect'] == channel_name and
-                         (not redirect_device_name or 
-                          redirect_device_name == device_name)):
+                    if ("redirect" in device and
+                        device['redirect'] == channel_name and
+                        (not redirect_device_name or
+                         redirect_device_name == device_name)):
                         channels[target_name]['devices'].pop(device_name)
 
         return True

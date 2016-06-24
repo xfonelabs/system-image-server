@@ -403,16 +403,16 @@ public_https_port = 443
         test_tree.create_device("redirect", "other")
 
         # Test standard failure cases
-        self.assertRaises(KeyError, 
+        self.assertRaises(KeyError,
                           test_tree.create_per_device_channel_redirect,
                           "device", "redirect1", "parent")
-        self.assertRaises(KeyError, 
+        self.assertRaises(KeyError,
                           test_tree.create_per_device_channel_redirect,
                           "other", "redirect", "parent")
         self.assertRaises(KeyError,
                           test_tree.create_per_device_channel_redirect,
                           "device", "redirect", "parent1")
-        self.assertRaises(KeyError, 
+        self.assertRaises(KeyError,
                           test_tree.create_per_device_channel_redirect,
                           "device2", "redirect", "parent")
 
@@ -523,7 +523,7 @@ public_https_port = 443
         test_tree.create_device("parent", "ignore")
 
         test_tree.create_device("redirect1", "other")
-        
+
         # Create per-device redirects
         test_tree.create_per_device_channel_redirect(
             "device", "redirect1", "parent")
