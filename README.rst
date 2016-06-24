@@ -29,6 +29,7 @@ Some additional dependencies are required for the test suite:
  - libjs-jquery-hotkeys, libjs-jquery-isonscreen, libjs-jquery-tablesorter
  - pep8
  - pyflakes (includes executables for both Python 2 and 3)
+ - pyflakes3 (Ubuntu 16.04 and later)
  - both pxz and xz-utils (for 100% coverage)
  - cpio
  - python-six, python3-six
