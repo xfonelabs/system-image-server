@@ -394,7 +394,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     elif environment['device_name'] in ("generic_amd64", "azure_amd64",
                                         "plano"):
         arch = "amd64"
-    elif environment['device_name'] == ("generic_arm64", "frieza_arm64"):
+    elif environment['device_name'] in ("generic_arm64", "frieza_arm64"):
         arch = "arm64"
 
     # Check that the directory exists
