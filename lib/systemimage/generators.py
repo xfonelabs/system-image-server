@@ -625,7 +625,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
         arch = "i386"
     elif environment['device_name'] in ("generic_amd64",):
         arch = "amd64"
-    elif environment['device_name'] == "generic_arm64":
+    elif environment['device_name'] in ("generic_arm64", "frieza_arm64"):
         arch = "arm64"
 
     # Check that the directory exists
