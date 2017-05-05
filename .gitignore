@@ -19,3 +19,5 @@ tools/keys/generated
 tools/keys/image-master
 tools/keys/image-signing
 coverage-py27
+*.pyc
+.bzr
