@@ -162,6 +162,8 @@ def generate_file(conf, generator, arguments, environment):
         path = generate_file_cdimage_device_raw(conf, arguments, environment)
     elif generator == "http":
         path = generate_file_http(conf, arguments, environment)
+    elif generator == "http-cdimage":
+        path = generate_file_http_livecd_rootfs(conf, arguments, environment)
     elif generator == "keyring":
         path = generate_file_keyring(conf, arguments, environment)
     elif generator == "system-image":
@@ -368,6 +370,287 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
         return path
 
     return None
+
+def generate_file_http_livecd_rootfs(conf, arguments, environment):
+    """
+        Grab, cache and returns a file using http/https.
+    """
+
+    # We need at least a URL
+    if len(arguments) == 0:
+        logger.debug("Too few arguments")
+        return None
+
+    # Read the arguments
+    url = arguments[0]
+
+    options = {}
+    if len(arguments) > 1:
+        options = unpack_arguments(arguments[1])
+
+    path = None
+    version = None
+
+    if "http_%s" % url in CACHE:
+        version = CACHE['http_%s' % url]
+
+    # Get the version/build number
+    if "monitor" in options or version:
+        if not version:
+            # Grab the current version number
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(5)
+            try:
+                version = urlopen(options['monitor']).read().strip()
+            except socket.timeout:
+                return None
+            except IOError:
+                return None
+            socket.setdefaulttimeout(old_timeout)
+
+            # Validate the version number
+            if not version or len(version.split("\n")) > 1:
+                logger.debug("Invalid or missing version number")
+                return None
+
+            # Push the result in the cache
+            CACHE['http_%s' % url] = version
+
+        # Set version_detail
+        version_detail = "%s=%s" % (options.get("name", "http-cdimage"), version)
+
+        # FIXME: can be dropped once all the non-hased tarballs are gone
+        old_path = os.path.realpath(os.path.join(conf.publish_path, "pool",
+                                                 "%s-%s.tar.xz" %
+                                                 (options.get("name", "http-cdimage"),
+                                                  version)))
+        logger.debug("Path generated: %s" % old_path)
+
+        if os.path.exists(old_path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(old_path.replace(".tar.xz", ".json")):
+                with open(old_path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
+            return old_path
+
+        # Build the path, hasing together the URL and version
+        hash_string = "%s:%s" % (url, version)
+        global_hash = sha256(hash_string.encode("utf-8")).hexdigest()
+        path = os.path.realpath(os.path.join(conf.publish_path, "pool",
+                                             "%s-%s.tar.xz" %
+                                             (options.get("name", "http-cdimage"),
+                                              global_hash)))
+        logger.debug("Path generated: %s" % path)
+
+        # Return pre-existing entries
+        if os.path.exists(path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
+            return path
+
+    # Grab the real thing
+    tempdir = tempfile.mkdtemp()
+    old_timeout = socket.getdefaulttimeout()
+    # Give it 20 minutes to download, this should be plenty
+    socket.setdefaulttimeout(20)
+    try:
+        urlretrieve(url, os.path.join(tempdir, "download"))
+    except socket.timeout:
+        logger.debug("Socket timeout")
+        shutil.rmtree(tempdir)
+        return None
+    except IOError:
+        logger.debug("IOError")
+        shutil.rmtree(tempdir)
+        return None
+    socket.setdefaulttimeout(old_timeout)
+
+    # Hash it if we don't have a version number
+    if not version:
+        # Hash the file
+        with open(os.path.join(tempdir, "download"), "rb") as fd:
+            version = sha256(fd.read()).hexdigest()
+
+        # Set version_detail
+        version_detail = "%s=%s" % (options.get("name", "http-cdimage"), version)
+
+        # Push the result in the cache
+        CACHE['http_%s' % url] = version
+
+        # Build the path
+        path = os.path.realpath(os.path.join(conf.publish_path, "pool",
+                                             "%s-%s.tar.xz" %
+                                             (options.get("name", "http-cdimage"),
+                                              version)))
+        logger.debug("Path generated: %s" % path)
+
+        # Return pre-existing entries
+        if os.path.exists(path):
+            # Get the real version number (in case it got copied)
+            if os.path.exists(path.replace(".tar.xz", ".json")):
+                with open(path.replace(".tar.xz", ".json"), "r") as fd:
+                    metadata = json.loads(fd.read())
+
+                if "version_detail" in metadata:
+                    version_detail = metadata['version_detail']
+
+            environment['version_detail'].append(version_detail)
+            shutil.rmtree(tempdir)
+            return path
+
+    temp_dir = tempfile.mkdtemp()
+    rootfs_path = os.path.join(tempdir, "download")
+
+    # Unpack the source tarball
+    logger.debug("Opening tarball for processing")
+    tools.gzip_uncompress(rootfs_path, os.path.join(temp_dir,
+                                                    "source.tar"))
+
+    # Generate a new shifted tarball
+    source_tarball = tarfile.open(os.path.join(temp_dir, "source.tar"),
+                                  "r:")
+    target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"),
+                                  "w:")
+
+    for entry in source_tarball:
+        # FIXME: Will need to be done on the real rootfs
+        # Skip some files
+        if entry.name in ("SWAP.swap", "etc/mtab"):
+            continue
+
+        fileptr = None
+        if entry.isfile():
+            try:
+                fileptr = source_tarball.extractfile(entry.name)
+            except KeyError:  # pragma: no cover
+                pass
+
+        # Update hardlinks to point to the right target
+        if entry.islnk():
+            entry.linkname = "system/%s" % entry.linkname
+
+        entry.name = "system/%s" % entry.name
+        target_tarball.addfile(entry, fileobj=fileptr)
+
+    # The touch and pocket-desktop products are the same.
+    #if options.get("product", "touch") in ("touch", "pd"):
+        # FIXME: Will need to be done on the real rootfs
+        # Add some symlinks and directories
+    ## TODO: different between different rootfs
+    # # /android
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.DIRTYPE
+    new_file.name = "system/android"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    # # Android partitions
+    for android_path in ("cache", "data", "factory", "firmware",
+                         "persist", "system"):
+        new_file = tarfile.TarInfo()
+        new_file.type = tarfile.SYMTYPE
+        new_file.name = "system/%s" % android_path
+        new_file.linkname = "/android/%s" % android_path
+        new_file.mode = 0o755
+        new_file.mtime = int(time.strftime("%s", time.localtime()))
+        new_file.uname = "root"
+        new_file.gname = "root"
+        target_tarball.addfile(new_file)
+
+    # # /vendor
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.SYMTYPE
+    new_file.name = "system/vendor"
+    new_file.linkname = "/android/system/vendor"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    # writable partition
+    # (/userdata for Touch, /writable for Core)
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.DIRTYPE
+
+    if options.get("product", "touch") == "core":
+        new_file.name = "system/writable"
+    else:
+        new_file.name = "system/userdata"
+
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    # # /etc/mtab
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.SYMTYPE
+    new_file.name = "system/etc/mtab"
+    new_file.linkname = "/proc/mounts"
+    new_file.mode = 0o444
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    # # /lib/modules
+    new_file = tarfile.TarInfo()
+    new_file.type = tarfile.DIRTYPE
+    new_file.name = "system/lib/modules"
+    new_file.mode = 0o755
+    new_file.mtime = int(time.strftime("%s", time.localtime()))
+    new_file.uname = "root"
+    new_file.gname = "root"
+    target_tarball.addfile(new_file)
+
+    logger.debug("Closing tarball")
+    source_tarball.close()
+    target_tarball.close()
+
+    # Create the pool if it doesn't exist
+    if not os.path.exists(os.path.join(conf.publish_path, "pool")):
+        os.makedirs(os.path.join(conf.publish_path, "pool"))
+
+    # Compress the target tarball and sign it
+    tools.xz_compress(os.path.join(temp_dir, "target.tar"), path)
+    gpg.sign_file(conf, "image-signing", path)
+
+    # Generate the metadata file
+    metadata = {}
+    metadata['generator'] = "cdimage-ubports"
+    metadata['version'] = version
+    metadata['version_detail'] = version_detail
+    metadata['rootfs_path'] = rootfs_path
+    metadata['url'] = url
+
+    with open(path.replace(".tar.xz", ".json"), "w+") as fd:
+        fd.write("%s\n" % json.dumps(metadata, sort_keys=True,
+                                     indent=4, separators=(",", ": ")))
+    gpg.sign_file(conf, "image-signing", path.replace(".tar.xz", ".json"))
+
+    # Cleanup
+    shutil.rmtree(temp_dir)
+    shutil.rmtree(tempdir)
+
+    environment['version_detail'].append(version_detail)
+    return path
 
 
 def generate_file_cdimage_ubuntu(conf, arguments, environment):
