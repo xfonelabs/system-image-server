@@ -27,6 +27,7 @@ def parse_config(path):
     config = {}
 
     configp = ConfigParser()
+    configp.optionxform = str
     try:
         configp.read(path)
     except:
