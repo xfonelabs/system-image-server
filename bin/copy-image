@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser.add_argument("source_channel", metavar="SOURCE-CHANNEL")
     parser.add_argument("destination_channel", metavar="DESTINATION-CHANNEL")
     parser.add_argument("device", metavar="DEVICE")
-    parser.add_argument("version", metavar="VERSION", type=int)
+    parser.add_argument("-r", "--version", type=int)
     parser.add_argument("-k", "--keep-version", action="store_true",
                         help="Keep the original version number")
     parser.add_argument("-p", "--phased-percentage", type=int,
@@ -142,6 +142,15 @@ if __name__ == '__main__':
             if image['version'] >= new_version:
                 new_version = image['version'] + 1
     logging.debug("Version for next image: %s" % new_version)
+
+    if not args.version:
+        args.version = 1
+        for image in source_device.list_images():
+            if image['version'] >= args.version:
+                args.version = image['version']
+
+    logging.debug("Using version %s for next image" % args.version)
+
 
     # Extract the build we want to copy
     images = [image for image in source_device.list_images()
