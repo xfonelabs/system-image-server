@@ -33,6 +33,7 @@ if __name__ == '__main__':
     parser.add_argument("destination_channel", metavar="DESTINATION-CHANNEL")
     parser.add_argument("device", metavar="DEVICE")
     parser.add_argument("-r", "--version", type=int)
+    parser.add_argument("-o", "--offset", type=int, help="Version offset")
     parser.add_argument("-k", "--keep-version", action="store_true",
                         help="Keep the original version number")
     parser.add_argument("-p", "--phased-percentage", type=int,
@@ -148,6 +149,10 @@ if __name__ == '__main__':
         for image in source_device.list_images():
             if image['version'] >= args.version:
                 args.version = image['version']
+
+    if args.offset:
+        logging.debug("Offsetting version by %s versions" % args.offset)
+        args.version -= args.offset
 
     logging.debug("Using version %s for next image" % args.version)
 
