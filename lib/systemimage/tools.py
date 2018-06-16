@@ -622,3 +622,15 @@ def clean_tags_on_version_detail(version_detail_list):
     for detail in version_detail_list:
         if detail.startswith("tag="):
             version_detail_list.remove(detail)
+
+def get_tags_on_version_detail(version_detail_list):
+    """
+        gets tags from the version_detail array.
+    """
+
+    tag=None
+    for detail in version_detail_list:
+        if detail.startswith("tag="):
+            tag = detail.split("=")[1]
+            break
+    return tag

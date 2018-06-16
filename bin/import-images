@@ -25,6 +25,7 @@ from systemimage import config, generators, tools, tree
 import argparse
 import fcntl
 import logging
+import time
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="image importer")
@@ -184,6 +185,27 @@ if __name__ == '__main__':
                 environment['version'] = new_version
                 environment['version_detail'] = version_detail
                 environment['new_files'] = new_files
+
+                if file_name == "ubuntu":
+                    new_tag = time.strftime("%Y-%m-%d")
+                    last_tag = None
+                    if last_full:
+                        last_full_vd = last_full['version_detail']
+                        if "," in last_full['version_detail']:
+                            last_full_vd = last_full['version_detail'].split(",")
+                        last_tag = tools.get_tags_on_version_detail(
+                            last_full_vd)
+                        logging.debug("Last image tag was %s" % last_tag)
+                    if last_tag:
+                        if last_tag == new_tag:
+                            new_tag = "%s/2" % new_tag
+                        elif "/" in last_tag:
+                            ltag = last_tag.split("/")
+                            if ltag[0] == new_tag:
+                                new_tag = "%s/%i" % (new_tag, int(ltag[1])+1)
+                    logging.debug("Setting tag to UBports image %s" % new_tag)
+                    tools.set_tag_on_version_detail(
+                        environment['version_detail'], new_tag)
 
                 # Call file generator
                 logging.info("Calling '%s' generator for a new file"
