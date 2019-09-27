@@ -561,7 +561,7 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
 
     # # Android partitions
     for android_path in ("cache", "data", "factory", "firmware",
-                         "persist", "system"):
+                         "persist", "system", "odm"):
         new_file = tarfile.TarInfo()
         new_file.type = tarfile.SYMTYPE
         new_file.name = "system/%s" % android_path
@@ -791,7 +791,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
 
             # # Android partitions
             for android_path in ("cache", "data", "factory", "firmware",
-                                 "persist", "system"):
+                                 "persist", "system", "odm"):
                 new_file = tarfile.TarInfo()
                 new_file.type = tarfile.SYMTYPE
                 new_file.name = "system/%s" % android_path
