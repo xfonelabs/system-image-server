@@ -96,10 +96,10 @@ def main():
             if len(images) > 0:
                 latest_version = images[-1]['version']
                 for image in reversed(images):
-                    # Only re-sign all files for the latest image
-                    # (full and deltas)
-                    if image['version'] != latest_version:
-                        break
+                    # Only re-sign full files for the latest image
+                    # but resign all deltas
+                    if image['version'] != latest_version and image['type'] != "delta":
+                        continue
 
                     for f in image['files']:
                         # Re-sign the tarball and .json files with the new keys
