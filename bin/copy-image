@@ -55,10 +55,10 @@ if __name__ == '__main__':
               4: logging.DEBUG}
 
     if args.verbose > 0:
-        stdoutlogger = logging.StreamHandler(sys.stdout)
-        stdoutlogger.setFormatter(formatter)
+        stderrlogger = logging.StreamHandler(sys.stderr)
+        stderrlogger.setFormatter(formatter)
         logging.root.setLevel(levels[min(4, args.verbose)])
-        logging.root.addHandler(stdoutlogger)
+        logging.root.addHandler(stderrlogger)
     else:
         logging.root.addHandler(logging.NullHandler())
 
@@ -292,6 +292,9 @@ if __name__ == '__main__':
                  args.phased_percentage)
     destination_device.set_phased_percentage(
         new_version, args.phased_percentage)
+
+    # Write the new version number to stdout for the caller to do additional tasks on it
+    print new_version
 
     # Expire images
     if args.destination_channel in conf.channels:
