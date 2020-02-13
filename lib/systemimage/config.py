@@ -59,6 +59,23 @@ class Config:
 
         self.load_config(path)
 
+        sub_path = os.path.join(os.path.dirname(path), "channels.d")
+        if os.path.exists(sub_path):
+            for conf in os.listdir(sub_path):
+                if conf.endswith(".conf"):
+                    self.load_sub_config(os.path.join(sub_path, conf))
+
+    def load_sub_config(self, path):
+        if not os.path.exists(path):
+            raise Exception("Channel configuration file doesn't exist: %s" % path)
+ 
+        config = parse_config(path)
+
+        if 'channel' not in config:
+            raise Exception("Not a valid channel configuration file: %s" % path)
+
+        this._add_channel(config, "channel")
+
     def load_config(self, path):
         if not os.path.exists(path):
             raise Exception("Configuration file doesn't exist: %s" % path)
@@ -155,53 +172,61 @@ class Config:
 
             if len(config['global']['channels']) != 0:
                 for entry in config['global']['channels']:
-                    dict_entry = "channel_%s" % entry
-                    if dict_entry not in config:
-                        raise KeyError("Missing channel section: %s" %
-                                       dict_entry)
+                    self._add_channel(config, entry, True)
 
-                    channel = type("Channel", (object,), {})
+    def _add_channel(self, config, entry, has_prefix):
+        if entry in self.channels:
+            raise Exception("Cannot have two channel entries defined with same name: %s" % entry)
 
-                    channel.versionbase = int(config[dict_entry].get(
-                        'versionbase', 1))
+        dict_entry = entry
+        if has_prefix:
+            dict_entry = "channel_%s" % entry
+        if dict_entry not in config:
+            raise KeyError("Missing channel section: %s" %
+                            dict_entry)
 
-                    channel.type = config[dict_entry].get(
-                        "type", "manual")
+        channel = type("Channel", (object,), {})
 
-                    channel.fullcount = int(config[dict_entry].get(
-                        "fullcount", 0))
+        channel.versionbase = int(config[dict_entry].get(
+            'versionbase', 1))
 
-                    channel.deltabase = [entry]
-                    if "deltabase" in config[dict_entry]:
-                        if isinstance(config[dict_entry]['deltabase'],
-                                      list):
-                            channel.deltabase = \
-                                config[dict_entry]['deltabase']
-                        else:
-                            channel.deltabase = \
-                                [config[dict_entry]['deltabase']]
+        channel.type = config[dict_entry].get(
+            "type", "manual")
 
-                    # Parse the file list
-                    files = config[dict_entry].get("files", [])
-                    if isinstance(files, str):
-                        files = [files]
+        channel.fullcount = int(config[dict_entry].get(
+            "fullcount", 0))
 
-                    channel.files = []
-                    for file_entry in files:
-                        if "file_%s" % file_entry not in config[dict_entry]:
-                            raise KeyError("Missing file entry: %s" %
-                                           "file_%s" % file_entry)
+        channel.deltabase = [entry]
+        if "deltabase" in config[dict_entry]:
+            if isinstance(config[dict_entry]['deltabase'],
+                            list):
+                channel.deltabase = \
+                    config[dict_entry]['deltabase']
+            else:
+                channel.deltabase = \
+                    [config[dict_entry]['deltabase']]
 
-                        fields = (config[dict_entry]
-                                  ['file_%s' % file_entry].split(";"))
+        # Parse the file list
+        files = config[dict_entry].get("files", [])
+        if isinstance(files, str):
+            files = [files]
 
-                        file_dict = {}
-                        file_dict['name'] = file_entry
-                        file_dict['generator'] = fields[0]
-                        file_dict['arguments'] = []
-                        if len(fields) > 1:
-                            file_dict['arguments'] = fields[1:]
+        channel.files = []
+        for file_entry in files:
+            if "file_%s" % file_entry not in config[dict_entry]:
+                raise KeyError("Missing file entry: %s" %
+                                "file_%s" % file_entry)
 
-                        channel.files.append(file_dict)
+            fields = (config[dict_entry]
+                        ['file_%s' % file_entry].split(";"))
 
-                    self.channels[entry] = channel
+            file_dict = {}
+            file_dict['name'] = file_entry
+            file_dict['generator'] = fields[0]
+            file_dict['arguments'] = []
+            if len(fields) > 1:
+                file_dict['arguments'] = fields[1:]
+
+            channel.files.append(file_dict)
+
+        self.channels[entry] = channel
