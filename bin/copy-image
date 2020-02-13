@@ -26,6 +26,10 @@ from systemimage import config, generators, tools, tree
 import argparse
 import fcntl
 import logging
+import datetime
+import requests
+
+PUSH_BROADCAST_URL = 'https://push.ubports.com/broadcast'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="image copier")
@@ -42,6 +46,7 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--tag", type=str,
                         help="Set a version tag on the new image")
     parser.add_argument("--verbose", "-v", action="count", default=0)
+    parser.add_argument("-q", "--push-notify", action="store_true", default=False)
 
     args = parser.parse_args()
 
@@ -292,6 +297,25 @@ if __name__ == '__main__':
                  args.phased_percentage)
     destination_device.set_phased_percentage(
         new_version, args.phased_percentage)
+
+    if args.push_notify:
+        logging.info("Sending broadcast push notification for device '{}' on channel '{}' and version '{}'".format(args.device, args.destination_channel, new_version))
+        expiresTime = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+        identifier = "{}/{}".format(args.destination_channel, args.device)
+        pushData = {
+            "channel": "system",
+            "expire_on": expiresTime.replace(microsecond=0).isoformat()+"Z",
+            "data": {
+                identifier: [new_version, '']
+            }
+        }
+
+        r = requests.post(
+            PUSH_BROADCAST_URL,
+            data=json.dumps(pushData),
+            headers={'content-type': 'application/json'})
+        if r.status_code != 200:
+            logging.error("WARNING: Push notification failed with: \nHTTP {}\n{}\n".format(r.status_code, r.text))
 
     # Expire images
     if args.destination_channel in conf.channels:
