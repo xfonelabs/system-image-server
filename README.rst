@@ -22,17 +22,16 @@ Running the test suite
 
 Some additional dependencies are required for the test suite:
 
- - python-tox
- - python-nose2, python3-nose2
- - python-mock, python3-mock
- - python-coverage, python3-coverage
+ - tox
+ - python3-nose2
+ - python3-mock
+ - python3-coverage
  - libjs-jquery-hotkeys, libjs-jquery-isonscreen, libjs-jquery-tablesorter
  - pep8
- - pyflakes (includes executables for both Python 2 and 3)
  - pyflakes3 (Ubuntu 16.04 and later)
- - both pxz and xz-utils (for 100% coverage)
+ - xz-utils (for 100% coverage)
  - cpio
- - python-six, python3-six
+ - python3-six
 
 The full test suite require you to pre-generate some GPG keys.  Actually, you
 can run the test suite without this, but many tests will be skipped.  To
@@ -49,16 +48,16 @@ tests and code coverage tests, run this::
 If you want to just run a subset of the tests, you can provide some options to
 the `tox` command.  E.g. to avoid running the slow tests, do this::
 
-    $ tox -e fast-py27,fast-py34
+    $ tox -e fast-py38
 
 To skip running the fast tests when you are going to run the slow tests
 anyway, do this::
 
-    $ tox -e py27,py34
+    $ tox -e py38
 
 To run just the coverage collecting version of the tests::
 
-    $ tox -e coverage-py27,coverage-py34
+    $ tox -e coverage-py38
 
 Of course, you can run any combination of tests.  To see the full list of
 available tests::
@@ -88,22 +87,6 @@ do (to run all the tests in the module)::
 or (to run all tests in the class)::
 
     $ .tox/py34/bin/python -m nose2 -v -P GPGTests
-
-
-Notes for Precise
-=================
-
-Neither `tox` nor `nose2` is available in Precise.  Here's how to run the test
-suite on that distribution version::
-
-    $ python -m unittest discover -s lib -v
-    $ python3 -m unittest discover -s lib -v
-
-Note however that the Python 3 test suite will have failures on Precise due to
-other missing packages (e.g. `python3-gpgme`).  If it hurts, don't do it.
-
-The version of tox in trusty is also not compatible with our tox.ini.  It
-requires tox 1.8 or later.
 
 See also
 ========
