@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import gzip
+import json
 import logging
 import os
 import re
@@ -24,13 +25,11 @@ import subprocess
 import tarfile
 import tempfile
 import time
-import json
-
 from io import BytesIO
 from operator import itemgetter
-from systemimage.helpers import chdir
-from systemimage import gpg
 
+from systemimage import gpg
+from systemimage.helpers import chdir
 
 READ_SIZE = 1024 * 1024
 
@@ -623,12 +622,13 @@ def clean_tags_on_version_detail(version_detail_list):
         if detail.startswith("tag="):
             version_detail_list.remove(detail)
 
+
 def get_tags_on_version_detail(version_detail_list):
     """
         gets tags from the version_detail array.
     """
 
-    tag=None
+    tag = None
     for detail in version_detail_list:
         if detail.startswith("tag="):
             tag = detail.split("=")[1]

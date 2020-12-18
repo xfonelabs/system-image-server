@@ -27,7 +27,8 @@ from systemimage.gpg import generate_signing_key
 
 
 KEYS = {
-    "archive-master": ("{0} Archive Master key", datetime.timedelta(seconds=0)),
+    "archive-master": ("{0} Archive Master key",
+                       datetime.timedelta(seconds=0)),
     "image-master": ("{0} Image Master key", datetime.timedelta(seconds=0)),
     "device-signing": ("{0} Device Signing key", datetime.timedelta(days=730)),
     "image-signing": ("{0} Image Signing key", datetime.timedelta(days=730))

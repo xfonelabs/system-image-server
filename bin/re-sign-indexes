@@ -98,7 +98,8 @@ def main():
                 for image in reversed(images):
                     # Only re-sign full files for the latest image
                     # but resign all deltas
-                    if image['version'] != latest_version and image['type'] != "delta":
+                    if (image['version'] != latest_version
+                            and image['type'] != "delta"):
                         continue
 
                     for f in image['files']:

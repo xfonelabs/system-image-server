@@ -22,11 +22,11 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
-import six
-
 from datetime import datetime
 from glob import glob
-from systemimage import config, tools, tree, gpg
+
+import six
+from systemimage import config, gpg, tools, tree
 from systemimage.helpers import chdir
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 

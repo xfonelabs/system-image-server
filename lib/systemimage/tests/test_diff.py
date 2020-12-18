@@ -21,8 +21,8 @@ import sys
 import tarfile
 import tempfile
 import unittest
-
 from io import BytesIO, StringIO
+
 from systemimage.diff import ImageDiff, compare_files
 
 
@@ -131,10 +131,10 @@ class DiffTests(unittest.TestCase):
         k_dir.mode = 0o755
 
         # Dangling symlink
-        l = tarfile.TarInfo()
-        l.name = "dir"
-        l.type = tarfile.SYMTYPE
-        l.linkname = "l_non-existent"
+        link = tarfile.TarInfo()
+        link.name = "dir"
+        link.type = tarfile.SYMTYPE
+        link.linkname = "l_non-existent"
 
         # Standard file
         m_source = tarfile.TarInfo()
@@ -197,7 +197,7 @@ class DiffTests(unittest.TestCase):
         target_tarball.addfile(h_target, BytesIO(b"test"))
         target_tarball.addfile(i)
         target_tarball.addfile(j)
-        target_tarball.addfile(l)
+        target_tarball.addfile(link)
         target_tarball.addfile(n_target, BytesIO(b"test"))
         target_tarball.addfile(m_target)
         target_tarball.addfile(o_source)

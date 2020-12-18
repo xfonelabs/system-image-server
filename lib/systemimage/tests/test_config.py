@@ -20,8 +20,7 @@ import shutil
 import tempfile
 import unittest
 
-from systemimage import config
-from systemimage import tools
+from systemimage import config, tools
 from systemimage.helpers import chdir
 from systemimage.testing.helpers import system_image_root
 

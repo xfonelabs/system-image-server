@@ -16,12 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-import gpg
 import logging
 import os
 import tarfile
-
 from io import BytesIO
+
+import gpg
 
 logger = logging.getLogger(__name__)
 

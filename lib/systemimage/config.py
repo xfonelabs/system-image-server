@@ -15,22 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import configparser
 import os
-
-try:
-    from configparser import ConfigParser
-except ImportError:  # pragma: no cover
-    from ConfigParser import ConfigParser
 
 
 def parse_config(path):
     config = {}
 
-    configp = ConfigParser()
+    configp = configparser.ConfigParser()
     configp.optionxform = str
     try:
         configp.read(path)
-    except:
+    except configparser.Error:
         return config
 
     for section in configp.sections():

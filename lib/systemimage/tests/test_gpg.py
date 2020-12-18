@@ -15,15 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import datetime
 import glob
-import gpg as gpgme
 import os
 import shutil
 import tempfile
 import time
 import unittest
-import datetime
 
+import gpg as gpgme
 from systemimage import config, gpg
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 

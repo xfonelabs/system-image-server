@@ -21,9 +21,7 @@ __all__ = [
 
 
 import os
-
 from contextlib import contextmanager
-
 
 HAS_TEST_KEYS = os.path.exists(os.path.join("tools", "keys", "generated"))
 MISSING_KEYS_WARNING = 'No GPG testing keys present.  Run tools/generate-keys'

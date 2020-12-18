@@ -17,7 +17,6 @@
 
 """Mirror a specific device/channel."""
 
-import os
 import sys
 import argparse
 

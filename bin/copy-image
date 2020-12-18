@@ -16,18 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import requests
+import datetime
+import logging
+import fcntl
+import argparse
 import json
 import os
 import sys
-sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 from systemimage import config, generators, tools, tree
 
-import argparse
-import fcntl
-import logging
-import datetime
-import requests
 
 PUSH_BROADCAST_URL = 'https://push.ubports.com/broadcast'
 
@@ -46,7 +46,11 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--tag", type=str,
                         help="Set a version tag on the new image")
     parser.add_argument("--verbose", "-v", action="count", default=0)
-    parser.add_argument("-q", "--push-notify", action="store_true", default=False)
+    parser.add_argument(
+        "-q",
+        "--push-notify",
+        action="store_true",
+        default=False)
 
     args = parser.parse_args()
 
@@ -160,7 +164,6 @@ if __name__ == '__main__':
         args.version -= args.offset
 
     logging.debug("Using version %s for next image" % args.version)
-
 
     # Extract the build we want to copy
     images = [image for image in source_device.list_images()
@@ -299,23 +302,30 @@ if __name__ == '__main__':
         new_version, args.phased_percentage)
 
     if args.push_notify:
-        logging.info("Sending broadcast push notification for device '{}' on channel '{}' and version '{}'".format(args.device, args.destination_channel, new_version))
+        logging.info(
+            ("Sending broadcast push notification for device '{}' on channel "
+             "'{}' and version '{}'").format(
+                args.device,
+                args.destination_channel,
+                new_version))
         expiresTime = datetime.datetime.utcnow() + datetime.timedelta(days=1)
         identifier = "{}/{}".format(args.destination_channel, args.device)
         pushData = {
             "channel": "system",
-            "expire_on": expiresTime.replace(microsecond=0).isoformat()+"Z",
+            "expire_on": expiresTime.replace(microsecond=0).isoformat() + "Z",
             "data": {
                 identifier: [new_version, '']
+                }
             }
-        }
 
         r = requests.post(
             PUSH_BROADCAST_URL,
             data=json.dumps(pushData),
             headers={'content-type': 'application/json'})
         if r.status_code != 200:
-            logging.error("WARNING: Push notification failed with: \nHTTP {}\n{}\n".format(r.status_code, r.text))
+            logging.error(
+                "Push notification failed with: \nHTTP {}\n{}\n".format(
+                    r.status_code, r.text))
 
     # Expire images
     if args.destination_channel in conf.channels:

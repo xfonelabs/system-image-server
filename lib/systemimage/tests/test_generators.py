@@ -31,6 +31,7 @@ except ImportError:
 
 from hashlib import sha256
 from io import BytesIO, StringIO
+
 from systemimage import config, generators, gpg, tools, tree
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 from systemimage.tools import xz_uncompress

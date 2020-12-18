@@ -19,7 +19,6 @@ import os
 import sys
 import tarfile
 import time
-
 from collections import namedtuple
 from io import BytesIO
 

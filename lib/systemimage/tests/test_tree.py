@@ -21,7 +21,7 @@ import shutil
 import tempfile
 import unittest
 
-from systemimage import config, gpg, tree, tools
+from systemimage import config, gpg, tools, tree
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
 
 try:

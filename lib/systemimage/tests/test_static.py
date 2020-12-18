@@ -22,7 +22,6 @@ import os
 import subprocess
 import unittest
 
-
 binary = "/usr/bin/pyflakes3"
 if not os.path.exists(binary):
     pyflakes = None
@@ -84,7 +83,7 @@ class StaticTests(unittest.TestCase):
         # * E402 module level import not at top of file
         # * W503 line break before binary operator
         subp = subprocess.Popen(
-            ["pep8", "--ignore=E129,E402,W503", "--hang-closing"]
+            ["pep8", "--ignore=E129,E402,W503,W504", "--hang-closing"]
             + self.all_paths(),
             stdout=subprocess.PIPE, universal_newlines=True)
         output = subp.communicate()[0].splitlines()

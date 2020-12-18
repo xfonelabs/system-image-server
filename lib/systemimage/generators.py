@@ -15,18 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from hashlib import sha256
-from systemimage import diff, gpg, tree, tools
-
-import logging
 import json
+import logging
 import os
-import socket
 import shutil
+import socket
 import subprocess
 import tarfile
 import tempfile
 import time
+from hashlib import sha256
+
+from systemimage import diff, gpg, tools, tree
 
 try:
     from urllib.request import urlopen, urlretrieve
@@ -371,6 +371,7 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
 
     return None
 
+
 def generate_file_http_livecd_rootfs(conf, arguments, environment):
     """
         Grab, cache and returns a file using http/https.
@@ -417,12 +418,14 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
             CACHE['http_%s' % url] = version
 
         # Set version_detail
-        version_detail = "%s=%s" % (options.get("name", "http-cdimage"), version)
+        version_detail = "%s=%s" % (options.get("name", "http-cdimage"),
+                                    version)
 
         # FIXME: can be dropped once all the non-hased tarballs are gone
         old_path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                                  "%s-%s.tar.xz" %
-                                                 (options.get("name", "http-cdimage"),
+                                                 (options.get("name",
+                                                              "http-cdimage"),
                                                   version)))
         logger.debug("Path generated: %s" % old_path)
 
@@ -443,7 +446,8 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
         global_hash = sha256(hash_string.encode("utf-8")).hexdigest()
         path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                              "%s-%s.tar.xz" %
-                                             (options.get("name", "http-cdimage"),
+                                             (options.get("name",
+                                                          "http-cdimage"),
                                               global_hash)))
         logger.debug("Path generated: %s" % path)
 
@@ -484,7 +488,8 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
             version = sha256(fd.read()).hexdigest()
 
         # Set version_detail
-        version_detail = "%s=%s" % (options.get("name", "http-cdimage"), version)
+        version_detail = "%s=%s" % (options.get("name", "http-cdimage"),
+                                    version)
 
         # Push the result in the cache
         CACHE['http_%s' % url] = version
@@ -492,7 +497,8 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
         # Build the path
         path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                              "%s-%s.tar.xz" %
-                                             (options.get("name", "http-cdimage"),
+                                             (options.get("name",
+                                                          "http-cdimage"),
                                               version)))
         logger.debug("Path generated: %s" % path)
 
@@ -544,12 +550,6 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
         entry.name = "system/%s" % entry.name
         target_tarball.addfile(entry, fileobj=fileptr)
 
-    # The touch and pocket-desktop products are the same.
-    #if options.get("product", "touch") in ("touch", "pd"):
-        # FIXME: Will need to be done on the real rootfs
-        # Add some symlinks and directories
-    ## TODO: different between different rootfs
-    # # /android
     new_file = tarfile.TarInfo()
     new_file.type = tarfile.DIRTYPE
     new_file.name = "system/android"

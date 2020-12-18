@@ -16,16 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import time
+import logging
+import fcntl
+import argparse
 import os
 import sys
-sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
 from systemimage import config, generators, tools, tree
 
-import argparse
-import fcntl
-import logging
-import time
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="image importer")
@@ -192,7 +192,8 @@ if __name__ == '__main__':
                     if last_full:
                         last_full_vd = last_full['version_detail']
                         if "," in last_full['version_detail']:
-                            last_full_vd = last_full['version_detail'].split(",")
+                            last_full_vd = last_full['version_detail'].split(
+                                ",")
                         last_tag = tools.get_tags_on_version_detail(
                             last_full_vd)
                         logging.debug("Last image tag was %s" % last_tag)
@@ -202,7 +203,7 @@ if __name__ == '__main__':
                         elif "/" in last_tag:
                             ltag = last_tag.split("/")
                             if ltag[0] == new_tag:
-                                new_tag = "%s/%i" % (new_tag, int(ltag[1])+1)
+                                new_tag = "%s/%i" % (new_tag, int(ltag[1]) + 1)
                     logging.debug("Setting tag to UBports image %s" % new_tag)
                     tools.set_tag_on_version_detail(
                         environment['version_detail'], new_tag)
