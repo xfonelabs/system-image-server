@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2014 Canonical Ltd.
@@ -19,6 +19,7 @@
 import argparse
 import os
 import sys
+import datetime
 
 sys.path.insert(0, 'lib')
 from systemimage import config
@@ -26,10 +27,10 @@ from systemimage.gpg import generate_signing_key
 
 
 KEYS = {
-    "archive-master": ("{0} Archive Master key", 0),
-    "image-master": ("{0} Image Master key", 0),
-    "device-signing": ("{0} Device Signing key", "2y"),
-    "image-signing": ("{0} Image Signing key", "2y")
+    "archive-master": ("{0} Archive Master key", datetime.timedelta(seconds=0)),
+    "image-master": ("{0} Image Master key", datetime.timedelta(seconds=0)),
+    "device-signing": ("{0} Device Signing key", datetime.timedelta(days=730)),
+    "image-signing": ("{0} Image Signing key", datetime.timedelta(days=730))
     }
 
 

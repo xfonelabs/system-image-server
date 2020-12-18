@@ -16,12 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import glob
-import gpgme
+import gpg as gpgme
 import os
 import shutil
 import tempfile
 import time
 import unittest
+import datetime
 
 from systemimage import config, gpg
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
@@ -108,11 +109,14 @@ gpg_key_path = %s
         self.assertEqual(keyring.keyring_type, "test")
         self.assertEqual(keyring.keyring_expiry, expiry)
 
+        # Import just one key into the empty keyring
         keyring.import_keys(os.path.join("tools", "keys", "image-signing"))
 
         # Check that the keyring matches
+        # Ensure that your keyrings in tools/keys/ are correct before debugging
+        # this test. tools/keys/image-signing/ should only have one key in it!
         keys = keyring.list_keys()
-        self.assertTrue(len(keys), 1)
+        self.assertEqual(len(keys), 1)
         key_id, key_bit, [key_desc] = keys[0]
         self.assertEqual(key_bit, 2048)
         self.assertEqual(key_desc,
@@ -135,9 +139,12 @@ gpg_key_path = %s
                          "[TESTING] Ubuntu System Image Signing Key (YYYY) "
                          "<system-image@ubuntu.com>")
 
-        self.assertRaises(gpgme.GpgmeError, keyring.export_key,
-                          "missing", "abcd")
-        self.assertRaises(gpgme.GpgmeError, keyring.del_key, "abcd")
+        with self.assertRaises(gpgme.errors.GPGMEError) as cm:
+            keyring.export_key("missing", "abcd")
+        assert cm.exception.getcode() == gpgme.errors.INV_VALUE
+        with self.assertRaises(gpgme.errors.GPGMEError) as cm:
+            keyring.del_key("abcd")
+        assert cm.exception.getcode() == gpgme.errors.INV_VALUE
 
         temp_tarball = os.path.join(self.temp_directory, "keyring.tar")
         keyring.generate_tarball(temp_tarball)
@@ -156,6 +163,7 @@ gpg_key_path = %s
 
         self.assertRaises(Exception, gpg.generate_signing_key, "", "", "", "")
 
-        uid = gpg.generate_signing_key(key_dir, "test-key", "a@b.c", "2y")
+        uid = gpg.generate_signing_key(key_dir, "test-key", "a@b.c",
+                                       datetime.timedelta(days=730))
         self.assertEqual(uid.name, "test-key")
         self.assertEqual(uid.email, "a@b.c")
