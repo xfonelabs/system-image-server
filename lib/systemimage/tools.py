@@ -278,14 +278,11 @@ def xz_compress(path, destination=None, level=9):
 
     logger.debug("Xzipping file: %s" % destination)
 
-    if find_on_path("pxz"):
-        xz_command = "pxz"
-    else:
-        xz_command = "xz"
-
     with open(destination, "wb+") as fd:
-        retval = subprocess.call([xz_command, '-z', '-%s' % level, '-c', path],
-                                 stdout=fd)
+        retval = subprocess.call([
+            'xz', '--threads=0', '-z', '-%s' % level, '-c', path
+            ],
+            stdout=fd)
     return retval
 
 

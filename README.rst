@@ -10,7 +10,7 @@ Run time dependencies
 
 `apt-get install` these:
 
- - pxz | xz-utils
+ - xz-utils
  - python3, python3-gpgme | python, python-gpgme
  - e2fsprogs
  - android-tools-fsutils
