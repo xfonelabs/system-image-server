@@ -47,7 +47,7 @@ def main():
 
     print("I: Generating signing keys...")
 
-    for key_id, (key_name, key_expiry) in KEYS.iteritems():
+    for key_id, (key_name, key_expiry) in KEYS.items():
         key_path = os.path.join(conf.gpg_key_path, key_id)
         if os.path.exists(key_path):
             print("W: The key \"{0}\" already exists".format(key_id))
