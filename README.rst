@@ -11,7 +11,7 @@ Run time dependencies
 `apt-get install` these:
 
  - xz-utils
- - python3, python3-gpgme | python, python-gpgme
+ - python3, python3-gpg
  - e2fsprogs
  - android-tools-fsutils
  - abootimg
