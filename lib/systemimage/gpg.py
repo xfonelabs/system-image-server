@@ -117,7 +117,7 @@ class Keyring:
         keyring_path = "%s/%s" % (config.gpg_keyring_path, keyring_name)
 
         if not os.path.isdir(keyring_path):
-            os.makedirs(keyring_path)
+            os.makedirs(keyring_path, mode=0o700)
 
         self.keyring_name = keyring_name
         self.keyring_path = keyring_path

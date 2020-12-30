@@ -42,7 +42,7 @@ for key_name, key_description, key_email, key_expiry, key_algorithm in keys:
     key_dir = "%s/%s/" % (target_dir, key_name)
     if os.path.exists(key_dir):
         shutil.rmtree(key_dir)
-    os.makedirs(key_dir)
+    os.makedirs(key_dir, mode=0o700)
 
     uid = gpg.generate_signing_key(key_dir, key_description, key_email,
                                    key_expiry, algorithm=key_algorithm)
