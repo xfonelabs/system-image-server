@@ -29,7 +29,7 @@ from systemimage import config, generators, tools, tree
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="image importer")
-    parser.add_argument("--verbose", "-v", action="count", default=0)
+    parser.add_argument("--verbose", "-v", action="count", default=1)
     args = parser.parse_args()
 
     # Setup logging
