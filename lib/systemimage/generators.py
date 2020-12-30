@@ -39,6 +39,10 @@ CACHE = {}
 logger = logging.getLogger(__name__)
 
 
+class VersionError(Exception):
+    """Raised when the monitor version is invalid"""
+
+
 def list_versions(cdimage_path):
     versions = sorted([version for version in os.listdir(cdimage_path)
                       if version not in ("pending", "current")],
@@ -372,6 +376,25 @@ def generate_file_cdimage_device_android(conf, arguments, environment):
     return None
 
 
+def get_monitor_version(url):
+    """
+        Retrieve the version number given at URL
+    """
+    try:
+        version = urlopen(url, timeout=5).read().decode("utf-8").strip()
+    except (socket.timeout, IOError) as e:
+        logger.exception(e)
+        logger.error("Failed to download %s", url)
+        raise e
+
+    # Validate the version number
+    if not version or len(version.split("\n")) > 1:
+        logger.error("Invalid or missing version number %s", version)
+        raise VersionError()
+
+    return version
+
+
 def generate_file_http_livecd_rootfs(conf, arguments, environment):
     """
         Grab, cache and returns a file using http/https.
@@ -398,20 +421,9 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
     # Get the version/build number
     if "monitor" in options or version:
         if not version:
-            # Grab the current version number
-            old_timeout = socket.getdefaulttimeout()
-            socket.setdefaulttimeout(5)
             try:
-                version = urlopen(options['monitor']).read().strip()
-            except socket.timeout:
-                return None
-            except IOError:
-                return None
-            socket.setdefaulttimeout(old_timeout)
-
-            # Validate the version number
-            if not version or len(version.split("\n")) > 1:
-                logger.debug("Invalid or missing version number")
+                version = get_monitor_version(options['monitor'])
+            except VersionError:
                 return None
 
             # Push the result in the cache
@@ -1166,20 +1178,9 @@ def generate_file_http(conf, arguments, environment):
     # Get the version/build number
     if "monitor" in options or version:
         if not version:
-            # Grab the current version number
-            old_timeout = socket.getdefaulttimeout()
-            socket.setdefaulttimeout(5)
             try:
-                version = urlopen(options['monitor']).read().strip()
-            except socket.timeout:
-                return None
-            except IOError:
-                return None
-            socket.setdefaulttimeout(old_timeout)
-
-            # Validate the version number
-            if not version or len(version.split("\n")) > 1:
-                logger.debug("Invalid or missing version number")
+                version = get_monitor_version(options['monitor'])
+            except VersionError:
                 return None
 
             # Push the result in the cache
