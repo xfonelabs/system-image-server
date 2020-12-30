@@ -13,7 +13,7 @@ Run time dependencies
  - xz-utils
  - python3, python3-gpg
  - e2fsprogs
- - android-tools-fsutils
+ - android-sdk-libsparse-utils
  - abootimg
 
 
