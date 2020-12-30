@@ -17,16 +17,24 @@
 
 import configparser
 import os
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_config(path):
     config = {}
 
-    configp = configparser.ConfigParser()
+    configp = configparser.ConfigParser(interpolation=None)
     configp.optionxform = str
     try:
         configp.read(path)
-    except configparser.Error:
+    except configparser.Error as e:
+        logger.exception(e)
+        logger.error(
+            "Failed to parse configuration file, using empty configuration."
+            )
         return config
 
     for section in configp.sections():
