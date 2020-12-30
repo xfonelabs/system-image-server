@@ -46,10 +46,15 @@ def generate_signing_key(keyring_path, key_name, key_email, key_validity,
 
     user_id = "{} <{}>".format(key_name, key_email)
 
+    if key_validity.total_seconds() > 0:
+        expires = True
+    else:
+        expires = False
+
     with gpg.Context(home_dir=keyring_path) as ctx:
         result = ctx.create_key(user_id, algorithm=algorithm,
-                                expires_in=key_validity.seconds, expires=True,
-                                sign=True)
+                                expires_in=int(key_validity.total_seconds()),
+                                expires=expires, sign=True)
         key = ctx.get_key(result.fpr, True)
         [uid] = key.uids
 
