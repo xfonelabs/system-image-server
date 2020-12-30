@@ -2,7 +2,7 @@
  System Image Server
 =====================
 
-This code builds the system-image.ubuntu.com site.
+system-image-server is the server-side component of Image-Based Upgrades of Ubuntu Touch. When used with [the system-image client](https://github.com/ubports/system-image), it provides a way for an operating system to be distributed through immutable system images. See [ImageBasedUpgrades on the Ubuntu Wiki](https://wiki.ubuntu.com/ImageBasedUpgrades/) to learn more.
 
 
 Run time dependencies
@@ -68,25 +68,25 @@ You can also run just a subset of tests, e.g. if you want to debug why a
 single test is failing.  To do this, make sure you've run `tox` at least once
 for the environment you want to explore, or run something like::
 
-    $ tox --notest -r -e py34
+    $ tox --notest -r -e py38
 
-which generates the *py34* environment you'll use below.
+which generates the *py38* environment you'll use below.
 
 Now you can run a subset of tests.  Say for example, you want to run the
 `test_keyring` test from `test_gpg.py`.  Do this::
 
-    $ .tox/py34/bin/python -m nose2 -v -P test_keyring
+    $ .tox/py38/bin/python -m nose2 -v -P test_keyring
 
 The `-P` option takes a *pattern*, where the pattern can be any test method,
 test class, or test module, and in fact can be a Python regular expression.
 Multiple `-P` options can be given.  So, to run all the GPG tests, you could
 do (to run all the tests in the module)::
 
-    $ .tox/py34/bin/python -m nose2 -v -P test_gpg
+    $ .tox/py38/bin/python -m nose2 -v -P test_gpg
 
 or (to run all tests in the class)::
 
-    $ .tox/py34/bin/python -m nose2 -v -P GPGTests
+    $ .tox/py38/bin/python -m nose2 -v -P GPGTests
 
 See also
 ========
