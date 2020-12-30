@@ -28,10 +28,13 @@ from systemimage.gpg import generate_signing_key
 
 KEYS = {
     "archive-master": ("{0} Archive Master key",
-                       datetime.timedelta(seconds=0)),
-    "image-master": ("{0} Image Master key", datetime.timedelta(seconds=0)),
-    "device-signing": ("{0} Device Signing key", datetime.timedelta(days=730)),
-    "image-signing": ("{0} Image Signing key", datetime.timedelta(days=730))
+                       datetime.timedelta(seconds=0), "rsa4096"),
+    "image-master": ("{0} Image Master key", datetime.timedelta(seconds=0),
+                     "rsa4096"),
+    "device-signing": ("{0} Device Signing key", datetime.timedelta(days=730),
+                       "rsa2048"),
+    "image-signing": ("{0} Image Signing key", datetime.timedelta(days=730),
+                      "rsa2048")
     }
 
 
@@ -47,14 +50,15 @@ def main():
 
     print("I: Generating signing keys...")
 
-    for key_id, (key_name, key_expiry) in KEYS.items():
+    for key_id, (key_name, key_expiry, key_algorithm) in KEYS.items():
         key_path = os.path.join(conf.gpg_key_path, key_id)
         if os.path.exists(key_path):
             print("W: The key \"{0}\" already exists".format(key_id))
             continue
         os.makedirs(key_path)
         generate_signing_key(
-            key_path, key_name.format(args.prefix), args.email, key_expiry)
+            key_path, key_name.format(args.prefix), args.email, key_expiry,
+            algorithm=key_algorithm)
 
     print("I: Done")
 

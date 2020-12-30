@@ -26,15 +26,19 @@ import gpg
 logger = logging.getLogger(__name__)
 
 
-def generate_signing_key(keyring_path, key_name, key_email, key_validity):
+def generate_signing_key(keyring_path, key_name, key_email, key_validity,
+                         algorithm="rsa2048"):
     """
-        Generate a new 2048bit RSA signing key.
+        Generate a new RSA signing key.
 
         keyring_path is the GNUPGHOME of the target keyring.
         key_name is the name part of the UID for the new key.
         key_email is the email of the UID for the new key.
         key_validity is a datetime.timedelta value for the time the key
         will remain valid for.
+        algorithm is the key generation algorithm to use. You probably
+        shouldn't use less than rsa2048, but using rsa4096 will make
+        signing operations slower.
     """
 
     if not os.path.isdir(keyring_path):
@@ -43,7 +47,7 @@ def generate_signing_key(keyring_path, key_name, key_email, key_validity):
     user_id = "{} <{}>".format(key_name, key_email)
 
     with gpg.Context(home_dir=keyring_path) as ctx:
-        result = ctx.create_key(user_id, algorithm="rsa2048",
+        result = ctx.create_key(user_id, algorithm=algorithm,
                                 expires_in=key_validity.seconds, expires=True,
                                 sign=True)
         key = ctx.get_key(result.fpr, True)
