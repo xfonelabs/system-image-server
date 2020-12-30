@@ -265,10 +265,8 @@ def xz_compress(path, destination=None, level=9):
         Compress a file (path) using xz.
         By default, creates a .xz version of the file in the same directory.
         An alternate destination path may be provided.
-        The compress level is 9 by default but can be overriden.
+        The compress level is 9 by default but can be overridden.
     """
-
-    # NOTE: Once we can drop support for < 3.3, the new lzma module can be used
 
     if not destination:
         destination = "%s.xz" % path
@@ -280,7 +278,8 @@ def xz_compress(path, destination=None, level=9):
 
     with open(destination, "wb+") as fd:
         retval = subprocess.call([
-            'xz', '--threads=0', '-z', '-%s' % level, '-c', path
+            'xz', '--memlimit=70%', '--threads=0', '-z', '-%s' % level,
+            '-c', path
             ],
             stdout=fd)
     return retval
@@ -308,8 +307,10 @@ def xz_uncompress(path, destination=None):
     logger.debug("Unxzipping file: %s" % destination)
 
     with open(destination, "wb+") as fd:
-        retval = subprocess.call(['xz', '-d', '-c', path],
-                                 stdout=fd)
+        retval = subprocess.call([
+            'xz', '--memlimit=70%', '--threads=0', '-d', '-c', path
+            ],
+            stdout=fd)
 
     return retval
 
