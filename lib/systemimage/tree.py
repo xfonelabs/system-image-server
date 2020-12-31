@@ -717,11 +717,11 @@ class Tree:
                 target_device = self.get_device(target_name, device_name)
 
                 # Extract all the current builds
-                device_images = {(image['version'], image.get("base", None),
+                device_images = {(image['version'], image.get("base", -1),
                                   image['type'])
                                  for image in device.list_images()}
 
-                target_images = {(image['version'], image.get("base", None),
+                target_images = {(image['version'], image.get("base", -1),
                                   image['type'])
                                  for image in target_device.list_images()}
 
@@ -739,7 +739,7 @@ class Tree:
                         orig = [entry for entry in target_device.list_images()
                                 if entry['type'] == image[2] and
                                 entry['version'] == image[0] and
-                                entry.get("base", None) == image[1]]
+                                entry.get("base", -1) == image[1]]
 
                         entry = copy.deepcopy(orig[0])
 
