@@ -2,19 +2,19 @@
  System Image Server
 =====================
 
-system-image-server is the server-side component of Image-Based Upgrades of Ubuntu Touch. When used with [the system-image client](https://github.com/ubports/system-image), it provides a way for an operating system to be distributed through immutable system images. See [ImageBasedUpgrades on the Ubuntu Wiki](https://wiki.ubuntu.com/ImageBasedUpgrades/) to learn more.
+system-image-server is the server-side component of Image-Based Upgrades of Ubuntu Touch. When used with `the system-image client <https://github.com/ubports/system-image>`_, it provides a way for an operating system to be distributed through immutable system images. See `ImageBasedUpgrades on the Ubuntu Wiki <https://wiki.ubuntu.com/ImageBasedUpgrades/>`_ to learn more.
 
 
 Run time dependencies
 =====================
 
-`apt-get install` these:
+``apt-get install`` these:
 
- - xz-utils
- - python3, python3-gpg
- - e2fsprogs
- - android-sdk-libsparse-utils
- - abootimg
+- xz-utils
+- python3, python3-gpg
+- e2fsprogs
+- android-sdk-libsparse-utils
+- abootimg
 
 
 Running the test suite
@@ -22,16 +22,16 @@ Running the test suite
 
 Some additional dependencies are required for the test suite:
 
- - tox
- - python3-nose2
- - python3-mock
- - python3-coverage
- - libjs-jquery-hotkeys, libjs-jquery-isonscreen, libjs-jquery-tablesorter
- - pep8
- - pyflakes3 (Ubuntu 16.04 and later)
- - xz-utils (for 100% coverage)
- - cpio
- - python3-six
+- tox
+- python3-nose2
+- python3-mock
+- python3-coverage
+- libjs-jquery-hotkeys, libjs-jquery-isonscreen, libjs-jquery-tablesorter
+- pep8
+- pyflakes3 (Ubuntu 16.04 and later)
+- xz-utils (for 100% coverage)
+- cpio
+- python3-six
 
 The full test suite require you to pre-generate some GPG keys.  Actually, you
 can run the test suite without this, but many tests will be skipped.  To
