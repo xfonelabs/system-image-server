@@ -30,7 +30,7 @@ except ImportError:
     import mock
 
 from hashlib import sha256
-from io import BytesIO, StringIO
+from io import BytesIO
 
 from systemimage import config, generators, gpg, tools, tree
 from systemimage.testing.helpers import HAS_TEST_KEYS, MISSING_KEYS_WARNING
@@ -648,7 +648,7 @@ public_https_port = 8443
     @mock.patch("systemimage.generators.urlretrieve")
     @mock.patch("systemimage.generators.urlopen")
     def test_generate_file_http(self, mock_urlopen, mock_urlretrieve):
-        def urlopen_side_effect(url):
+        def urlopen_side_effect(url, timeout=0):
             if url.endswith("timeout"):
                 raise socket.timeout
 
@@ -656,9 +656,9 @@ public_https_port = 8443
                 raise IOError()
 
             if url.endswith("long"):
-                return StringIO(u"42\n42\n42")
+                return BytesIO(b"42\n42\n42")
 
-            return StringIO(u"42")
+            return BytesIO(b"42")
         mock_urlopen.side_effect = urlopen_side_effect
 
         def urlretrieve_side_effect(url, location):
@@ -991,7 +991,7 @@ public_https_port = 8443
                                            {'path': '/pool/b-b.tar.xz'}]}]})
                     .encode())
 
-            return StringIO(url)
+            return BytesIO(url)
         mock_urlopen.side_effect = urlopen_side_effect
 
         def urlretrieve_side_effect(url, location):

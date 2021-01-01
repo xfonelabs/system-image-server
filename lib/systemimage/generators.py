@@ -423,7 +423,7 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
         if not version:
             try:
                 version = get_monitor_version(options['monitor'])
-            except VersionError:
+            except (VersionError, socket.timeout, IOError):
                 return None
 
             # Push the result in the cache
@@ -1180,7 +1180,7 @@ def generate_file_http(conf, arguments, environment):
         if not version:
             try:
                 version = get_monitor_version(options['monitor'])
-            except VersionError:
+            except (VersionError, socket.timeout, IOError):
                 return None
 
             # Push the result in the cache
