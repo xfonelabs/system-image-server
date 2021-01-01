@@ -340,7 +340,7 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
     source_tarball = tarfile.open(os.path.join(temp_dir, "source.tar"),
                                   "r:")
     target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"),
-                                  "w:")
+                                  "w:", format=tarfile.GNU_FORMAT)
 
     for entry in source_tarball:
         # FIXME: Will need to be done on the real rootfs
@@ -565,7 +565,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
         source_tarball = tarfile.open(os.path.join(temp_dir, "source.tar"),
                                       "r:")
         target_tarball = tarfile.open(os.path.join(temp_dir, "target.tar"),
-                                      "w:")
+                                      "w:", format=tarfile.GNU_FORMAT)
 
         for entry in source_tarball:
             # FIXME: Will need to be done on the real rootfs
@@ -1154,7 +1154,8 @@ def generate_file_keyring(conf, arguments, environment):
     tempdir = tempfile.mkdtemp()
 
     # Generate the tarball
-    tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:")
+    tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:",
+                           format=tarfile.GNU_FORMAT)
     tarball.add("%s.tar.xz" % keyring_path,
                 arcname="/system/usr/share/system-image/"
                         "archive-master.tar.xz",
