@@ -1404,8 +1404,9 @@ def generate_file_system_image(conf, arguments, environment):
 
             return path
 
-    logger.error("No match found for device '%s' in channel '%s'", device_name,
-                 channel_name)
+    logger.error(
+        "No match found for image '%s' for device '%s' in channel '%s'",
+        prefix, device_name, channel_name)
     return None
 
 
