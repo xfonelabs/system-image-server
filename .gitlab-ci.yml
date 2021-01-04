@@ -13,3 +13,7 @@ test:
     - mkdir tools/keys
     - tools/generate-keys
     - tox
+    - python3-coverage xml --rcfile=coverage-py38.ini -o coverage-py38.xml
+  artifacts:
+    reports:
+      cobertura: coverage-py38.xml
