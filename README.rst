@@ -15,6 +15,7 @@ Run time dependencies
 - e2fsprogs
 - android-sdk-libsparse-utils
 - abootimg
+- fakeroot
 
 
 Running the test suite
@@ -26,12 +27,19 @@ Some additional dependencies are required for the test suite:
 - python3-nose2
 - python3-mock
 - python3-coverage
-- libjs-jquery-hotkeys, libjs-jquery-isonscreen, libjs-jquery-tablesorter
 - pep8
 - pyflakes3 (Ubuntu 16.04 and later)
 - xz-utils (for 100% coverage)
 - cpio
 - python3-six
+
+A final set of dependencies is needed to have full HTML coverage reports with
+``python3-coverage html``:
+
+- libjs-jquery-hotkeys
+- libjs-jquery-isonscreen
+- libjs-jquery-tablesorter
+- libjs-jquery-throttle-debounce
 
 The full test suite require you to pre-generate some GPG keys.  Actually, you
 can run the test suite without this, but many tests will be skipped.  To
@@ -58,6 +66,12 @@ anyway, do this::
 To run just the coverage collecting version of the tests::
 
     $ tox -e coverage-py38
+
+Once you have run the coverage tests at least once, you can create a coverage
+report. The following command will place an HTML coverage report in the
+``htmlcov/`` folder::
+
+    python3-coverage html --rcfile=coverage-py38.ini
 
 Of course, you can run any combination of tests.  To see the full list of
 available tests::

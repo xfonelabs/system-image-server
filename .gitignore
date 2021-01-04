@@ -20,3 +20,4 @@ tools/keys/image-signing
 coverage-py38
 *.pyc
 .bzr
+htmlcov/
