@@ -1345,7 +1345,7 @@ def generate_file_system_image(conf, arguments, environment):
 
     # We need at least a channel name and a file prefix
     if len(arguments) < 2:
-        logger.debug("Too few arguments")
+        logger.error("Too few arguments")
         return None
 
     # Read the arguments
@@ -1364,12 +1364,12 @@ def generate_file_system_image(conf, arguments, environment):
     # Run some checks
     pub = tree.Tree(conf)
     if channel_name not in pub.list_channels():
-        logger.debug("Channel not in the published list: %s" % channel_name)
+        logger.error("Channel not in the published list: %s", channel_name)
         return None
 
     if (device_name not in
             pub.list_channels()[channel_name]['devices']):
-        logger.debug("Device not in the channel list")
+        logger.error("Device not in the channel list: %s", device_name)
         return None
 
     # Try to find the file
@@ -1378,10 +1378,11 @@ def generate_file_system_image(conf, arguments, environment):
     full_images = sorted([image for image in device.list_images()
                           if image['type'] == "full"],
                          key=lambda image: image['version'])
-    logger.debug("List of full images found %s" % full_images)
+    logger.debug("List of full images found %s", full_images)
 
     # No images
     if not full_images:
+        logger.error("No images found for device: %s", device_name)
         return None
 
     # Found an image, so let's try to find a match
@@ -1391,7 +1392,7 @@ def generate_file_system_image(conf, arguments, environment):
         if file_prefix == prefix:
             path = os.path.realpath("%s/%s" % (conf.publish_path,
                                                file_entry['path']))
-            logger.debug("Path generated: %s" % path)
+            logger.debug("Path generated: %s", path)
 
             if os.path.exists(path.replace(".tar.xz", ".json")):
                 with open(path.replace(".tar.xz", ".json"), "r") as fd:
@@ -1403,6 +1404,8 @@ def generate_file_system_image(conf, arguments, environment):
 
             return path
 
+    logger.error("No match found for device '%s' in channel '%s'", device_name,
+                 channel_name)
     return None
 
 
