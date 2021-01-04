@@ -24,16 +24,15 @@ import tarfile
 import tempfile
 import time
 from hashlib import sha256
+from urllib.request import urlopen, urlretrieve, build_opener, install_opener
 
 from systemimage import diff, gpg, tools, tree
 
-try:
-    from urllib.request import urlopen, urlretrieve
-except ImportError:  # pragma: no cover
-    from urllib import urlopen, urlretrieve
-
 # Global
 CACHE = {}
+OPENER = build_opener()
+OPENER.addheaders = [("User-Agent", "system-image-server")]
+install_opener(OPENER)
 
 logger = logging.getLogger(__name__)
 
