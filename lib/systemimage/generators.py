@@ -282,15 +282,13 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
     socket.setdefaulttimeout(20)
     try:
         urlretrieve(url, os.path.join(tempdir, "download"))
-    except socket.timeout:
-        logger.debug("Socket timeout")
+    except (socket.timeout, IOError) as e:
+        logger.exception(e)
+        logger.error("Failed to retrieve url %s", url)
         shutil.rmtree(tempdir)
         return None
-    except IOError:
-        logger.debug("IOError")
-        shutil.rmtree(tempdir)
-        return None
-    socket.setdefaulttimeout(old_timeout)
+    finally:
+        socket.setdefaulttimeout(old_timeout)
 
     # Hash it if we don't have a version number
     if not version:
@@ -1035,13 +1033,13 @@ def generate_file_http(conf, arguments, environment):
     socket.setdefaulttimeout(5)
     try:
         urlretrieve(url, os.path.join(tempdir, "download"))
-    except socket.timeout:
+    except (socket.timeout, IOError) as e:
+        logger.exception(e)
+        logger.error("Failed to retrieve url %s", url)
         shutil.rmtree(tempdir)
         return None
-    except IOError:
-        shutil.rmtree(tempdir)
-        return None
-    socket.setdefaulttimeout(old_timeout)
+    finally:
+        socket.setdefaulttimeout(old_timeout)
 
     # Hash it if we don't have a version number
     if not version:
@@ -1217,14 +1215,15 @@ def generate_file_remote_system_image(conf, arguments, environment):
     # Fetch and validate the remote channels.json
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(5)
+    url = "%s/channels.json" % base_url
     try:
-        channel_json = json.loads(urlopen("%s/channels.json" %
-                                          base_url).read().decode().strip())
-    except socket.timeout:
+        channel_json = json.loads(urlopen(url).read().decode().strip())
+    except (socket.timeout, IOError) as e:
+        logger.exception(e)
+        logger.error("Failed to retrieve url %s", url)
         return None
-    except IOError:
-        return None
-    socket.setdefaulttimeout(old_timeout)
+    finally:
+        socket.setdefaulttimeout(old_timeout)
 
     if channel_name not in channel_json:
         logger.debug("Missing channel name in JSON: %s" % channel_name)
@@ -1252,11 +1251,12 @@ def generate_file_remote_system_image(conf, arguments, environment):
     socket.setdefaulttimeout(5)
     try:
         index_json = json.loads(urlopen(index_url).read().decode())
-    except socket.timeout:
+    except (socket.timeout, IOError) as e:
+        logger.exception(e)
+        logger.error("Failed to retrieve url %s", index_url)
         return None
-    except IOError:
-        return None
-    socket.setdefaulttimeout(old_timeout)
+    finally:
+        socket.setdefaulttimeout(old_timeout)
 
     # Grab the list of full images
     full_images = sorted([image for image in index_json['images']
@@ -1289,15 +1289,14 @@ def generate_file_remote_system_image(conf, arguments, environment):
             socket.setdefaulttimeout(5)
             try:
                 urlretrieve(file_url, path)
-            except socket.timeout:
+            except (socket.timeout, IOError) as e:
+                logger.exception(e)
+                logger.error("Failed to retrieve url %s", file_url)
                 if os.path.exists(path):
                     os.remove(path)
                 return None
-            except IOError:
-                if os.path.exists(path):
-                    os.remove(path)
-                return None
-            socket.setdefaulttimeout(old_timeout)
+            finally:
+                socket.setdefaulttimeout(old_timeout)
 
             if "keyring" in options:
                 if not tools.repack_recovery_keyring(conf, path,
@@ -1315,13 +1314,13 @@ def generate_file_remote_system_image(conf, arguments, environment):
             json_url = file_url.replace(".tar.xz", ".json")
             try:
                 urlretrieve(json_url, json_path),
-            except socket.timeout:
+            except (socket.timeout, IOError) as e:
+                logger.exception(e)
+                logger.error("Failed to retrieve url %s", json_url)
                 if os.path.exists(json_path):
                     os.remove(json_path)
-            except IOError:
-                if os.path.exists(json_path):
-                    os.remove(json_path)
-            socket.setdefaulttimeout(old_timeout)
+            finally:
+                socket.setdefaulttimeout(old_timeout)
 
             if os.path.exists(json_path):
                 gpg.sign_file(conf, "image-signing", json_path)
