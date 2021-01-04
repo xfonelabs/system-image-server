@@ -532,6 +532,11 @@ public_https_port = 8443
     @mock.patch("systemimage.generators.urlopen")
     def test_generate_file_http(self, mock_urlopen, mock_urlretrieve):
         def urlopen_side_effect(url, timeout=0):
+            try:
+                url = url.get_full_url()
+            except AttributeError:
+                pass
+
             if url.endswith("timeout"):
                 raise socket.timeout
 
@@ -545,6 +550,10 @@ public_https_port = 8443
         mock_urlopen.side_effect = urlopen_side_effect
 
         def urlretrieve_side_effect(url, location):
+            try:
+                url = url.get_full_url()
+            except AttributeError:
+                pass
             if url.endswith("timeout"):
                 raise socket.timeout
 
@@ -821,7 +830,12 @@ public_https_port = 8443
     def test_generate_file_remote_system_image(self, mock_urlopen,
                                                mock_urlretrieve,
                                                mock_repack_recovery_keyring):
-        def urlopen_side_effect(url):
+        def urlopen_side_effect(url, timeout=0):
+            try:
+                url = url.get_full_url()
+            except AttributeError:
+                pass
+
             if url.startswith("http://timeout"):
                 raise socket.timeout
 
@@ -878,6 +892,11 @@ public_https_port = 8443
         mock_urlopen.side_effect = urlopen_side_effect
 
         def urlretrieve_side_effect(url, location):
+            try:
+                url = url.get_full_url()
+            except AttributeError:
+                pass
+
             if url.startswith("http://timeout"):
                 raise socket.timeout
 

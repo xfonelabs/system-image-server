@@ -24,16 +24,13 @@ import tarfile
 import tempfile
 import time
 from hashlib import sha256
+from urllib.request import urlopen, urlretrieve, Request
 
 from systemimage import diff, gpg, tools, tree
 
-try:
-    from urllib.request import urlopen, urlretrieve
-except ImportError:  # pragma: no cover
-    from urllib import urlopen, urlretrieve
-
 # Global
 CACHE = {}
+HEADERS = {"User-Agent": "system-image-server"}
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +41,7 @@ class VersionError(Exception):
 
 def list_versions(cdimage_path):
     versions = sorted([version for version in os.listdir(cdimage_path)
-                      if version not in ("pending", "current")],
+                       if version not in ("pending", "current")],
                       reverse=True)
     logger.debug("Versions detected: %s" % versions)
     return versions
@@ -180,12 +177,7 @@ def get_monitor_version(url):
     """
         Retrieve the version number given at URL
     """
-    try:
-        version = urlopen(url, timeout=5).read().decode("utf-8").strip()
-    except (socket.timeout, IOError) as e:
-        logger.exception(e)
-        logger.error("Failed to download %s", url)
-        raise e
+    version = urlopen_wrapper(url)
 
     # Validate the version number
     if not version or len(version.split("\n")) > 1:
@@ -193,6 +185,29 @@ def get_monitor_version(url):
         raise VersionError()
 
     return version
+
+
+def urlopen_wrapper(url, timeout=5):
+    try:
+        return urlopen(Request(url, headers=HEADERS),
+                       timeout=timeout).read().decode("utf-8").strip()
+    except (socket.timeout, IOError) as e:
+        logger.exception(e)
+        logger.error("Failed to download %s", url)
+        raise e
+
+
+def urlretrieve_wrapper(url, destination, timeout=5):
+    old_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(timeout)
+    try:
+        urlretrieve(Request(url, headers=HEADERS), destination)
+    except (socket.timeout, IOError) as e:
+        logger.exception(e)
+        logger.error("Failed to download %s", url)
+        raise e
+    finally:
+        socket.setdefaulttimeout(old_timeout)
 
 
 def generate_file_http_livecd_rootfs(conf, arguments, environment):
@@ -278,25 +293,17 @@ def generate_file_http_livecd_rootfs(conf, arguments, environment):
 
     # Grab the real thing
     tempdir = tempfile.mkdtemp()
-    old_timeout = socket.getdefaulttimeout()
-    # Give it 20 minutes to download, this should be plenty
-    socket.setdefaulttimeout(20)
+    output_path = os.path.join(tempdir, "download")
     try:
-        urlretrieve(url, os.path.join(tempdir, "download"))
-    except socket.timeout:
-        logger.debug("Socket timeout")
+        urlretrieve_wrapper(url, output_path, timeout=20)
+    except (socket.timeout, IOError):
         shutil.rmtree(tempdir)
         return None
-    except IOError:
-        logger.debug("IOError")
-        shutil.rmtree(tempdir)
-        return None
-    socket.setdefaulttimeout(old_timeout)
 
     # Hash it if we don't have a version number
     if not version:
         # Hash the file
-        with open(os.path.join(tempdir, "download"), "rb") as fd:
+        with open(output_path, "rb") as fd:
             version = sha256(fd.read()).hexdigest()
 
         # Set version_detail
@@ -500,7 +507,7 @@ def generate_file_cdimage_ubuntu(conf, arguments, environment):
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
         checksum_path = os.path.exists(os.path.join(cdimage_path, version,
-                                       "SHA256SUMS"))
+                                                    "SHA256SUMS"))
         if not checksum_path:
             logger.debug("Missing checksum: %s" % checksum_path)
             continue
@@ -731,7 +738,7 @@ def generate_file_cdimage_custom(conf, arguments, environment):
     for version in list_versions(cdimage_path):
         # Skip directory without checksums
         checksum_path = os.path.exists(os.path.join(cdimage_path, version,
-                                       "SHA256SUMS"))
+                                                    "SHA256SUMS"))
         if not checksum_path:
             logger.debug("Missing checksum: %s" % checksum_path)
             continue
@@ -1032,22 +1039,17 @@ def generate_file_http(conf, arguments, environment):
 
     # Grab the real thing
     tempdir = tempfile.mkdtemp()
-    old_timeout = socket.getdefaulttimeout()
-    socket.setdefaulttimeout(5)
+    download_path = os.path.join(tempdir, "download")
     try:
-        urlretrieve(url, os.path.join(tempdir, "download"))
-    except socket.timeout:
+        urlretrieve_wrapper(url, download_path)
+    except (socket.timeout, IOError):
         shutil.rmtree(tempdir)
         return None
-    except IOError:
-        shutil.rmtree(tempdir)
-        return None
-    socket.setdefaulttimeout(old_timeout)
 
     # Hash it if we don't have a version number
     if not version:
         # Hash the file
-        with open(os.path.join(tempdir, "download"), "rb") as fd:
+        with open(download_path, "rb") as fd:
             version = sha256(fd.read()).hexdigest()
 
         # Set version_detail
@@ -1082,7 +1084,7 @@ def generate_file_http(conf, arguments, environment):
         os.makedirs(os.path.join(conf.publish_path, "pool"))
 
     # Move the file to the pool and sign it
-    shutil.move(os.path.join(tempdir, "download"), path)
+    shutil.move(download_path, path)
     gpg.sign_file(conf, "image-signing", path)
 
     # Generate the metadata file
@@ -1216,16 +1218,11 @@ def generate_file_remote_system_image(conf, arguments, environment):
         device_name = options['device']
 
     # Fetch and validate the remote channels.json
-    old_timeout = socket.getdefaulttimeout()
-    socket.setdefaulttimeout(5)
     try:
-        channel_json = json.loads(urlopen("%s/channels.json" %
-                                          base_url).read().decode().strip())
-    except socket.timeout:
+        channel_list_url = "%s/channels.json" % base_url
+        channel_json = json.loads(urlopen_wrapper(channel_list_url))
+    except (socket.timeout, IOError):
         return None
-    except IOError:
-        return None
-    socket.setdefaulttimeout(old_timeout)
 
     if channel_name not in channel_json:
         logger.debug("Missing channel name in JSON: %s" % channel_name)
@@ -1249,15 +1246,10 @@ def generate_file_remote_system_image(conf, arguments, environment):
     logger.debug("Index file for the devices in channel: %s" % index_url)
 
     # Fetch and validate the remote index.json
-    old_timeout = socket.getdefaulttimeout()
-    socket.setdefaulttimeout(5)
     try:
-        index_json = json.loads(urlopen(index_url).read().decode())
-    except socket.timeout:
+        index_json = json.loads(urlopen_wrapper(index_url))
+    except (socket.timeout, IOError):
         return None
-    except IOError:
-        return None
-    socket.setdefaulttimeout(old_timeout)
 
     # Grab the list of full images
     full_images = sorted([image for image in index_json['images']
@@ -1287,18 +1279,12 @@ def generate_file_remote_system_image(conf, arguments, environment):
 
             # Grab the file
             file_url = "%s/%s" % (base_url, file_entry['path'])
-            socket.setdefaulttimeout(5)
             try:
-                urlretrieve(file_url, path)
-            except socket.timeout:
+                urlretrieve_wrapper(file_url, path)
+            except (socket.timeout, IOError):
                 if os.path.exists(path):
                     os.remove(path)
                 return None
-            except IOError:
-                if os.path.exists(path):
-                    os.remove(path)
-                return None
-            socket.setdefaulttimeout(old_timeout)
 
             if "keyring" in options:
                 if not tools.repack_recovery_keyring(conf, path,
@@ -1311,18 +1297,13 @@ def generate_file_remote_system_image(conf, arguments, environment):
             gpg.sign_file(conf, "image-signing", path)
 
             # Attempt to grab an associated json
-            socket.setdefaulttimeout(5)
             json_path = path.replace(".tar.xz", ".json")
             json_url = file_url.replace(".tar.xz", ".json")
             try:
-                urlretrieve(json_url, json_path),
-            except socket.timeout:
+                urlretrieve_wrapper(json_url, json_path)
+            except (socket.timeout, IOError):
                 if os.path.exists(json_path):
                     os.remove(json_path)
-            except IOError:
-                if os.path.exists(json_path):
-                    os.remove(json_path)
-            socket.setdefaulttimeout(old_timeout)
 
             if os.path.exists(json_path):
                 gpg.sign_file(conf, "image-signing", json_path)
