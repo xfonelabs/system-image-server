@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Copyright (C) 2013 Canonical Ltd.
+# Copyright (C) 2021 UBports Foundation
+# Author: Dalton Durst <dalton@ubports.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+Cleans up the system-image tree according to the fullcount values set in the
+config file, by expiring images and then removing orphaned files.
+"""
+
+import time
+import logging
+import fcntl
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.join(sys.path[0], os.pardir, "lib"))
+from systemimage import config, generators, tools, tree
+
+
+if __name__ == '__main__':
+
+    # Setup logging
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(message)s")
+    stdoutlogger = logging.StreamHandler(sys.stdout)
+    stdoutlogger.setFormatter(formatter)
+    logging.root.setLevel(logging.DEBUG)
+    logging.root.addHandler(stdoutlogger)
+
+    # Load the configuration
+    conf = config.Config()
+
+    # Try to acquire a global lock
+    lock_file = os.path.join(conf.state_path, "global.lock")
+    lock_fd = open(lock_file, 'w')
+
+    try:
+        fcntl.lockf(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        logging.info("Something else holds the global lock. exiting.")
+        sys.exit(0)
+
+    # Load the tree
+    pub = tree.Tree(conf)
+
+    # Iterate through the channels
+    for channel_name, channel in conf.channels.items():
+        logging.info("Processing channel: %s" % channel_name)
+
+        # Check the channel exists
+        if channel_name not in pub.list_channels():
+            logging.error("Invalid channel name: %s" % channel_name)
+            continue
+
+        # Iterate through the devices
+        for device_name in pub.list_channels()[channel_name]['devices']:
+            logging.info("Processing device: %s" % device_name)
+
+            device_entry = \
+                pub.list_channels()[channel_name]['devices'][device_name]
+            if "redirect" in device_entry:
+                logging.info("Device is a redirect, not considering.")
+                continue
+
+            device = pub.get_device(channel_name, device_name)
+
+            # Expire images
+            if channel.fullcount > 0:
+                logging.info("Expiring old images")
+                device.expire_images(channel.fullcount)
+
+        # Sync all channel aliases
+        logging.info("Syncing any existing alias")
+        pub.sync_aliases(channel_name)
+
+    # Remove any orphaned file
+    logging.info("Removing orphaned files from the pool")
+    pub.cleanup_tree()
+
+    # Sync the mirrors
+    logging.info("Triggering a mirror sync")
+    tools.sync_mirrors(conf)
