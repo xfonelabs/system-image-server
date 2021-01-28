@@ -149,7 +149,7 @@ class Keyring:
         if os.path.isfile(destination):
             os.remove(destination)
 
-        tarball = tarfile.open(destination, "w:")
+        tarball = tarfile.open(destination, "w:", format=tarfile.GNU_FORMAT)
         tarball.add("%s/keyring.json" % self.keyring_path,
                     arcname="keyring.json")
         tarball.add("%s/pubring.gpg" % self.keyring_path,

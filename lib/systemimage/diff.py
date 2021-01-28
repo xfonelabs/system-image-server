@@ -226,7 +226,7 @@ class ImageDiff:
         if not self.diff:
             self.compare_images()
 
-        output = tarfile.open(path, 'w:')
+        output = tarfile.open(path, 'w:', format=tarfile.GNU_FORMAT)
 
         # List both deleted files and modified files in the removal list
         # that's needed to allow file type change (e.g. directory to symlink)

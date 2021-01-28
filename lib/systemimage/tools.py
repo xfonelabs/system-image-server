@@ -489,7 +489,8 @@ def repack_recovery_keyring(conf, path, keyring_name, device_name=None):
                         stdout=devnull, stderr=devnull)
 
     # Generate a new tarball
-    output_tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:")
+    output_tarball = tarfile.open(os.path.join(tempdir, "output.tar"), "w:",
+                                  format=tarfile.GNU_FORMAT)
     for entry in input_tarball:
         fileptr = None
         if entry.isfile():
