@@ -65,7 +65,7 @@ def unpack_arguments(arguments):
     arg_dict = {}
 
     for option in arguments.split(","):
-        fields = option.split("=")
+        fields = option.split("=", 1)
         if len(fields) != 2:
             continue
 
