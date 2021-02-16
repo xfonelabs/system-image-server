@@ -83,6 +83,10 @@ public_https_port = 8443
                          {'a': "1", 'b': "2"})
         self.assertEqual(generators.unpack_arguments("a=1,b=2,c"),
                          {'a': "1", 'b': "2"})
+        # Test case if we have = in the value
+        self.assertEqual(generators.unpack_arguments(
+                         "a=1,b=2=1,c,v=1=1=1=1,d=c"),
+                         {'a': "1", 'b': "2=1", "v": "1=1=1=1", "d": "c"})
 
     @unittest.skipUnless(HAS_TEST_KEYS, MISSING_KEYS_WARNING)
     def test_generate_delta(self):
