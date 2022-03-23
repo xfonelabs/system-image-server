@@ -250,7 +250,7 @@ class Tree:
 
             if os.path.isdir(entry):
                 os.rmdir(entry)
-            else if entry != "robots.txt":
+            elif entry != "robots.txt":
                 os.remove(entry)
 
         return True
