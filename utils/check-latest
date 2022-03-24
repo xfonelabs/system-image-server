@@ -25,7 +25,7 @@ from urllib.request import urlopen
 parser = argparse.ArgumentParser(description="system-image index parser")
 
 parser.add_argument("--server", metavar="SERVER",
-                    default="https://system-image.ubuntu.com")
+                    default="https://system-image.sageteamobile.com")
 parser.add_argument("--channel", metavar="CHANNEL", default="devel-proposed")
 parser.add_argument("device", metavar="DEVICE")
 

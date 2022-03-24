@@ -36,6 +36,8 @@ keys = (("archive-master", "[TESTING] Ubuntu Archive Master Signing Key",
         ("image-signing", "[TESTING] Ubuntu System Image Signing Key (YYYY)",
          "system-image@ubuntu.com", datetime.timedelta(days=730), "rsa2048"),
         ("device-signing", "[TESTING] Random OEM Signing Key (YYYY)",
+         "system-image@ubuntu.com", datetime.timedelta(days=730), "rsa2048")
+        ("blacklist", "[TESTING] Blacklist Signing Key (YYYY)",
          "system-image@ubuntu.com", datetime.timedelta(days=730), "rsa2048"))
 
 for key_name, key_description, key_email, key_expiry, key_algorithm in keys:

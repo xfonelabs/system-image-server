@@ -186,7 +186,7 @@ if __name__ == '__main__':
                 environment['version_detail'] = version_detail
                 environment['new_files'] = new_files
 
-                if file_name == "ubuntu":
+                if file_name == "ubports":
                     new_tag = time.strftime("%Y-%m-%d")
                     last_tag = None
                     if last_full:

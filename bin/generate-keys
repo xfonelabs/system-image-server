@@ -34,7 +34,9 @@ KEYS = {
     "device-signing": ("{0} Device Signing key", datetime.timedelta(days=730),
                        "rsa2048"),
     "image-signing": ("{0} Image Signing key", datetime.timedelta(days=730),
-                      "rsa2048")
+                      "rsa2048"),
+    "blacklist": ("{0} Blacklist Signing key", datetime.timedelta(days=730),
+                      "rsa2048"),
     }
 
 

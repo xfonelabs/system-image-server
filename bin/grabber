@@ -52,16 +52,16 @@ def main():
 
     # Start by grabbing the channels.json* files and the gpg keyrings.
     records = [
-        Record('http://system-image.ubuntu.com/channels.json',
+        Record('http://system-image.sageteamobile.com/channels.json',
                str(root / 'channels.json')),
-        Record('http://system-image.ubuntu.com/channels.json.asc',
+        Record('http://system-image.sageteamobile.com/channels.json.asc',
                str(root / 'channels.json.asc')),
         ]
     for keyring in ('archive-master',
                     'blacklist',
                     'image-master',
                     'image-signing'):
-        url = 'http://system-image.ubuntu.com/gpg/{}.tar.xz'.format(keyring)
+        url = 'http://system-image.sageteamobile.com/gpg/{}.tar.xz'.format(keyring)
         dest = gpg / '{}.tar.xz'.format(keyring)
         records.append(Record(url, str(dest)))
     downloader = CurlDownloadManager()
@@ -75,7 +75,7 @@ def main():
     index_json = channel_dir / args.device / 'index.json'
 
     records = [
-        Record('http://system-image.ubuntu.com/{}'.format(index_path),
+        Record('http://system-image.sageteamobile.com/{}'.format(index_path),
                str(index_json)),
         ]
     downloader.get_files(records)
@@ -99,12 +99,12 @@ def main():
             parents.append(local_path.parent)
             records.append(
                 Record(
-                    'http://system-image.ubuntu.com/{}'.format(path),
+                    'http://system-image.sageteamobile.com/{}'.format(path),
                     str(local_path),
                     checksum))
             records.append(
                 Record(
-                    'http://system-image.ubuntu.com/{}'.format(signature),
+                    'http://system-image.sageteamobile.com/{}'.format(signature),
                     str(root / signature)))
             # We also need the version-*.json files, which are used by
             # bin/copy-image
@@ -114,7 +114,7 @@ def main():
                     and version_details[-2] == 'tar'):
                 prefix, version = version_details[0].split('-')
                 version_file = 'version-{}.json'.format(version)
-                url = 'http://system-image.ubuntu.com/{}/{}'.format(
+                url = 'http://system-image.sageteamobile.com/{}/{}'.format(
                     path.parent, version_file)
                 dest = local_path.parent / version_file
                 records.append(Record(url, str(dest)))
