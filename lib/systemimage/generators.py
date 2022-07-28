@@ -93,6 +93,11 @@ def generate_delta(conf, source_path, target_path):
             and target_filename.startswith("keyring-")):
         return target_path
 
+        # skip creating delta for android9+ device overlay
+    if (source_filename.startswith("boot-")
+            and target_filename.startswith("boot-")):
+        return target_path
+
     # Now for everything else
     path = os.path.realpath(os.path.join(conf.publish_path, "pool",
                                          "%s.delta-%s.tar.xz" %
